@@ -1,0 +1,33 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.13.35931.197
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "padelya-api", "padelya-api.csproj", "{762490D1-4EC6-4EB6-9146-0610CF744069}"
+EndProject
+Project("{00D1A9C2-B5F0-4AF3-8072-F6C62B433612}") = "padelya-database", "..\padelya.database\padelya-database.sqlproj", "{9CAA1BA3-8390-4CFB-AFE2-2D6DAA410136}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{762490D1-4EC6-4EB6-9146-0610CF744069}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{762490D1-4EC6-4EB6-9146-0610CF744069}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{762490D1-4EC6-4EB6-9146-0610CF744069}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{762490D1-4EC6-4EB6-9146-0610CF744069}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9CAA1BA3-8390-4CFB-AFE2-2D6DAA410136}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9CAA1BA3-8390-4CFB-AFE2-2D6DAA410136}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9CAA1BA3-8390-4CFB-AFE2-2D6DAA410136}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
+		{9CAA1BA3-8390-4CFB-AFE2-2D6DAA410136}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9CAA1BA3-8390-4CFB-AFE2-2D6DAA410136}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9CAA1BA3-8390-4CFB-AFE2-2D6DAA410136}.Release|Any CPU.Deploy.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {E1825F38-5526-4D2A-BDAE-B4622F0AA3A1}
+	EndGlobalSection
+EndGlobal

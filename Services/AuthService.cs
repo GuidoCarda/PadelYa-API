@@ -170,23 +170,7 @@ namespace padelya_api.Services
 
         }
 
-        public async Task<User?> CreateUserAsync(CreateUserDto request)
-        {
-            if (await _context.Users.AnyAsync(u => u.Email == request.Email))
-            {
-                return null;
-            }
-
-            var user = new User();
-            var hashedPassword = new PasswordHasher<User>()
-               .HashPassword(user, request.Password);
-
-            user.Email = request.Email;
-            user.PasswordHash = hashedPassword;
-            user.RoleId = request.RoleId;
-
-            return user;
-        }
+        
 
         private string GenerateRefreshToken()
         {

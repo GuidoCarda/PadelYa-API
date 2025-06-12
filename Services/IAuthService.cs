@@ -8,7 +8,6 @@ namespace padelya_api.Services
         Task<User?> RegisterAsync(UserDto request);
         Task<User?> RegisterPlayerAsync(PlayerRegisterDto request);
         Task<User?> RegisterTeacherAsync(TeacherRegisterDto request);
-        Task<User?> CreateUserAsync(CreateUserDto request);
         Task<TokenResponseDto?> LoginAsync(UserDto request);
         Task<TokenResponseDto?> RefreshTokensAsync(RefreshTokenRequestDto request);
     }

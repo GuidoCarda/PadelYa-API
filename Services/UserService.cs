@@ -1,5 +1,8 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Azure.Core;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using padelya_api.Data;
+using padelya_api.DTOs;
 using padelya_api.Models;
 
 namespace padelya_api.Services
@@ -9,7 +12,7 @@ namespace padelya_api.Services
     private readonly PadelYaDbContext _context = context;
 
 
-    public IEnumerable<User> GetUsers(string? search = null, int? statusId = null)
+    public async Task<IEnumerable<User>> GetUsersAsync(string? search = null, int? statusId = null)
     {
       var query = _context.Users.AsQueryable();
 
@@ -23,7 +26,52 @@ namespace padelya_api.Services
         query = query.Where(u => u.StatusId == statusId);
       }
 
-      return query.ToList();
+      return await query.ToListAsync();
     }
-  }
+  
+    public async Task<User?> GetUserByIdAsync(int id)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
+            return user;
+        }
+
+        public async Task<User?> CreateUserAsync(CreateUserDto request)
+        {
+            if (await _context.Users.AnyAsync(u => u.Email == request.Email))
+            {
+                return null;
+            }
+
+            var user = new User();
+            var hashedPassword = new PasswordHasher<User>()
+               .HashPassword(user, request.Password);
+
+            user.Email = request.Email;
+            user.PasswordHash = hashedPassword;
+            user.RoleId = request.RoleId;
+
+            _context.Users.Add(user);
+            await _context.SaveChangesAsync();
+
+            return user;
+        }
+
+        public async Task<User?> UpdateUserAsync(int id, UpdateUserDto userDto)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
+
+            if(user == null)
+            {
+                return null; 
+            }
+
+            user.Name = userDto.Name;
+            user.Surname = userDto.Surname;
+            user.Email = userDto.Email;
+            user.RoleId = userDto.RoleId;
+
+            await _context.SaveChangesAsync();
+            return user;
+        }
+    }
 }

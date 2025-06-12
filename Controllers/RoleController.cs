@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using padelya_api.Services;
 using padelya_api.DTOs;
+using padelya_api.Models;
 
 namespace padelya_api.Controllers
 {
@@ -66,17 +67,26 @@ namespace padelya_api.Controllers
 
     // POST: api/roles/{id}/permissions
     [HttpPost("{id}/permissions")]
-    public async Task<IActionResult> AddPermission(int id, [FromBody] AddPermissionDto permissionDto)
+    public async Task<IActionResult> AddPermissionToRole(int id, [FromBody] AddPermissionDto permissionDto)
     {
-      var result = await roleService.AddPermissionToRoleAsync(id, permissionDto.PermissionId);
-      if (!result)
-        return NotFound();
-      return NoContent();
-    }
+            var result = await roleService.AddPermissionToRoleAsync(id, permissionDto.PermissionId);
+            
+            if (result == AddPermissionResult.AlreadyExists)
+                return Conflict(new { message = "El rol ya tiene este permiso." });
+
+            if (result == AddPermissionResult.RoleNotFound)
+                return NotFound(new { message = "Rol no encontrado." });
+
+            if (result == AddPermissionResult.PermissionNotFound)
+                return NotFound(new { message = "Permiso no encontrado." });
+        
+        return  CreatedAtAction(nameof(AddPermissionToRole), result); ;
+     }
+
 
     // DELETE: api/roles/{id}/permissions/{permissionId}
     [HttpDelete("{id}/permissions/{permissionId}")]
-    public async Task<IActionResult> RemovePermission(int id, int permissionId)
+    public async Task<IActionResult> RemovePermissionFromRole(int id, int permissionId)
     {
       var result = await roleService.RemovePermissionFromRoleAsync(id, permissionId);
       if (!result)
@@ -91,5 +101,8 @@ namespace padelya_api.Controllers
       var users = await roleService.GetUsersByRoleAsync(id);
       return Ok(users);
     }
-  }
-}
+
+   
+    }
+
+    }

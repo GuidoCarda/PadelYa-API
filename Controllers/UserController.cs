@@ -7,7 +7,7 @@ namespace padelya_api.Controllers
 {
   [Route("api/users")]
   [ApiController]
-  [Authorize]
+  //[Authorize] 
   public class UserController(IUserService userService, IRoleService roleService) : ControllerBase
   {
     
@@ -40,6 +40,10 @@ namespace padelya_api.Controllers
         public async Task<IActionResult> CreateUser([FromBody] CreateUserDto userDto)
         {
             var user = await userService.CreateUserAsync(userDto);
+            if (user is null)
+            {
+                return BadRequest("El usuario ya existe");
+            }
             return CreatedAtAction(nameof(GetUser), new { id = user.Id }, user);
         }
 
@@ -54,16 +58,18 @@ namespace padelya_api.Controllers
             return Ok(user);
         }
 
-        //// DELETE: api/users/{id}
-        //[HttpDelete("{id}")]
+        // DELETE: api/users/{id}
+        [HttpDelete("{id}")]
         //[Authorize(Roles = "Admin")]
-        //public async Task<IActionResult> DeleteUser(int id)
-        //{
-        //  var result = await userService.DeleteUserAsync(id);
-        //  if (!result)
-        //    return NotFound();
-        //  return NoContent();
-        //}
+        public async Task<IActionResult> DeleteUser(int id)
+        {
+            var result = await userService.DeleteUserAsync(id);
+            if (!result)
+            {
+                return NotFound();
+            }
+            return NoContent();
+        }
 
         //// PATCH: api/users/{id}/activate
         //[HttpPatch("{id}/activate")]
@@ -76,6 +82,18 @@ namespace padelya_api.Controllers
         //  return NoContent();
         //}
 
+        // PATCH : api/users/{id}/change-password
+        [HttpPatch("{id}/change-password")]
+        public async Task<IActionResult> ChangePassword(int id, [FromBody] ChangePasswordDto changePasswordDto)
+        {
+            var result = await userService.ChangePasswordAsync(id, changePasswordDto);
+            if (!result)
+            {
+                return NotFound();
+            }
+            return NoContent();
+        }
+
         //// PATCH: api/users/{id}/deactivate
         //[HttpPatch("{id}/deactivate")]
         //[Authorize(Roles = "Admin")]
@@ -87,14 +105,14 @@ namespace padelya_api.Controllers
         //  return NoContent();
         //}
 
-        //// GET: api/users/{id}/roles
-        //[HttpGet("{id}/roles")]
-        //[Authorize(Roles = "Admin")]
-        //public IActionResult GetUserRoles(int id)
-        //{
-        //  var role = roleService.GetUserRole(id);
-        //  return Ok(role);
-        //}
+        // GET: api/users/{id}/roles
+        [HttpGet("{id}/roles")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> GetUserRoles(int id)
+        {
+            var role = await userService.GetUserRoleAsync(id);
+            return Ok(role);
+        }
 
         //// POST: api/users/{id}/roles
         //[HttpPost("{id}/roles")]

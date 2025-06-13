@@ -38,6 +38,13 @@ namespace padelya_api.DTOs
     public int RoleId { get; set; }
   }
 
+
+   public class ChangePasswordDto
+   {
+        public string OldPassword { get; set; } = string.Empty;
+        public string NewPassword { get; set; } = string.Empty;
+   }
+
   public class AssignRoleDto
   {
     public int RoleId { get; set; }

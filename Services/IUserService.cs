@@ -10,14 +10,16 @@ namespace padelya_api.Services
    Task<User?> GetUserByIdAsync(int id);
    Task<User?> CreateUserAsync(CreateUserDto request);
    Task<User?> UpdateUserAsync(int id, UpdateUserDto userDto);
-        //Task<bool> DeleteUserAsync(int id);
+   Task<RolComposite?> GetUserRoleAsync(int userId);
 
-        // Status Management
-        //Task<bool> ActivateUserAsync(int id);
-        //Task<bool> DeactivateUserAsync(int id);
+   Task<bool> DeleteUserAsync(int id);
+   Task<bool> ChangePasswordAsync(int id, ChangePasswordDto changePasswordDto);
+   // Status Management
+   //Task<bool> ActivateUserAsync(int id);
+   //Task<bool> DeactivateUserAsync(int id);
 
-        // Role Management
-        //Task<bool> AssignRoleToUserAsync(int userId, int roleId);
+   // Role Management
+   //Task<bool> AssignRoleToUserAsync(int userId, int roleId);
     }
 }
 

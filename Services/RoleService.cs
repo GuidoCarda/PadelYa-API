@@ -27,15 +27,7 @@ namespace padelya_api.Services
       return roles;
     }
 
-    public async Task<RolComposite?> GetUserRoleAsync(int userId)
-    {
-        var user = await _context.Users
-          .Include(u => u.Role)
-              .ThenInclude(r => r.Permissions)
-          .FirstOrDefaultAsync(u => u.Id == userId);
-
-      return user?.Role;
-    }
+    
 
     public async Task<RolComposite?> GetRoleByIdAsync(int roleId)
     {

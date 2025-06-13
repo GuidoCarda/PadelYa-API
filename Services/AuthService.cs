@@ -231,7 +231,40 @@ namespace padelya_api.Services
             return new JwtSecurityTokenHandler().WriteToken(tokenDescriptor);
         }
 
-        
+        public async Task<bool> RecoverPasswordAsync(string email)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
+            if (user is null)
+            {
+                throw new Exception("No existe un usuario con ese mail.");
+            }
 
+            var newPassword = GenerateRandomPassword();
+
+            user.PasswordHash = new PasswordHasher<User>().HashPassword(user, newPassword);
+            await _context.SaveChangesAsync();
+
+            Console.WriteLine($"Recovery email sent to {email}");
+            return true;
+        }
+
+
+        private static string GenerateRandomPassword(int length = 12)
+        {
+            const string valid = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!@#$%^&*";
+            StringBuilder res = new StringBuilder();
+            using (var rng = RandomNumberGenerator.Create())
+            {
+                byte[] uintBuffer = new byte[sizeof(uint)];
+
+                while (res.Length < length)
+                {
+                    rng.GetBytes(uintBuffer);
+                    uint num = BitConverter.ToUInt32(uintBuffer, 0);
+                    res.Append(valid[(int)(num % (uint)valid.Length)]);
+                }
+            }
+            return res.ToString();
+        }
     }
 }

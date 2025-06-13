@@ -73,5 +73,65 @@ namespace padelya_api.Services
             await _context.SaveChangesAsync();
             return user;
         }
+
+        public async Task<bool> ChangePasswordAsync(int id, ChangePasswordDto changePasswordDto)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
+            
+            if (user == null)
+            {
+                return false;
+            }
+
+            if(string.IsNullOrEmpty(changePasswordDto.NewPassword) || changePasswordDto.NewPassword.Length < 6)
+            {
+                return false; // Invalid new password
+            }
+
+            var passwordHasher = new PasswordHasher<User>();
+            var verificationResult = passwordHasher.VerifyHashedPassword(user, user.PasswordHash, changePasswordDto.OldPassword);
+                
+            if (verificationResult == PasswordVerificationResult.Failed)
+            {
+                return false; // Old password does not match
+            }
+
+
+            
+            var newHashedPassword = passwordHasher
+                .HashPassword(user, changePasswordDto.NewPassword);
+
+            user.PasswordHash = newHashedPassword;
+            await _context.SaveChangesAsync();
+            
+            return true;
+        }
+    
+    
+        public async Task<bool> DeleteUserAsync(int id)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
+
+            if(user == null)
+            {
+                return false; // User not found
+            }
+            // check the status Id
+            user.StatusId = 2;
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<RolComposite?> GetUserRoleAsync(int userId)
+        {
+            var user = await _context.Users
+              .Include(u => u.Role)
+                  .ThenInclude(r => r.Permissions)
+              .FirstOrDefaultAsync(u => u.Id == userId);
+
+            return user?.Role;
+        }
     }
+
+
 }

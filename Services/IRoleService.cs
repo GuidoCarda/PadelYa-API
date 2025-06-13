@@ -9,7 +9,6 @@ namespace padelya_api.Services
     public interface IRoleService
   {
     Task<List<RolComposite>> GetRolesAsync();
-    Task<RolComposite?> GetUserRoleAsync(int userId);
     Task<RolComposite?> GetRoleByIdAsync(int roleId);
     Task<RolComposite> CreateRoleAsync(CreateRoleDto roleDto);
     Task<RolComposite?> UpdateRoleAsync(int id, UpdateRoleDto roleDto);

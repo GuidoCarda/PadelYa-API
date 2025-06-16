@@ -15,7 +15,7 @@ namespace padelya_api.Services
     {
         private readonly PadelYaDbContext _context = context;
 
-        public async Task<TokenResponseDto?> LoginAsync(UserDto request)
+        public async Task<TokenResponseDto?> LoginAsync(UserLoginDto request)
         {
 
             var user = await _context.Users
@@ -169,8 +169,6 @@ namespace padelya_api.Services
             return user;
 
         }
-
-        
 
         private string GenerateRefreshToken()
         {

@@ -55,7 +55,7 @@ namespace padelya_api.Controllers
         }
 
         [HttpPost("login")]
-        public async Task<ActionResult<TokenResponseDto>> Login(UserDto request)
+        public async Task<ActionResult<TokenResponseDto>> Login(UserLoginDto request)
         {
             var result = await authService.LoginAsync(request);
 

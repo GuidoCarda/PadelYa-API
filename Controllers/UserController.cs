@@ -16,9 +16,9 @@ namespace padelya_api.Controllers
         // GET: api/users?search=...&statusId=...
     [HttpGet]
     //[Authorize(Roles = "Admin")]
-    public IActionResult GetUsers(string? search = null, int? statusId = null)
+    public async Task<IActionResult> GetUsers(string? search = null, int? statusId = null)
     {
-      var users = userService.GetUsersAsync(search, statusId);
+      var users = await userService.GetUsersAsync(search, statusId);
       return Ok(users);
     }
 

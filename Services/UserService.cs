@@ -11,25 +11,24 @@ namespace padelya_api.Services
   {
     private readonly PadelYaDbContext _context = context;
 
+        public async Task<IEnumerable<User>> GetUsersAsync(string? search = null, int? statusId = null)
+        {
+            var query = _context.Users.AsQueryable();
 
-    public async Task<IEnumerable<User>> GetUsersAsync(string? search = null, int? statusId = null)
-    {
-      var query = _context.Users.AsQueryable();
+            if (!string.IsNullOrEmpty(search))
+            {
+                query = query.Where(u => u.Name.Contains(search) || u.Email.Contains(search));
+            }
 
-      if (!string.IsNullOrEmpty(search))
-      {
-        query = query.Where(u => u.Name.Contains(search) || u.Email.Contains(search));
-      }
+            if (statusId.HasValue)
+            {
+                query = query.Where(u => u.StatusId == statusId);
+            }
 
-      if (statusId.HasValue)
-      {
-        query = query.Where(u => u.StatusId == statusId);
-      }
+            return await query.ToListAsync();
+        }
 
-      return await query.ToListAsync();
-    }
-  
-    public async Task<User?> GetUserByIdAsync(int id)
+        public async Task<User?> GetUserByIdAsync(int id)
         {
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
             return user;
@@ -96,8 +95,6 @@ namespace padelya_api.Services
                 return false; // Old password does not match
             }
 
-
-            
             var newHashedPassword = passwordHasher
                 .HashPassword(user, changePasswordDto.NewPassword);
 

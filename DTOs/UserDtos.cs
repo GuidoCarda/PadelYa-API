@@ -2,8 +2,13 @@ namespace padelya_api.DTOs
 {
   public class UserDto
   {
+    public int Id { get; set; }
+    public string Name { get; set; }
+    public string Surname { get; set; }
     public string Email { get; set; } = string.Empty;
     public string Password { get; set; } = string.Empty;
+    public int StatusId { get; set; }
+    public int RoleId { get; set; }
   }
 
   public class PlayerRegisterDto : UserDto
@@ -36,10 +41,15 @@ namespace padelya_api.DTOs
     public string Surname { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public int RoleId { get; set; }
-  }
+    }
+
+    public class UserLoginDto {
+        public string Email { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+    }
 
 
-   public class ChangePasswordDto
+    public class ChangePasswordDto
    {
         public string OldPassword { get; set; } = string.Empty;
         public string NewPassword { get; set; } = string.Empty;

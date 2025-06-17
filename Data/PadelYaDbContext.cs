@@ -66,8 +66,21 @@ namespace padelya_api.Data
                 );
 
 
-            // db form/role/permissions seeding
+            // TPH: Table-Per-Hierarchy
+            modelBuilder.Entity<Person>()
+                .HasDiscriminator<string>("PersonType")
+                .HasValue<Person>("Person")
+                .HasValue<Player>("Player")
+                .HasValue<Teacher>("Teacher");
 
+            // User - Person (1:1 optional, unidirectional)
+            modelBuilder.Entity<User>()
+                .HasOne(u => u.Person)
+                .WithOne() // without inverse reference
+                .HasForeignKey<User>(u => u.PersonId)
+                .IsRequired(false);
+
+            // db form/role/permissions seeding
             // 1. Forms
             modelBuilder.Entity<Form>().HasData(
                 new Form { Id = 1, Name = "Booking" },

@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using padelya_api.Data;
 
@@ -11,9 +12,11 @@ using padelya_api.Data;
 namespace padelya_api.Migrations
 {
     [DbContext(typeof(PadelYaDbContext))]
-    partial class PadelYaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250616030318_SecurityModuleDecoupling")]
+    partial class SecurityModuleDecoupling
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -187,12 +190,8 @@ namespace padelya_api.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<DateTime>("Birthdate")
+                    b.Property<DateTime>("BirthDate")
                         .HasColumnType("datetime2");
-
-                    b.Property<string>("Category")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -207,7 +206,13 @@ namespace padelya_api.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
 
                     b.ToTable("Person");
 
@@ -232,9 +237,6 @@ namespace padelya_api.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int?>("PersonId")
-                        .HasColumnType("int");
-
                     b.Property<string>("RefreshToken")
                         .HasColumnType("nvarchar(max)");
 
@@ -254,10 +256,6 @@ namespace padelya_api.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("PersonId")
-                        .IsUnique()
-                        .HasFilter("[PersonId] IS NOT NULL");
 
                     b.HasIndex("RoleId");
 
@@ -389,6 +387,10 @@ namespace padelya_api.Migrations
                 {
                     b.HasBaseType("padelya_api.Models.Person");
 
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("PreferredPosition")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -398,7 +400,7 @@ namespace padelya_api.Migrations
 
             modelBuilder.Entity("padelya_api.Models.Teacher", b =>
                 {
-                    b.HasBaseType("padelya_api.Models.Person");
+                    b.HasBaseType("padelya_api.Models.Player");
 
                     b.Property<string>("Institution")
                         .IsRequired()
@@ -426,12 +428,19 @@ namespace padelya_api.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("padelya_api.Models.Person", b =>
+                {
+                    b.HasOne("padelya_api.Models.User", "User")
+                        .WithOne("Person")
+                        .HasForeignKey("padelya_api.Models.Person", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("padelya_api.Models.User", b =>
                 {
-                    b.HasOne("padelya_api.Models.Person", "Person")
-                        .WithOne()
-                        .HasForeignKey("padelya_api.Models.User", "PersonId");
-
                     b.HasOne("padelya_api.Models.RolComposite", "Role")
                         .WithMany()
                         .HasForeignKey("RoleId")
@@ -443,8 +452,6 @@ namespace padelya_api.Migrations
                         .HasForeignKey("StatusId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("Person");
 
                     b.Navigation("Role");
 
@@ -465,6 +472,12 @@ namespace padelya_api.Migrations
             modelBuilder.Entity("padelya_api.Models.Form", b =>
                 {
                     b.Navigation("Permissions");
+                });
+
+            modelBuilder.Entity("padelya_api.Models.User", b =>
+                {
+                    b.Navigation("Person")
+                        .IsRequired();
                 });
 #pragma warning restore 612, 618
         }

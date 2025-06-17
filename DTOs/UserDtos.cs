@@ -2,7 +2,6 @@ namespace padelya_api.DTOs
 {
   public class UserDto
   {
-    public int Id { get; set; }
     public string Name { get; set; }
     public string Surname { get; set; }
     public string Email { get; set; } = string.Empty;
@@ -13,13 +12,14 @@ namespace padelya_api.DTOs
 
   public class PlayerRegisterDto : UserDto
   {
-    public DateTime BirthDate { get; set; }
+    public DateTime Birthdate { get; set; }
     public string PreferredPosition { get; set; } = string.Empty;
     public string Category { get; set; } = string.Empty;
   }
 
   public class TeacherRegisterDto : UserDto
   {
+    public DateTime Birthdate { get; set; }
     public string Title { get; set; } = string.Empty;
     public string Institution { get; set; } = string.Empty;
     public string Category { get; set; } = string.Empty;

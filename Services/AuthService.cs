@@ -19,9 +19,10 @@ namespace padelya_api.Services
         {
 
             var user = await _context.Users
+                .Include(u => u.Person)
                 .Include(u => u.Role)
-                .ThenInclude(r=>r.Permissions)
-                .ThenInclude(p => (p as SimplePermission).Form)
+                    .ThenInclude(r=>r.Permissions)
+                    .ThenInclude(p => (p as SimplePermission).Form)
                 .FirstOrDefaultAsync(u => u.Email == request.Email);
                 
             if (user is null)
@@ -38,7 +39,10 @@ namespace padelya_api.Services
             {
                 return null;
             }
-            return await CreateTokenResponse(user);
+
+            var tokenResponse = await CreateTokenResponse(user);
+            tokenResponse.Person = user.Person;
+            return  tokenResponse;
         }
 
         private async Task<TokenResponseDto> CreateTokenResponse(User user)
@@ -110,26 +114,30 @@ namespace padelya_api.Services
                 return null;
             }
 
-            var user = new User();
-            var hashedPassword = new PasswordHasher<User>()
-               .HashPassword(user, request.Password);
 
-
-            user.Email = request.Email;
-            user.PasswordHash = hashedPassword;
-            user.UserType = "Player";
-            user.RoleId = 102;
-            _context.Users.Add(user);
-            await _context.SaveChangesAsync();
-
-            var player = new Player
+            var player = new Player()
             {
-                UserId = user.Id,
-                BirthDate = request.BirthDate,
+                Name = request.Name,
+                Surname = request.Surname,
+                Birthdate = request.Birthdate,
+                Category = request.Category,
                 PreferredPosition = request.PreferredPosition
             };
 
             _context.Players.Add(player);
+            await _context.SaveChangesAsync();
+
+            var user = new User();
+            var hashedPassword = new PasswordHasher<User>()
+               .HashPassword(user, request.Password);
+
+            user.Email = request.Email;
+            user.PasswordHash = hashedPassword;
+            user.RoleId = 102;
+            user.UserType = "Player";
+            user.PersonId = player.Id;
+
+            _context.Users.Add(user);
             await _context.SaveChangesAsync();
 
             return user;
@@ -142,6 +150,18 @@ namespace padelya_api.Services
                 return null;
             }
 
+            var teacher = new Teacher()
+            {
+                Name = request.Name,
+                Surname = request.Surname,
+                Birthdate = request.Birthdate,
+                Category = request.Category,
+                Institution = request.Institution,
+                Title = request.Title
+            };
+
+            _context.Teachers.Add(teacher);
+            await _context.SaveChangesAsync();
 
             var user = new User();
             var hashedPassword = new PasswordHasher<User>()
@@ -149,25 +169,14 @@ namespace padelya_api.Services
 
             user.Email = request.Email;
             user.PasswordHash = hashedPassword;
-            user.UserType = "Teacher";
             user.RoleId = 101;
+            user.UserType = "Teacher";
+            user.PersonId = teacher.Id;
+
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
 
-            var teacher = new Teacher
-            {
-                UserId = user.Id,
-                Category = request.Category,
-                Title = request.Title,
-                Institution = request.Institution
-            };
-
-
-            _context.Teachers.Add(teacher);
-            await _context.SaveChangesAsync();
-
             return user;
-
         }
 
         private string GenerateRefreshToken()

@@ -1,14 +1,10 @@
-﻿using Microsoft.Extensions.Diagnostics.HealthChecks;
-using Microsoft.Extensions.Primitives;
-
-namespace padelya_api.Models
+﻿namespace padelya_api.Models
 {
     public class User
     {
         public int Id { get; set; }
         public string Email { get; set; } = string.Empty;
         public string PasswordHash { get; set; } = string.Empty;
-        public string UserType { get; set; } = string.Empty;
 
         public string? RefreshToken { get; set; }
         public DateTime RefreshTokenExpiryTime { get; set; }

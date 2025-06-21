@@ -1,4 +1,7 @@
-﻿using Azure.Core;
+﻿using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -6,10 +9,6 @@ using padelya_api.Data;
 using padelya_api.DTOs.Auth;
 using padelya_api.DTOs.User;
 using padelya_api.Models;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Security.Cryptography;
-using System.Text;
 
 namespace padelya_api.Services
 {
@@ -23,10 +22,10 @@ namespace padelya_api.Services
             var user = await _context.Users
                 .Include(u => u.Person)
                 .Include(u => u.Role)
-                    .ThenInclude(r=>r.Permissions)
+                    .ThenInclude(r => r.Permissions)
                     .ThenInclude(p => (p as SimplePermission).Form)
                 .FirstOrDefaultAsync(u => u.Email == request.Email);
-                
+
             if (user is null)
             {
                 return null;
@@ -44,7 +43,7 @@ namespace padelya_api.Services
 
             var tokenResponse = await CreateTokenResponse(user);
             tokenResponse.Person = user.Person;
-            return  tokenResponse;
+            return tokenResponse;
         }
 
         private async Task<TokenResponseDto> CreateTokenResponse(User user)
@@ -67,7 +66,7 @@ namespace padelya_api.Services
         async Task<TokenResponseDto?> IAuthService.RefreshTokensAsync(RefreshTokenRequestDto request)
         {
             var user = await ValidateRefreshTokenAsync(request.UserId, request.RefreshToken);
-            
+
             if (user is null)
             {
                 return null;
@@ -89,7 +88,7 @@ namespace padelya_api.Services
             if (user is null || user.RefreshToken != refreshToken || user.RefreshTokenExpiryTime <= DateTime.UtcNow)
             {
                 return null;
-        }
+            }
 
             return user;
         }
@@ -113,7 +112,7 @@ namespace padelya_api.Services
 
         //    return user;
         //}
-                
+
         public async Task<User?> RegisterPlayerAsync(RegisterPlayerDto request)
         {
             if (await _context.Users.AnyAsync(u => u.Email == request.Email))
@@ -141,7 +140,6 @@ namespace padelya_api.Services
             user.Email = request.Email;
             user.PasswordHash = hashedPassword;
             user.RoleId = 102;
-            user.UserType = "Player";
             user.PersonId = player.Id;
 
             _context.Users.Add(user);
@@ -177,7 +175,6 @@ namespace padelya_api.Services
             user.Email = request.Email;
             user.PasswordHash = hashedPassword;
             user.RoleId = 101;
-            user.UserType = "Teacher";
             user.PersonId = teacher.Id;
 
             _context.Users.Add(user);

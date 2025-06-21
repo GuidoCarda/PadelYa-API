@@ -1,23 +1,22 @@
-﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using padelya_api.Services;
+﻿using Microsoft.AspNetCore.Mvc;
 using padelya_api.DTOs.User;
+using padelya_api.Services;
 
 namespace padelya_api.Controllers
 {
-  [Route("api/users")]
-  [ApiController]
-  //[Authorize] 
-  public class UserController(IUserService userService, IRoleService roleService) : ControllerBase
-  {
-    // GET: api/users?search=...&statusId=...
-    [HttpGet]
-    //[Authorize(Roles = "Admin")]
-    public async Task<IActionResult> GetUsers(string? search = null, int? statusId = null)
+    [Route("api/users")]
+    [ApiController]
+    //[Authorize] 
+    public class UserController(IUserService userService, IRoleService roleService) : ControllerBase
     {
-      var users = await userService.GetUsersAsync(search, statusId);
-      return Ok(users);
-    }
+        // GET: api/users?search=...&statusId=...
+        [HttpGet]
+        //[Authorize(Roles = "Admin")]
+        public async Task<IActionResult> GetUsers(string? search = null, int? statusId = null)
+        {
+            var users = await userService.GetUsersAsync(search, statusId);
+            return Ok(users);
+        }
 
         // GET: api/users/{id}
         [HttpGet("{id}")]

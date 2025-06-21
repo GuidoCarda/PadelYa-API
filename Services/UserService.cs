@@ -1,8 +1,6 @@
-﻿using Azure.Core;
-using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using padelya_api.Data;
-using padelya_api.DTOs;
 using padelya_api.DTOs.User;
 using padelya_api.Models;
 
@@ -12,9 +10,13 @@ namespace padelya_api.Services
     {
         private readonly PadelYaDbContext _context = context;
 
-        public async Task<IEnumerable<User>> GetUsersAsync(string? search = null, int? statusId = null)
+        public async Task<IEnumerable<UserDto>> GetUsersAsync(string? search = null, int? statusId = null)
         {
-            var query = _context.Users.AsQueryable();
+            var query = _context.Users
+                .Include(u => u.Status)
+                .Include(u => u.Role)
+                .Include(u => u.Person)
+                .AsQueryable();
 
             if (!string.IsNullOrEmpty(search))
             {
@@ -26,16 +28,76 @@ namespace padelya_api.Services
                 query = query.Where(u => u.StatusId == statusId);
             }
 
-            return await query.ToListAsync();
+            var users = await query.ToListAsync();
+
+            return users
+                .Select(user => new UserDto
+                {
+                    Id = user.Id,
+                    Email = user.Email,
+                    StatusId = user.StatusId,
+                    StatusName = user.Status.Name,
+                    RoleId = user.RoleId,
+                    RoleName = user.Role.Name,
+                    Person = user.Person == null ? null : MapPersonToDto(user.Person)
+                })
+                .ToList();
         }
 
-        public async Task<User?> GetUserByIdAsync(int id)
+        private static PersonDto? MapPersonToDto(Person person)
         {
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
-            return user;
+            Console.WriteLine(person);
+            return person switch
+            {
+                Player p => new PlayerDto
+                {
+                    Id = p.Id,
+                    Name = p.Name,
+                    Surname = p.Surname,
+                    PersonType = "Player",
+                    Category = p.Category,
+                    PreferredPosition = p.PreferredPosition
+                },
+                Teacher t => new TeacherDto
+                {
+                    Id = t.Id,
+                    Name = t.Name,
+                    Surname = t.Surname,
+                    PersonType = "Teacher",
+                    Title = t.Title,
+                    Institution = t.Institution,
+                    Category = t.Category
+                },
+                _ => null
+            };
         }
 
-        public async Task<User?> CreateUserAsync(CreateUserDto request)
+        public async Task<UserDto?> GetUserByIdAsync(int id)
+        {
+            var user = await _context.Users
+                .Include(u => u.Role)
+                .Include(u => u.Person)
+                .Include(u => u.Status)
+                .FirstOrDefaultAsync(u => u.Id == id);
+
+            if (user == null)
+            {
+                return null;
+            }
+
+            return new UserDto
+            {
+                Id = user.Id,
+                Email = user.Email,
+                StatusId = user.StatusId,
+                StatusName = user.Status.Name,
+                RoleId = user.RoleId,
+                RoleName = user.Role.Name,
+                Person = user.Person == null ? null : MapPersonToDto(user.Person)
+            };
+        }
+
+        public async Task<UserDto?> CreateUserAsync(CreateUserDto request)
         {
             if (await _context.Users.AnyAsync(u => u.Email == request.Email))
             {
@@ -48,30 +110,80 @@ namespace padelya_api.Services
 
             user.Email = request.Email;
             user.PasswordHash = hashedPassword;
+
+            var role = await _context.RolComposites.FindAsync(user.RoleId);
+
+            if (role == null)
+            {
+                return null;
+            }
+
             user.RoleId = request.RoleId;
 
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
 
-            return user;
+            return new UserDto
+            {
+                Id = user.Id,
+                Email = user.Email,
+                StatusId = user.StatusId,
+                StatusName = user.Status.Name,
+                RoleId = user.RoleId,
+                RoleName = user.Role.Name,
+            };
         }
 
-        public async Task<User?> UpdateUserAsync(int id, UpdateUserDto userDto)
+        public async Task<UserDto?> UpdateUserAsync(int id, UpdateUserDto userDto)
         {
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
+            var user = await _context.Users
+                .Include(u => u.Person)
+                .Include(u => u.Role)
+                .Include(u => u.Status)
+                .FirstOrDefaultAsync(u => u.Id == id);
 
             if (user == null)
             {
                 return null;
             }
 
-            //user.Name = userDto.Name;
-            //user.Surname = userDto.Surname;
-            user.Email = userDto.Email;
-            user.RoleId = userDto.RoleId;
+            var role = await _context.RolComposites.FindAsync(userDto.RoleId);
+
+            if (role == null)
+            {
+                return null;
+            }
+
+            if (!string.IsNullOrEmpty(userDto.Email))
+                user.Email = userDto.Email;
+
+            if (userDto.RoleId.HasValue)
+                user.RoleId = userDto.RoleId.Value;
+
+            if (user.Person != null)
+            {
+                if (!string.IsNullOrEmpty(userDto.Name))
+                {
+                    user.Person.Name = userDto.Name;
+                }
+
+                if (!string.IsNullOrEmpty(userDto.Surname))
+                {
+                    user.Person.Surname = userDto.Surname;
+                }
+            }
 
             await _context.SaveChangesAsync();
-            return user;
+            return new UserDto
+            {
+                Id = user.Id,
+                Email = user.Email,
+                StatusId = user.StatusId,
+                StatusName = user.Status.Name,
+                RoleId = user.RoleId,
+                RoleName = user.Role.Name,
+                Person = user.Person == null ? null : MapPersonToDto(user.Person)
+            };
         }
 
         public async Task<bool> ChangePasswordAsync(int id, ChangePasswordDto changePasswordDto)
@@ -106,7 +218,7 @@ namespace padelya_api.Services
         }
 
 
-        public async Task<bool> DeleteUserAsync(int id) 
+        public async Task<bool> DeleteUserAsync(int id)
         {
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
 

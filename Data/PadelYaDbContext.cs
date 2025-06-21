@@ -19,6 +19,9 @@ namespace padelya_api.Data
         {
             base.OnModelCreating(modelBuilder);
 
+            modelBuilder.Entity<PermissionComponent>()
+                .HasKey(p => p.Id);
+
             // Inheritance config: TPH
             modelBuilder.Entity<PermissionComponent>()
                 .HasDiscriminator<string>("PermissionType")
@@ -40,7 +43,7 @@ namespace padelya_api.Data
                 .HasOne(u => u.Role)
                 .WithMany()
                 .HasForeignKey("RoleId");
-            
+
 
             // SimplePermission - Form (1:1)
             modelBuilder.Entity<SimplePermission>()

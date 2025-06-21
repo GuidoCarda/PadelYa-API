@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using padelya_api.Services;
-using padelya_api.DTOs;
+using padelya_api.DTOs.User;
 
 namespace padelya_api.Controllers
 {
@@ -10,10 +10,7 @@ namespace padelya_api.Controllers
   //[Authorize] 
   public class UserController(IUserService userService, IRoleService roleService) : ControllerBase
   {
-    
-        
-        
-        // GET: api/users?search=...&statusId=...
+    // GET: api/users?search=...&statusId=...
     [HttpGet]
     //[Authorize(Roles = "Admin")]
     public async Task<IActionResult> GetUsers(string? search = null, int? statusId = null)
@@ -107,7 +104,7 @@ namespace padelya_api.Controllers
 
         // GET: api/users/{id}/roles
         [HttpGet("{id}/roles")]
-        [Authorize(Roles = "Admin")]
+        //[Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetUserRoles(int id)
         {
             var role = await userService.GetUserRoleAsync(id);

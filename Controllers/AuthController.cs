@@ -7,7 +7,8 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
-using padelya_api.DTOs;
+using padelya_api.DTOs.Auth;
+using padelya_api.DTOs.User;
 using padelya_api.Models;
 using padelya_api.Services;
 
@@ -19,20 +20,20 @@ namespace padelya_api.Controllers
     {
 
 
-        [HttpPost("register")]
-        public async Task<ActionResult<User>> Register(UserDto request)
-        {
-            var user = await authService.RegisterAsync(request);
+        //[HttpPost("register")]
+        //public async Task<ActionResult<User>> Register(UserDto request)
+        //{
+        //    var user = await authService.RegisterAsync(request);
 
-            if (user is null)
-            {
-                return BadRequest("El usuario ya existe");
-            }
-            return Ok(user);
-        }
+        //    if (user is null)
+        //    {
+        //        return BadRequest("El usuario ya existe");
+        //    }
+        //    return Ok(user);
+        //}
 
         [HttpPost("register-player")]
-        public async Task<ActionResult<User>> RegisterPlayer(PlayerRegisterDto request)
+        public async Task<ActionResult<User>> RegisterPlayer(RegisterPlayerDto request)
         {
             var user = await authService.RegisterPlayerAsync(request);
 
@@ -44,7 +45,7 @@ namespace padelya_api.Controllers
         }
 
         [HttpPost("register-teacher")]
-        public async Task<IActionResult> RegisterTeacher(TeacherRegisterDto dto)
+        public async Task<IActionResult> RegisterTeacher(RegisterTeacherDto dto)
         {
             var user = await authService.RegisterTeacherAsync(dto);
             if (user is null)

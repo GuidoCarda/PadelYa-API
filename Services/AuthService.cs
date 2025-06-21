@@ -1,8 +1,10 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using Azure.Core;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using padelya_api.Data;
-using padelya_api.DTOs;
+using padelya_api.DTOs.Auth;
+using padelya_api.DTOs.User;
 using padelya_api.Models;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -64,8 +66,7 @@ namespace padelya_api.Services
 
         async Task<TokenResponseDto?> IAuthService.RefreshTokensAsync(RefreshTokenRequestDto request)
         {
-            var userIdGuid = Guid.Parse(request.UserId.ToString()); // Convert 'int' to 'Guid'
-            var user = await ValidateRefreshTokenAsync(userIdGuid, request.RefreshToken);
+            var user = await ValidateRefreshTokenAsync(request.UserId, request.RefreshToken);
             
             if (user is null)
             {
@@ -75,39 +76,45 @@ namespace padelya_api.Services
             return await CreateTokenResponse(user);
         }
 
-        private async Task<User?> ValidateRefreshTokenAsync(Guid userId, string refreshToken)
+        private async Task<User?> ValidateRefreshTokenAsync(int userId, string refreshToken)
         {
-            var user = await _context.Users.FindAsync(userId);
+            var user = await _context.Users
+                .Include(u => u.Person)
+                .Include(u => u.Role)
+                    .ThenInclude(r => r.Permissions)
+                    .ThenInclude(p => (p as SimplePermission).Form)
+                .FirstOrDefaultAsync(u => u.Id == userId);
+
 
             if (user is null || user.RefreshToken != refreshToken || user.RefreshTokenExpiryTime <= DateTime.UtcNow)
             {
                 return null;
-            }
+        }
 
             return user;
         }
 
-        public async Task<User?> RegisterAsync(UserDto request)
-        {
-            if (await _context.Users.AnyAsync(u => u.Email == request.Email))
-            {
-                return null;
-            }
+        //public async Task<User?> RegisterAsync(UserDto request)
+        //{
+        //    if (await _context.Users.AnyAsync(u => u.Email == request.Email))
+        //    {
+        //        return null;
+        //    }
 
-            var user = new User();
+        //    var user = new User();
 
-            var hashedPassword = new PasswordHasher<User>()
-               .HashPassword(user, request.Password);
+        //    var hashedPassword = new PasswordHasher<User>()
+        //       .HashPassword(user, request.Password);
 
-            user.Email = request.Email;
-            user.PasswordHash = hashedPassword;
-            _context.Users.Add(user);
-            await _context.SaveChangesAsync();
+        //    user.Email = request.Email;
+        //    user.PasswordHash = hashedPassword;
+        //    _context.Users.Add(user);
+        //    await _context.SaveChangesAsync();
 
-            return user;
-        }
+        //    return user;
+        //}
                 
-        public async Task<User?> RegisterPlayerAsync(PlayerRegisterDto request)
+        public async Task<User?> RegisterPlayerAsync(RegisterPlayerDto request)
         {
             if (await _context.Users.AnyAsync(u => u.Email == request.Email))
             {
@@ -143,7 +150,7 @@ namespace padelya_api.Services
             return user;
         }
 
-        public async Task<User?> RegisterTeacherAsync(TeacherRegisterDto request)
+        public async Task<User?> RegisterTeacherAsync(RegisterTeacherDto request)
         {
             if (await _context.Users.AnyAsync(u => u.Email == request.Email))
             {

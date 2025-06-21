@@ -1,4 +1,4 @@
-﻿namespace padelya_api.DTOs
+﻿namespace padelya_api.DTOs.Auth
 {
     public class RefreshTokenRequestDto
     {

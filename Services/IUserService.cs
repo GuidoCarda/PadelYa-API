@@ -1,5 +1,5 @@
 ﻿using padelya_api.Models;
-using padelya_api.DTOs;
+using padelya_api.DTOs.User;
 
 namespace padelya_api.Services
 {

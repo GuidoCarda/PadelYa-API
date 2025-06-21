@@ -1,6 +1,6 @@
 ﻿using padelya_api.Models;
 
-namespace padelya_api.DTOs
+namespace padelya_api.DTOs.Auth
 {
     public class TokenResponseDto
     {

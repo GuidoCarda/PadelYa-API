@@ -5,6 +5,7 @@ using System.Text;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using padelya_api.Constants;
 using padelya_api.Data;
 using padelya_api.DTOs.Auth;
 using padelya_api.DTOs.User;
@@ -24,7 +25,7 @@ namespace padelya_api.Services
                 .Include(u => u.Role)
                     .ThenInclude(r => r.Permissions)
                     .ThenInclude(p => (p as SimplePermission).Form)
-                .FirstOrDefaultAsync(u => u.Email == request.Email);
+                .FirstOrDefaultAsync(u => u.Email == request.Email && u.StatusId == UserStatusIds.Active);
 
             if (user is null)
             {
@@ -229,7 +230,7 @@ namespace padelya_api.Services
 
         public async Task<bool> RecoverPasswordAsync(string email)
         {
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email && u.StatusId == UserStatusIds.Active);
             if (user is null)
             {
                 throw new Exception("No existe un usuario con ese mail.");

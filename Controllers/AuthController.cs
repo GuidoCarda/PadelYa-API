@@ -40,7 +40,7 @@ namespace padelya_api.Controllers
 
             if (result is null)
             {
-                return BadRequest("Invalid username or password");
+                return BadRequest("Correo o contraseña invalidos");
             }
 
             return Ok(result);

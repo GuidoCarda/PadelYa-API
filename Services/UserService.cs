@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using padelya_api.Constants;
 using padelya_api.Data;
 using padelya_api.DTOs.User;
 using padelya_api.Models;
@@ -226,8 +227,7 @@ namespace padelya_api.Services
             {
                 return false; // User not found
             }
-            // check the status Id
-            user.StatusId = 2;
+            user.StatusId = UserStatusIds.Inactive;
             await _context.SaveChangesAsync();
             return true;
         }

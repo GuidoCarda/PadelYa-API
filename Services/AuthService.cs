@@ -93,94 +93,79 @@ namespace padelya_api.Services
             return user;
         }
 
-        //public async Task<User?> RegisterAsync(UserDto request)
-        //{
-        //    if (await _context.Users.AnyAsync(u => u.Email == request.Email))
-        //    {
-        //        return null;
-        //    }
-
-        //    var user = new User();
-
-        //    var hashedPassword = new PasswordHasher<User>()
-        //       .HashPassword(user, request.Password);
-
-        //    user.Email = request.Email;
-        //    user.PasswordHash = hashedPassword;
-        //    _context.Users.Add(user);
-        //    await _context.SaveChangesAsync();
-
-        //    return user;
-        //}
-
-        public async Task<User?> RegisterPlayerAsync(RegisterPlayerDto request)
+        private async Task<TokenResponseDto?> RegisterUserAsync<TPerson>(
+            string email,
+            string password,
+            int roleId,
+            Func<TPerson> createPerson
+        ) where TPerson : Person
         {
-            if (await _context.Users.AnyAsync(u => u.Email == request.Email))
+            if (await _context.Users.AnyAsync(u => u.Email == email))
             {
                 return null;
             }
 
-
-            var player = new Player()
-            {
-                Name = request.Name,
-                Surname = request.Surname,
-                Birthdate = request.Birthdate,
-                Category = request.Category,
-                PreferredPosition = request.PreferredPosition
-            };
-
-            _context.Players.Add(player);
+            var person = createPerson();
+            _context.Set<TPerson>().Add(person);
             await _context.SaveChangesAsync();
 
-            var user = new User();
-            var hashedPassword = new PasswordHasher<User>()
-               .HashPassword(user, request.Password);
 
-            user.Email = request.Email;
-            user.PasswordHash = hashedPassword;
-            user.RoleId = 102;
-            user.PersonId = player.Id;
+            var user = new User
+            {
+                Email = email,
+                PasswordHash = new PasswordHasher<User>().HashPassword(null, password),
+                RoleId = roleId,
+                PersonId = person.Id
+            };
 
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
 
-            return user;
+
+            var userWithRole = await _context.Users
+             .Include(u => u.Role)
+             .ThenInclude(r => r.Permissions)
+             .FirstOrDefaultAsync(u => u.Id == user.Id);
+
+            var tokenResponse = await CreateTokenResponse(userWithRole!);
+            tokenResponse.Person = person;
+            return tokenResponse;
         }
 
-        public async Task<User?> RegisterTeacherAsync(RegisterTeacherDto request)
+
+
+        public async Task<TokenResponseDto?> RegisterPlayerAsync(RegisterPlayerDto request)
         {
-            if (await _context.Users.AnyAsync(u => u.Email == request.Email))
-            {
-                return null;
-            }
+            return await RegisterUserAsync<Player>(
+                request.Email,
+                request.Password,
+                102,
+                () => new Player
+                {
+                    Name = request.Name,
+                    Surname = request.Surname,
+                    Birthdate = request.Birthdate,
+                    Category = request.Category,
+                    PreferredPosition = request.PreferredPosition
+                }
+                );
+        }
 
-            var teacher = new Teacher()
-            {
-                Name = request.Name,
-                Surname = request.Surname,
-                Birthdate = request.Birthdate,
-                Category = request.Category,
-                Institution = request.Institution,
-                Title = request.Title
-            };
-
-            _context.Teachers.Add(teacher);
-            await _context.SaveChangesAsync();
-
-            var user = new User();
-            var hashedPassword = new PasswordHasher<User>()
-               .HashPassword(user, request.Password);
-
-            user.Email = request.Email;
-            user.PasswordHash = hashedPassword;
-            user.RoleId = 101;
-            user.PersonId = teacher.Id;
-
-            _context.Users.Add(user);
-            await _context.SaveChangesAsync();
-
-            return user;
+        public async Task<TokenResponseDto?> RegisterTeacherAsync(RegisterTeacherDto request)
+        {
+            return await RegisterUserAsync<Teacher>(
+                request.Email,
+                request.Password,
+                101,
+                () => new Teacher
+                {
+                    Name = request.Name,
+                    Surname = request.Surname,
+                    Birthdate = request.Birthdate,
+                    Category = request.Category,
+                    Institution = request.Institution,
+                    Title = request.Title
+                });
         }
 
         private string GenerateRefreshToken()

@@ -1,15 +1,6 @@
-﻿using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.IdentityModel.Tokens;
+﻿using Microsoft.AspNetCore.Mvc;
 using padelya_api.DTOs.Auth;
 using padelya_api.DTOs.User;
-using padelya_api.Models;
 using padelya_api.Services;
 
 namespace padelya_api.Controllers
@@ -19,40 +10,27 @@ namespace padelya_api.Controllers
     public class AuthController(IAuthService authService) : ControllerBase
     {
 
-
-        //[HttpPost("register")]
-        //public async Task<ActionResult<User>> Register(UserDto request)
-        //{
-        //    var user = await authService.RegisterAsync(request);
-
-        //    if (user is null)
-        //    {
-        //        return BadRequest("El usuario ya existe");
-        //    }
-        //    return Ok(user);
-        //}
-
         [HttpPost("register-player")]
-        public async Task<ActionResult<User>> RegisterPlayer(RegisterPlayerDto request)
+        public async Task<ActionResult<TokenResponseDto>> RegisterPlayer(RegisterPlayerDto request)
         {
-            var user = await authService.RegisterPlayerAsync(request);
+            var tokenResponse = await authService.RegisterPlayerAsync(request);
 
-            if (user is null)
+            if (tokenResponse is null)
             {
                 return BadRequest("El usuario ya existe");
             }
-            return Ok(user);
+            return Ok(tokenResponse);
         }
 
         [HttpPost("register-teacher")]
-        public async Task<IActionResult> RegisterTeacher(RegisterTeacherDto dto)
+        public async Task<ActionResult<TokenResponseDto>> RegisterTeacher(RegisterTeacherDto dto)
         {
-            var user = await authService.RegisterTeacherAsync(dto);
-            if (user is null)
+            var tokenResponse = await authService.RegisterTeacherAsync(dto);
+            if (tokenResponse is null)
             {
                 return BadRequest("El usuario ya existe");
             }
-            return Ok(user);
+            return Ok(tokenResponse);
         }
 
         [HttpPost("login")]
@@ -97,13 +75,13 @@ namespace padelya_api.Controllers
             return Ok("You are authenticated as an admin");
         }
 
-        
+
 
         [HttpPost("recover-password")]
         public async Task<IActionResult> RecoverPassword(string email)
         {
             var response = await authService.RecoverPasswordAsync(email);
-            
+
             if (!response)
             {
                 return BadRequest("No se pudo iniciar la recuperación de contraseña. Verifica que el correo sea correcto.");

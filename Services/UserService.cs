@@ -106,13 +106,13 @@ namespace padelya_api.Services
             }
 
             var user = new User();
-            var hashedPassword = new PasswordHasher<User>()
-               .HashPassword(user, request.Password);
+            //var hashedPassword = new PasswordHasher<User>()
+            //   .HashPassword(user, request.Password);
 
             user.Email = request.Email;
-            user.PasswordHash = hashedPassword;
+            //user.PasswordHash = hashedPassword;
 
-            var role = await _context.RolComposites.FindAsync(user.RoleId);
+            var role = await _context.RolComposites.FindAsync(request.RoleId);
 
             if (role == null)
             {
@@ -129,7 +129,6 @@ namespace padelya_api.Services
                 Id = user.Id,
                 Email = user.Email,
                 StatusId = user.StatusId,
-                StatusName = user.Status.Name,
                 RoleId = user.RoleId,
                 RoleName = user.Role.Name,
             };
@@ -148,11 +147,15 @@ namespace padelya_api.Services
                 return null;
             }
 
-            var role = await _context.RolComposites.FindAsync(userDto.RoleId);
 
-            if (role == null)
+            if (userDto.RoleId.HasValue)
             {
-                return null;
+                var role = await _context.RolComposites.FindAsync(userDto.RoleId.Value);
+                if (role == null)
+                {
+                    return null;
+                }
+                user.RoleId = userDto.RoleId.Value;
             }
 
             if (!string.IsNullOrEmpty(userDto.Email))

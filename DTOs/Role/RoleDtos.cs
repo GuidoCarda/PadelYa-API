@@ -7,12 +7,12 @@ namespace padelya_api.DTOs.Role
 
     public class UpdateRoleDto
     {
-        public string Name { get; set; } = string.Empty;
+        public string? Name { get; set; }
     }
 
     public class AddPermissionDto
     {
-        public List<int> permissionsIds { get; set; }
+        public List<int> permissionsIds { get; set; } = new();
     }
 
     public class AssignRoleDto

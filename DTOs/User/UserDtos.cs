@@ -2,6 +2,32 @@ using System.Text.Json.Serialization;
 
 namespace padelya_api.DTOs.User
 {
+    /// <summary>
+    /// DTO for creating a new user
+    /// </summary>
+    public class CreateUserDto
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Surname { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+        public int RoleId { get; set; }
+    }
+
+    /// <summary>
+    /// DTO for updating user information (partial update)
+    /// </summary>
+    public class UpdateUserDto
+    {
+        public string? Name { get; set; }
+        public string? Surname { get; set; }
+        public string? Email { get; set; }
+        public int? RoleId { get; set; }
+    }
+
+    /// <summary>
+    /// DTO for user information returned by API
+    /// </summary>
     public class UserDto
     {
         public int Id { get; set; }
@@ -12,6 +38,18 @@ namespace padelya_api.DTOs.User
         public string RoleName { get; set; }
         public PersonDto? Person { get; set; }
         public List<string> Permissions { get; set; }
+    }
+
+
+
+    /// <summary>
+    /// DTO for changing user password
+    /// </summary>
+    public class ChangePasswordDto
+    {
+        public string OldPassword { get; set; } = string.Empty;
+
+        public string NewPassword { get; set; } = string.Empty;
     }
 
     [JsonDerivedType(typeof(PlayerDto), "player")]
@@ -44,37 +82,9 @@ namespace padelya_api.DTOs.User
         public PersonDto Person { get; set; }
     }
 
-
-
-    public class CreateUserDto
-    {
-        public string Name { get; set; } = string.Empty;
-        public string Surname { get; set; } = string.Empty;
-        public string Email { get; set; } = string.Empty;
-        public string Password { get; set; } = string.Empty;
-        public int RoleId { get; set; }
-    }
-
-    public class UpdateUserDto
-    {
-        public string? Name { get; set; } = string.Empty;
-        public string? Surname { get; set; } = string.Empty;
-        public string? Email { get; set; } = string.Empty;
-        public int? RoleId { get; set; }
-    }
-
     public class UserLoginDto
     {
         public string Email { get; set; } = string.Empty;
         public string Password { get; set; } = string.Empty;
     }
-
-
-    public class ChangePasswordDto
-    {
-        public string OldPassword { get; set; } = string.Empty;
-        public string NewPassword { get; set; } = string.Empty;
-    }
-
-
 }

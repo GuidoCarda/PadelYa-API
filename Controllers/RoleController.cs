@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using padelya_api.DTOs.Role;
+using padelya_api.Models;
 using padelya_api.Services;
+using padelya_api.Shared;
 
 namespace padelya_api.Controllers
 {
@@ -11,102 +13,287 @@ namespace padelya_api.Controllers
     {
         // GET: api/roles
         [HttpGet]
-        public async Task<IActionResult> GetRoles()
+        public async Task<ActionResult<ResponseMessage<IEnumerable<RolComposite>>>> GetRoles()
         {
-            var roles = await roleService.GetRolesAsync();
-            return Ok(roles);
+            try
+            {
+                var roles = await roleService.GetRolesAsync();
+                var response = ResponseMessage<IEnumerable<RolComposite>>.SuccessResult(roles, "Roles retrieved successfully");
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                var response = ResponseMessage<IEnumerable<RolComposite>>.Error($"Error retrieving roles: {ex.Message}", "ROLES_RETRIEVAL_ERROR");
+                return StatusCode(500, response);
+            }
         }
 
         // GET: api/roles/{id}
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetRole(int id)
+        public async Task<ActionResult<ResponseMessage<RolComposite>>> GetRole(int id)
         {
-            var role = await roleService.GetRoleByIdAsync(id);
-            if (role == null)
-                return NotFound();
-            return Ok(role);
+            try
+            {
+                var role = await roleService.GetRoleByIdAsync(id);
+                if (role == null)
+                {
+                    var notFoundResponse = ResponseMessage<RolComposite>.NotFound($"Role with ID {id} not found");
+                    return NotFound(notFoundResponse);
+                }
+
+                var response = ResponseMessage<RolComposite>.SuccessResult(role, "Role retrieved successfully");
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                var response = ResponseMessage<RolComposite>.Error($"Error retrieving role: {ex.Message}", "ROLE_RETRIEVAL_ERROR");
+                return StatusCode(500, response);
+            }
         }
 
         // POST: api/roles
         [HttpPost]
-        public async Task<IActionResult> CreateRole([FromBody] CreateRoleDto roleDto)
+        public async Task<ActionResult<ResponseMessage<RolComposite>>> CreateRole([FromBody] CreateRoleDto roleDto)
         {
-            var role = await roleService.CreateRoleAsync(roleDto);
-
-            if (role == null)
+            try
             {
-                return BadRequest("El rol debe tener un nombre");
-            }
+                // Simple validation
+                var validationErrors = ValidateCreateRole(roleDto);
+                if (validationErrors.Any())
+                {
+                    var validationResponse = ResponseMessage<RolComposite>.ValidationError("Invalid input data", validationErrors);
+                    return BadRequest(validationResponse);
+                }
 
-            return CreatedAtAction(nameof(GetRole), new { id = role.Id }, role);
+                var role = await roleService.CreateRoleAsync(roleDto);
+                if (role == null)
+                {
+                    var conflictResponse = ResponseMessage<RolComposite>.Conflict("Role creation failed");
+                    return Conflict(conflictResponse);
+                }
+
+                var response = ResponseMessage<RolComposite>.SuccessResult(role, "Role created successfully");
+                return CreatedAtAction(nameof(GetRole), new { id = role.Id }, response);
+            }
+            catch (Exception ex)
+            {
+                var response = ResponseMessage<RolComposite>.Error($"Error creating role: {ex.Message}", "ROLE_CREATION_ERROR");
+                return StatusCode(500, response);
+            }
         }
 
         // PUT: api/roles/{id}
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateRole(int id, [FromBody] UpdateRoleDto roleDto)
+        public async Task<ActionResult<ResponseMessage<RolComposite>>> UpdateRole(int id, [FromBody] UpdateRoleDto roleDto)
         {
-            var role = await roleService.UpdateRoleAsync(id, roleDto);
-            if (role == null)
-                return NotFound();
-            return Ok(role);
+            try
+            {
+                // Check if at least one field is provided
+                if (string.IsNullOrWhiteSpace(roleDto.Name))
+                {
+                    var validationResponse = ResponseMessage<RolComposite>.ValidationError(
+                        "At least one field must be provided for update",
+                        new List<ValidationError>
+                        {
+                            new ValidationError("Request", "Please provide a name to update")
+                        }
+                    );
+                    return BadRequest(validationResponse);
+                }
+
+                // Simple validation for provided fields
+                var validationErrors = ValidateUpdateRole(roleDto);
+                if (validationErrors.Any())
+                {
+                    var validationResponse = ResponseMessage<RolComposite>.ValidationError("Invalid input data", validationErrors);
+                    return BadRequest(validationResponse);
+                }
+
+                var role = await roleService.UpdateRoleAsync(id, roleDto);
+                if (role == null)
+                {
+                    var notFoundResponse = ResponseMessage<RolComposite>.NotFound($"Role with ID {id} not found");
+                    return NotFound(notFoundResponse);
+                }
+
+                var response = ResponseMessage<RolComposite>.SuccessResult(role, "Role updated successfully");
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                var response = ResponseMessage<RolComposite>.Error($"Error updating role: {ex.Message}", "ROLE_UPDATE_ERROR");
+                return StatusCode(500, response);
+            }
         }
 
         // DELETE: api/roles/{id}
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteRole(int id)
+        public async Task<ActionResult<ResponseMessage>> DeleteRole(int id)
         {
-            var result = await roleService.DeleteRoleAsync(id);
-            if (!result)
-                return NotFound();
-            return NoContent();
+            try
+            {
+                var result = await roleService.DeleteRoleAsync(id);
+                if (!result)
+                {
+                    var notFoundResponse = ResponseMessage.NotFound($"Role with ID {id} not found or could not be deleted");
+                    return NotFound(notFoundResponse);
+                }
+
+                var response = ResponseMessage.SuccessMessage("Role deleted successfully");
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                var response = ResponseMessage.Error($"Error deleting role: {ex.Message}", "ROLE_DELETION_ERROR");
+                return StatusCode(500, response);
+            }
         }
 
         // GET: api/roles/{id}/permissions
         [HttpGet("{id}/permissions")]
-        public async Task<IActionResult> GetRolePermissions(int id)
+        public async Task<ActionResult<ResponseMessage<IEnumerable<object>>>> GetRolePermissions(int id)
         {
-            var permissions = await roleService.GetRolePermissionsAsync(id);
-            return Ok(permissions);
+            try
+            {
+                var permissions = await roleService.GetRolePermissionsAsync(id);
+                var response = ResponseMessage<IEnumerable<object>>.SuccessResult(permissions, "Role permissions retrieved successfully");
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                var response = ResponseMessage<IEnumerable<object>>.Error($"Error retrieving role permissions: {ex.Message}", "ROLE_PERMISSIONS_RETRIEVAL_ERROR");
+                return StatusCode(500, response);
+            }
         }
 
         // POST: api/roles/{id}/permissions
         [HttpPost("{id}/permissions")]
-        public async Task<IActionResult> AddPermissionToRole(int id, [FromBody] AddPermissionDto permissionDto)
+        public async Task<ActionResult<ResponseMessage>> AddPermissionToRole(int id, [FromBody] AddPermissionDto permissionDto)
         {
-            var result = await roleService.AddPermissionsToRoleAsync(id, permissionDto.permissionsIds);
+            try
+            {
+                // Simple validation
+                var validationErrors = ValidateAddPermission(permissionDto);
+                if (validationErrors.Any())
+                {
+                    var validationResponse = ResponseMessage.ValidationError("Invalid input data", validationErrors);
+                    return BadRequest(validationResponse);
+                }
 
-            if (result == AddPermissionResult.AlreadyExists)
-                return Conflict(new { message = "El rol ya tiene este permiso." });
+                var result = await roleService.AddPermissionsToRoleAsync(id, permissionDto.permissionsIds);
 
-            if (result == AddPermissionResult.RoleNotFound)
-                return NotFound(new { message = "Rol no encontrado." });
+                if (result == AddPermissionResult.AlreadyExists)
+                {
+                    var conflictResponse = ResponseMessage.Conflict("The role already has this permission");
+                    return Conflict(conflictResponse);
+                }
 
-            if (result == AddPermissionResult.PermissionNotFound)
-                return NotFound(new { message = "Permiso no encontrado." });
+                if (result == AddPermissionResult.RoleNotFound)
+                {
+                    var notFoundResponse = ResponseMessage.NotFound("Role not found");
+                    return NotFound(notFoundResponse);
+                }
 
-            return CreatedAtAction(nameof(AddPermissionToRole), "Permisos agregados satisfactoriamente"); ;
+                if (result == AddPermissionResult.PermissionNotFound)
+                {
+                    var notFoundResponse = ResponseMessage.NotFound("Permission not found");
+                    return NotFound(notFoundResponse);
+                }
+
+                var response = ResponseMessage.SuccessMessage("Permissions added successfully");
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                var response = ResponseMessage.Error($"Error adding permissions to role: {ex.Message}", "ADD_PERMISSIONS_ERROR");
+                return StatusCode(500, response);
+            }
         }
-
 
         // DELETE: api/roles/{id}/permissions/{permissionId}
         [HttpDelete("{id}/permissions/{permissionId}")]
-        public async Task<IActionResult> RemovePermissionFromRole(int id, int permissionId)
+        public async Task<ActionResult<ResponseMessage>> RemovePermissionFromRole(int id, int permissionId)
         {
-            var result = await roleService.RemovePermissionFromRoleAsync(id, permissionId);
-            if (!result)
-                return NotFound();
-            return NoContent();
+            try
+            {
+                var result = await roleService.RemovePermissionFromRoleAsync(id, permissionId);
+                if (!result)
+                {
+                    var notFoundResponse = ResponseMessage.NotFound("Role or permission not found");
+                    return NotFound(notFoundResponse);
+                }
+
+                var response = ResponseMessage.SuccessMessage("Permission removed successfully");
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                var response = ResponseMessage.Error($"Error removing permission from role: {ex.Message}", "REMOVE_PERMISSION_ERROR");
+                return StatusCode(500, response);
+            }
         }
 
         // GET: api/roles/{id}/users
         [HttpGet("{id}/users")]
-        public async Task<IActionResult> GetUsersByRole(int id)
+        public async Task<ActionResult<ResponseMessage<IEnumerable<object>>>> GetUsersByRole(int id)
         {
-            var users = await roleService.GetUsersByRoleAsync(id);
-            return Ok(users);
+            try
+            {
+                var users = await roleService.GetUsersByRoleAsync(id);
+                var response = ResponseMessage<IEnumerable<object>>.SuccessResult(users, "Users by role retrieved successfully");
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                var response = ResponseMessage<IEnumerable<object>>.Error($"Error retrieving users by role: {ex.Message}", "USERS_BY_ROLE_RETRIEVAL_ERROR");
+                return StatusCode(500, response);
+            }
         }
 
+        #region Simple Validation Methods
 
+        /// <summary>
+        /// Simple validation for creating a role
+        /// </summary>
+        private List<ValidationError> ValidateCreateRole(CreateRoleDto roleDto)
+        {
+            var errors = new List<ValidationError>();
+
+            if (string.IsNullOrWhiteSpace(roleDto.Name))
+                errors.Add(new ValidationError("Name", "Role name is required"));
+
+            if (!string.IsNullOrWhiteSpace(roleDto.Name) && roleDto.Name.Length > 100)
+                errors.Add(new ValidationError("Name", "Role name cannot exceed 100 characters"));
+
+            return errors;
+        }
+
+        /// <summary>
+        /// Simple validation for updating a role
+        /// </summary>
+        private List<ValidationError> ValidateUpdateRole(UpdateRoleDto roleDto)
+        {
+            var errors = new List<ValidationError>();
+
+            if (!string.IsNullOrWhiteSpace(roleDto.Name) && roleDto.Name.Length > 100)
+                errors.Add(new ValidationError("Name", "Role name cannot exceed 100 characters"));
+
+            return errors;
+        }
+
+        /// <summary>
+        /// Simple validation for adding permissions
+        /// </summary>
+        private List<ValidationError> ValidateAddPermission(AddPermissionDto permissionDto)
+        {
+            var errors = new List<ValidationError>();
+
+            if (permissionDto.permissionsIds == null || permissionDto.permissionsIds.Count == 0)
+                errors.Add(new ValidationError("permissionsIds", "At least one permission ID is required"));
+
+            return errors;
+        }
+
+        #endregion
     }
-
 }

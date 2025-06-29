@@ -1,0 +1,44 @@
+{
+  "FormattingOptions": {
+    "IndentSize": 4,
+    "TabSize": 4,
+    "UseTabs": false,
+    "NewLines": {
+      "BeforeOpenBrace": "NewLine",
+      "BeforeElse": "NewLine",
+      "BeforeCatch": "NewLine",
+      "BeforeFinally": "NewLine",
+      "BeforeWhile": "NewLine"
+    },
+    "Spacing": {
+      "AfterControlFlowStatementKeywords": true,
+      "AfterKeywordsInControlFlowStatements": true,
+      "BeforeCommas": false,
+      "AfterCommas": true,
+      "AfterCast": false,
+      "BeforeOpenParenthesis": "ControlFlowStatements",
+      "AfterOpenParenthesis": false,
+      "BeforeClosingParenthesis": false,
+      "AfterClosingParenthesis": false,
+      "AfterOpenBrace": true,
+      "BeforeCloseBrace": true,
+      "BeforeColonInInheritanceClause": true,
+      "AfterColonInInheritanceClause": true,
+      "AroundBinaryOperators": "BeforeAndAfter",
+      "WithinParentheses": false,
+      "WithinMethodCallParentheses": false,
+      "WithinMethodDeclarationParentheses": false,
+      "WithinExpressionParentheses": false,
+      "WithinCastParentheses": false,
+      "WithinOtherParentheses": false,
+      "BeforeOpenSquareBracket": false,
+      "WithinSquareBrackets": false,
+      "BeforeOpenBracket": false,
+      "WithinBrackets": false,
+      "BeforeOpenBrace": "NewLine",
+      "WithinBraces": true,
+      "BeforeSemicolons": false,
+      "AfterSemicolons": true
+    }
+  }
+} 

@@ -2,7 +2,6 @@
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using padelya_api.Constants;
@@ -13,9 +12,14 @@ using padelya_api.Models;
 
 namespace padelya_api.Services
 {
-    public class AuthService(PadelYaDbContext context, IConfiguration configuration) : IAuthService
+    public class AuthService(
+      PadelYaDbContext context,
+      IPasswordService passwordService,
+      IConfiguration configuration
+      ) : IAuthService
     {
         private readonly PadelYaDbContext _context = context;
+        private readonly IPasswordService _passwordService = passwordService;
 
         public async Task<TokenResponseDto?> LoginAsync(UserLoginDto request)
         {
@@ -37,7 +41,7 @@ namespace padelya_api.Services
                 return null;
             }
 
-            if (new PasswordHasher<User>().VerifyHashedPassword(user, user.PasswordHash, request.Password) == PasswordVerificationResult.Failed)
+            if (!_passwordService.VerifyPassword(user, user.PasswordHash, request.Password))
             {
                 return null;
             }
@@ -114,7 +118,8 @@ namespace padelya_api.Services
             var user = new User
             {
                 Email = email,
-                PasswordHash = new PasswordHasher<User>().HashPassword(null, password),
+                // PasswordHash = new PasswordHasher<User>().HashPassword(null, password),
+                PasswordHash = _passwordService.HashPassword(null, password),
                 RoleId = roleId,
                 PersonId = person.Id
             };
@@ -132,8 +137,6 @@ namespace padelya_api.Services
             tokenResponse.Person = person;
             return tokenResponse;
         }
-
-
 
         public async Task<TokenResponseDto?> RegisterPlayerAsync(RegisterPlayerDto request)
         {
@@ -236,9 +239,9 @@ namespace padelya_api.Services
                 throw new Exception("No existe un usuario con ese mail.");
             }
 
-            var newPassword = GenerateRandomPassword();
+            var newPassword = _passwordService.GenerateRandomPassword();
 
-            user.PasswordHash = new PasswordHasher<User>().HashPassword(user, newPassword);
+            user.PasswordHash = _passwordService.HashPassword(user, newPassword);
             await _context.SaveChangesAsync();
 
             Console.WriteLine($"Recovery email sent to {email}");
@@ -246,22 +249,6 @@ namespace padelya_api.Services
         }
 
 
-        private static string GenerateRandomPassword(int length = 12)
-        {
-            const string valid = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!@#$%^&*";
-            StringBuilder res = new StringBuilder();
-            using (var rng = RandomNumberGenerator.Create())
-            {
-                byte[] uintBuffer = new byte[sizeof(uint)];
 
-                while (res.Length < length)
-                {
-                    rng.GetBytes(uintBuffer);
-                    uint num = BitConverter.ToUInt32(uintBuffer, 0);
-                    res.Append(valid[(int)(num % (uint)valid.Length)]);
-                }
-            }
-            return res.ToString();
-        }
     }
 }

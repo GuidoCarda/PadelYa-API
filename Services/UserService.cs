@@ -7,9 +7,10 @@ using padelya_api.Models;
 
 namespace padelya_api.Services
 {
-    public class UserService(PadelYaDbContext context, IConfiguration configuration) : IUserService
+    public class UserService(PadelYaDbContext context, IPasswordService passwordService, IConfiguration configuration) : IUserService
     {
         private readonly PadelYaDbContext _context = context;
+        private readonly IPasswordService _passwordService = passwordService;
 
         public async Task<IEnumerable<UserDto>> GetUsersAsync(string? search = null, int? statusId = null)
         {
@@ -17,6 +18,7 @@ namespace padelya_api.Services
                 .Include(u => u.Status)
                 .Include(u => u.Role)
                 .Include(u => u.Person)
+                .Where(u => u.StatusId == UserStatusIds.Active)
                 .AsQueryable();
 
             if (!string.IsNullOrEmpty(search))
@@ -105,21 +107,65 @@ namespace padelya_api.Services
                 return null;
             }
 
-            var user = new User();
-            //var hashedPassword = new PasswordHasher<User>()
-            //   .HashPassword(user, request.Password);
+            Person? person = null;
+            if (request?.Person?.PersonType == "Teacher")
+            {
 
-            user.Email = request.Email;
-            //user.PasswordHash = hashedPassword;
+                var teacherDto = (TeacherDto)request.Person;
+                person = new Teacher
+                {
+                    Name = request.Name,
+                    Surname = request.Surname,
+                    Birthdate = request.Person.Birthdate,
+                    Category = request.Person.Category,
+                    Institution = teacherDto.Institution,
+                    Title = teacherDto.Title
+                };
+            }
+            else if (request?.Person?.PersonType == "Player")
+            {
+                var playerDto = (PlayerDto)request.Person;
+                person = new Player
+                {
+                    Name = request.Name,
+                    Surname = request.Surname,
+                    Birthdate = request.Person.Birthdate,
+                    Category = request.Person.Category,
+                    PreferredPosition = playerDto.PreferredPosition
+                };
+            }
+
+            var user = new User();
+
+            var password = request.Password ?? string.Empty;
+            if (string.IsNullOrEmpty(password))
+            {
+                // genero contraseña aleatoria
+                password = _passwordService.GenerateRandomPassword();
+                Console.WriteLine($"Contraseña generada {password}");
+                Console.WriteLine($"Enviando contraseña al mail....  {request.Email}");
+                // await _emailService.SendPasswordEmailAsync(request.Email, password);
+                // TODO: implement emailService
+            }
+
+            var hashedPassword = _passwordService.HashPassword(user, password);
 
             var role = await _context.RolComposites.FindAsync(request.RoleId);
-
             if (role == null)
             {
                 return null;
             }
 
             user.RoleId = request.RoleId;
+            user.Email = request.Email;
+            user.PasswordHash = hashedPassword;
+
+            if (person != null)
+            {
+                _context.Add(person);
+                await _context.SaveChangesAsync(); // Save to get the person ID
+                user.PersonId = person.Id;
+            }
 
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
@@ -131,6 +177,7 @@ namespace padelya_api.Services
                 StatusId = user.StatusId,
                 RoleId = user.RoleId,
                 RoleName = user.Role.Name,
+                Person = person == null ? null : MapPersonToDto(person)
             };
         }
 
@@ -146,7 +193,6 @@ namespace padelya_api.Services
             {
                 return null;
             }
-
 
             if (userDto.RoleId.HasValue)
             {

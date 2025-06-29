@@ -1,6 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
-
-namespace padelya_api.Models
+﻿namespace padelya_api.Models
 {
     public class Teacher : Person
     {

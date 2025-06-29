@@ -3,9 +3,6 @@ using padelya_api.Models;
 
 namespace padelya_api.Services
 {
-
-
-
     public interface IRoleService
     {
         Task<List<RolComposite>> GetRolesAsync();

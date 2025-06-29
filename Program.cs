@@ -28,6 +28,7 @@ builder.Services.AddDbContext<PadelYaDbContext>(
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IRoleService, RoleService>();
+builder.Services.AddScoped<IPasswordService, PasswordService>();
 
 var app = builder.Build();
 

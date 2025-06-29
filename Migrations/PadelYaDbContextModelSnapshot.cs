@@ -34,7 +34,7 @@ namespace padelya_api.Migrations
 
                     b.HasIndex("RoleId");
 
-                    b.ToTable("RolCompositePermission");
+                    b.ToTable("RolCompositePermission", (string)null);
 
                     b.HasData(
                         new
@@ -118,7 +118,7 @@ namespace padelya_api.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Forms");
+                    b.ToTable("Forms", (string)null);
 
                     b.HasData(
                         new
@@ -172,7 +172,7 @@ namespace padelya_api.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("PermissionComponents");
+                    b.ToTable("PermissionComponents", (string)null);
 
                     b.HasDiscriminator<string>("PermissionType").HasValue("PermissionComponent");
 
@@ -209,7 +209,7 @@ namespace padelya_api.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Person");
+                    b.ToTable("Person", (string)null);
 
                     b.HasDiscriminator<string>("PersonType").HasValue("Person");
 
@@ -259,7 +259,7 @@ namespace padelya_api.Migrations
 
                     b.HasIndex("StatusId");
 
-                    b.ToTable("Users");
+                    b.ToTable("Users", (string)null);
                 });
 
             modelBuilder.Entity("padelya_api.Models.UserStatus", b =>
@@ -276,7 +276,7 @@ namespace padelya_api.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("UserStatuses");
+                    b.ToTable("UserStatuses", (string)null);
 
                     b.HasData(
                         new

@@ -7,11 +7,12 @@ namespace padelya_api.DTOs.User
     /// </summary>
     public class CreateUserDto
     {
-        public string Name { get; set; } = string.Empty;
-        public string Surname { get; set; } = string.Empty;
+        public string? Name { get; set; } = string.Empty;
+        public string? Surname { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
-        public string Password { get; set; } = string.Empty;
+        public string? Password { get; set; } = string.Empty;
         public int RoleId { get; set; }
+        public PersonDto? Person { get; set; }
     }
 
     /// <summary>
@@ -60,19 +61,20 @@ namespace padelya_api.DTOs.User
         public string Name { get; set; }
         public string Surname { get; set; }
         public string PersonType { get; set; }
+        public DateTime Birthdate { get; set; }
+        public string Category { get; set; }
     }
 
     public class PlayerDto : PersonDto
     {
-        public string Category { get; set; }
-        public string PreferredPosition { get; set; }
+        public new string Category { get; set; }
+        public new string PreferredPosition { get; set; }
     }
 
     public class TeacherDto : PersonDto
     {
-        public string Title { get; set; }
-        public string Institution { get; set; }
-        public string Category { get; set; }
+        public new string Title { get; set; }
+        public new string Institution { get; set; }
     }
 
 

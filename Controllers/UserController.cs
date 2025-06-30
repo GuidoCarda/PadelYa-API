@@ -1,4 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using padelya_api.Attributes;
+using padelya_api.Constants;
 using padelya_api.DTOs.User;
 using padelya_api.Models;
 using padelya_api.Services;
@@ -12,6 +14,7 @@ namespace padelya_api.Controllers
     [Route("api/users")]
     [ApiController]
     //[Authorize] 
+    [RequireModuleAccess("user")]
     public class UserController(IUserService userService, IRoleService roleService) : ControllerBase
     {
         /// <summary>
@@ -21,7 +24,8 @@ namespace padelya_api.Controllers
         /// <param name="statusId">Status ID for filtering users</param>
         /// <returns>List of users matching the criteria</returns>
         [HttpGet]
-        //[Authorize(Roles = "Admin")]
+        // [RequirePermission(Permissions.User.View)]
+        [RequireAnyPermission(Permissions.User.View, Permissions.User.EditSelf, Permissions.User.AssignRoles)]
         public async Task<ActionResult<ResponseMessage<IEnumerable<UserDto>>>> GetUsers(string? search = null, int? statusId = null)
         {
             try
@@ -43,7 +47,7 @@ namespace padelya_api.Controllers
         /// <param name="id">User ID</param>
         /// <returns>User information</returns>
         [HttpGet("{id}")]
-        //[Authorize(Roles = "Admin")]
+        [RequirePermission(Permissions.User.View)]
         public async Task<ActionResult<ResponseMessage<UserDto>>> GetUser(int id)
         {
             try
@@ -71,7 +75,7 @@ namespace padelya_api.Controllers
         /// <param name="userDto">User creation data</param>
         /// <returns>Created user information</returns>
         [HttpPost]
-        //[Authorize(Roles = "Admin")]
+        [RequirePermission(Permissions.User.Create)]
         public async Task<ActionResult<ResponseMessage<UserDto>>> CreateUser([FromBody] CreateUserDto userDto)
         {
             try

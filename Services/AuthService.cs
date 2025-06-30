@@ -28,7 +28,7 @@ namespace padelya_api.Services
                 .Include(u => u.Person)
                 .Include(u => u.Role)
                     .ThenInclude(r => r.Permissions)
-                    .ThenInclude(p => (p as SimplePermission).Form)
+                    .ThenInclude(p => (p as SimplePermission).Module)
                 .FirstOrDefaultAsync(u => u.Email == request.Email && u.StatusId == UserStatusIds.Active);
 
             if (user is null)
@@ -55,16 +55,16 @@ namespace padelya_api.Services
         {
 
             var permissions = new HashSet<string>();
-            var forms = new HashSet<string>();
+            var modules = new HashSet<string>();
 
-            GetPermissionsAndForms(user.Role, permissions, forms);
+            GetPermissionsAndModules(user.Role, permissions, modules);
 
             return new TokenResponseDto
             {
                 AccessToken = CreateToken(user),
                 RefreshToken = await GenerateAndSaveRefreshTokenAsync(user),
                 Permissions = permissions.ToList(),
-                Forms = forms.ToList()
+                Modules = modules.ToList()
             };
         }
 
@@ -86,7 +86,7 @@ namespace padelya_api.Services
                 .Include(u => u.Person)
                 .Include(u => u.Role)
                     .ThenInclude(r => r.Permissions)
-                    .ThenInclude(p => (p as SimplePermission).Form)
+                    .ThenInclude(p => (p as SimplePermission).Module)
                 .FirstOrDefaultAsync(u => u.Id == userId);
 
 
@@ -189,31 +189,47 @@ namespace padelya_api.Services
             return refreshToken;
         }
 
-        private void GetPermissionsAndForms(PermissionComponent component, HashSet<string> permissions, HashSet<string> forms)
+        private void GetPermissionsAndModules(PermissionComponent component, HashSet<string> permissions, HashSet<string> modules)
         {
             if (component is SimplePermission simple)
             {
                 permissions.Add(simple.Name);
-                if (simple.Form != null)
-                    forms.Add(simple.Form.Name);
+                if (simple.Module != null)
+                    modules.Add(simple.Module.Name);
             }
             else if (component is RolComposite composite)
             {
                 foreach (var perm in composite.Permissions)
                 {
-                    GetPermissionsAndForms(perm, permissions, forms);
+                    GetPermissionsAndModules(perm, permissions, modules);
                 }
             }
         }
 
         private string CreateToken(User user)
         {
+            var permissions = new HashSet<string>();
+            var modules = new HashSet<string>();
+            GetPermissionsAndModules(user.Role, permissions, modules);
+
             var claims = new List<Claim>
-           {
-               new Claim("email", user.Email),
-               new Claim("user_id", user.Id.ToString()),
-               new Claim("role", user.Role.Name)
-           };
+            {
+                new Claim("email", user.Email),
+                new Claim("user_id", user.Id.ToString()),
+                new Claim("role", user.Role.Name)
+            };
+
+            // Add permissions as claims
+            foreach (var permission in permissions)
+            {
+                claims.Add(new Claim("permission", permission));
+            }
+
+            // Add modules as claims
+            foreach (var module in modules)
+            {
+                claims.Add(new Claim("module", module));
+            }
 
             var key = new SymmetricSecurityKey(
                 Encoding.UTF8.GetBytes(configuration.GetValue<string>("AppSettings:Token")!));

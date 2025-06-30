@@ -1,4 +1,7 @@
+using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using padelya_api.Data;
 using padelya_api.Services;
 using Scalar.AspNetCore;
@@ -25,10 +28,36 @@ builder.Services.AddDbContext<PadelYaDbContext>(
     options => options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))
 );
 
+// Add JWT Authentication
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = builder.Configuration["AppSettings:Issuer"],
+            ValidAudience = builder.Configuration["AppSettings:Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(builder.Configuration["AppSettings:Token"]!))
+        };
+    });
+
+// Add Authorization with custom policy
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("RequirePermission", policy =>
+        policy.RequireAuthenticatedUser());
+});
+
+
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IRoleService, RoleService>();
 builder.Services.AddScoped<IPasswordService, PasswordService>();
+builder.Services.AddScoped<IPermissionService, PermissionService>();
 
 var app = builder.Build();
 
@@ -42,6 +71,7 @@ if (app.Environment.IsDevelopment())
 
 //app.UseHttpsRedirection();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();

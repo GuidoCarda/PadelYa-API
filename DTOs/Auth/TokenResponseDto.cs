@@ -8,6 +8,6 @@ namespace padelya_api.DTOs.Auth
         public required string RefreshToken { get; set; }
         public Person? Person { get; set; }
         public List<string> Permissions { get; set; } = new();
-        public List<string> Forms { get; set; } = new();
+        public List<string> Modules { get; set; } = new();
     }
 }

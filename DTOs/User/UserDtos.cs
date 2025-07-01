@@ -32,6 +32,8 @@ namespace padelya_api.DTOs.User
     public class UserDto
     {
         public int Id { get; set; }
+        public string Name { get; set; }
+        public string Surname { get; set; }
         public string Email { get; set; }
         public int StatusId { get; set; }
         public string StatusName { get; set; }
@@ -58,8 +60,6 @@ namespace padelya_api.DTOs.User
     public class PersonDto
     {
         public int Id { get; set; }
-        public string Name { get; set; }
-        public string Surname { get; set; }
         public string PersonType { get; set; }
         public DateTime Birthdate { get; set; }
         public string Category { get; set; }

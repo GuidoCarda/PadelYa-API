@@ -37,6 +37,8 @@ namespace padelya_api.Services
                 .Select(user => new UserDto
                 {
                     Id = user.Id,
+                    Name = user.Name,
+                    Surname = user.Surname,
                     Email = user.Email,
                     StatusId = user.StatusId,
                     StatusName = user.Status.Name,
@@ -55,8 +57,6 @@ namespace padelya_api.Services
                 Player p => new PlayerDto
                 {
                     Id = p.Id,
-                    Name = p.Name,
-                    Surname = p.Surname,
                     PersonType = "Player",
                     Category = p.Category,
                     PreferredPosition = p.PreferredPosition
@@ -64,8 +64,6 @@ namespace padelya_api.Services
                 Teacher t => new TeacherDto
                 {
                     Id = t.Id,
-                    Name = t.Name,
-                    Surname = t.Surname,
                     PersonType = "Teacher",
                     Title = t.Title,
                     Institution = t.Institution,
@@ -91,6 +89,8 @@ namespace padelya_api.Services
             return new UserDto
             {
                 Id = user.Id,
+                Name = user.Name,
+                Surname = user.Surname,
                 Email = user.Email,
                 StatusId = user.StatusId,
                 StatusName = user.Status.Name,
@@ -114,8 +114,6 @@ namespace padelya_api.Services
                 var teacherDto = (TeacherDto)request.Person;
                 person = new Teacher
                 {
-                    Name = request.Name,
-                    Surname = request.Surname,
                     Birthdate = request.Person.Birthdate,
                     Category = request.Person.Category,
                     Institution = teacherDto.Institution,
@@ -127,8 +125,6 @@ namespace padelya_api.Services
                 var playerDto = (PlayerDto)request.Person;
                 person = new Player
                 {
-                    Name = request.Name,
-                    Surname = request.Surname,
                     Birthdate = request.Person.Birthdate,
                     Category = request.Person.Category,
                     PreferredPosition = playerDto.PreferredPosition
@@ -158,6 +154,8 @@ namespace padelya_api.Services
 
             user.RoleId = request.RoleId;
             user.Email = request.Email;
+            user.Name = request.Name ?? string.Empty;
+            user.Surname = request.Surname ?? string.Empty;
             user.PasswordHash = hashedPassword;
 
             if (person != null)
@@ -173,6 +171,8 @@ namespace padelya_api.Services
             return new UserDto
             {
                 Id = user.Id,
+                Name = user.Name,
+                Surname = user.Surname,
                 Email = user.Email,
                 StatusId = user.StatusId,
                 RoleId = user.RoleId,
@@ -207,26 +207,18 @@ namespace padelya_api.Services
             if (!string.IsNullOrEmpty(userDto.Email))
                 user.Email = userDto.Email;
 
-            if (userDto.RoleId.HasValue)
-                user.RoleId = userDto.RoleId.Value;
+            if (!string.IsNullOrEmpty(userDto.Name))
+                user.Name = userDto.Name;
 
-            if (user.Person != null)
-            {
-                if (!string.IsNullOrEmpty(userDto.Name))
-                {
-                    user.Person.Name = userDto.Name;
-                }
-
-                if (!string.IsNullOrEmpty(userDto.Surname))
-                {
-                    user.Person.Surname = userDto.Surname;
-                }
-            }
+            if (!string.IsNullOrEmpty(userDto.Surname))
+                user.Surname = userDto.Surname;
 
             await _context.SaveChangesAsync();
             return new UserDto
             {
                 Id = user.Id,
+                Name = user.Name,
+                Surname = user.Surname,
                 Email = user.Email,
                 StatusId = user.StatusId,
                 StatusName = user.Status.Name,

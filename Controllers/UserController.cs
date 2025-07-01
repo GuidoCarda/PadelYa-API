@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using padelya_api.Attributes;
 using padelya_api.Constants;
 using padelya_api.DTOs.User;
@@ -256,14 +256,11 @@ namespace padelya_api.Controllers
         {
             var errors = new List<ValidationError>();
 
-            if (userDto.Person != null)
-            {
-                if (string.IsNullOrWhiteSpace(userDto.Name))
-                    errors.Add(new ValidationError("Name", "Name is required"));
+            if (string.IsNullOrWhiteSpace(userDto.Name))
+                errors.Add(new ValidationError("Name", "Name is required"));
 
-                if (string.IsNullOrWhiteSpace(userDto.Surname))
-                    errors.Add(new ValidationError("Surname", "Surname is required"));
-            }
+            if (string.IsNullOrWhiteSpace(userDto.Surname))
+                errors.Add(new ValidationError("Surname", "Surname is required"));
 
             if (string.IsNullOrWhiteSpace(userDto.Email))
                 errors.Add(new ValidationError("Email", "Email is required"));

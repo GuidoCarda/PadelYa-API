@@ -102,7 +102,9 @@ namespace padelya_api.Services
             string email,
             string password,
             int roleId,
-            Func<TPerson> createPerson
+            Func<TPerson> createPerson,
+            string name,
+            string surname
         ) where TPerson : Person
         {
             if (await _context.Users.AnyAsync(u => u.Email == email))
@@ -118,6 +120,8 @@ namespace padelya_api.Services
             var user = new User
             {
                 Email = email,
+                Name = name,
+                Surname = surname,
                 // PasswordHash = new PasswordHasher<User>().HashPassword(null, password),
                 PasswordHash = _passwordService.HashPassword(null, password),
                 RoleId = roleId,
@@ -146,12 +150,12 @@ namespace padelya_api.Services
                 102,
                 () => new Player
                 {
-                    Name = request.Name,
-                    Surname = request.Surname,
                     Birthdate = request.Birthdate,
                     Category = request.Category,
                     PreferredPosition = request.PreferredPosition
-                }
+                },
+                request.Name,
+                request.Surname
                 );
         }
 
@@ -163,13 +167,14 @@ namespace padelya_api.Services
                 101,
                 () => new Teacher
                 {
-                    Name = request.Name,
-                    Surname = request.Surname,
                     Birthdate = request.Birthdate,
                     Category = request.Category,
                     Institution = request.Institution,
                     Title = request.Title
-                });
+                },
+                request.Name,
+                request.Surname
+                );
         }
 
         private string GenerateRefreshToken()

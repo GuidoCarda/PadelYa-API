@@ -83,6 +83,23 @@ namespace padelya_api.Data
                 .HasForeignKey<User>(u => u.PersonId)
                 .IsRequired(false);
 
+
+
+            #region ComplexManagement
+
+            modelBuilder.Entity<Complex>()
+                .HasMany(c => c.Courts)
+                .WithOne(c => c.Complex)
+                .HasForeignKey(c => c.ComplexId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Court>()
+                .HasMany(c => c.Availability)
+                .WithOne(a => a.Court)
+                .HasForeignKey(a => a.CourtId)
+                .OnDelete(DeleteBehavior.Cascade);
+            #endregion
+
             // db module/role/permissions seeding
             // 1. Modules
             modelBuilder.Entity<Module>().HasData(

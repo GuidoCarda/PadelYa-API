@@ -94,13 +94,13 @@ namespace padelya_api.Data
 
             modelBuilder.Entity<Complex>()
                 .HasMany(c => c.Courts)
-                .WithOne(c => c.Complex)
+                .WithOne()
                 .HasForeignKey(c => c.ComplexId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<Court>()
                 .HasMany(c => c.Availability)
-                .WithOne(a => a.Court)
+                .WithOne()
                 .HasForeignKey(a => a.CourtId)
                 .OnDelete(DeleteBehavior.Cascade);
             #endregion
@@ -330,43 +330,43 @@ namespace padelya_api.Data
             // Court Availability seeding
             modelBuilder.Entity<CourtAvailability>().HasData(
                 // Court 1 - Premium (Monday to Friday: 6:00-23:00, Weekend: 7:00-22:00)
-                new CourtAvailability { Id = 1, CourtId = 1, Weekday = Weekday.Monday, StartTime = new DateTime(2024, 1, 1, 6, 0, 0), EndTime = new DateTime(2024, 1, 1, 23, 0, 0) },
-                new CourtAvailability { Id = 2, CourtId = 1, Weekday = Weekday.Tuesday, StartTime = new DateTime(2024, 1, 1, 6, 0, 0), EndTime = new DateTime(2024, 1, 1, 23, 0, 0) },
-                new CourtAvailability { Id = 3, CourtId = 1, Weekday = Weekday.Wednesday, StartTime = new DateTime(2024, 1, 1, 6, 0, 0), EndTime = new DateTime(2024, 1, 1, 23, 0, 0) },
-                new CourtAvailability { Id = 4, CourtId = 1, Weekday = Weekday.Thursday, StartTime = new DateTime(2024, 1, 1, 6, 0, 0), EndTime = new DateTime(2024, 1, 1, 23, 0, 0) },
-                new CourtAvailability { Id = 5, CourtId = 1, Weekday = Weekday.Friday, StartTime = new DateTime(2024, 1, 1, 6, 0, 0), EndTime = new DateTime(2024, 1, 1, 23, 0, 0) },
-                new CourtAvailability { Id = 6, CourtId = 1, Weekday = Weekday.Saturday, StartTime = new DateTime(2024, 1, 1, 7, 0, 0), EndTime = new DateTime(2024, 1, 1, 22, 0, 0) },
-                new CourtAvailability { Id = 7, CourtId = 1, Weekday = Weekday.Sunday, StartTime = new DateTime(2024, 1, 1, 7, 0, 0), EndTime = new DateTime(2024, 1, 1, 22, 0, 0) },
+                new CourtAvailability { Id = 1, CourtId = 1, Weekday = Weekday.Monday, StartTime = new TimeOnly(6, 0), EndTime = new TimeOnly(23, 0) },
+                new CourtAvailability { Id = 2, CourtId = 1, Weekday = Weekday.Tuesday, StartTime = new TimeOnly(6, 0), EndTime = new TimeOnly(23, 0) },
+                new CourtAvailability { Id = 3, CourtId = 1, Weekday = Weekday.Wednesday, StartTime = new TimeOnly(6, 0), EndTime = new TimeOnly(23, 0) },
+                new CourtAvailability { Id = 4, CourtId = 1, Weekday = Weekday.Thursday, StartTime = new TimeOnly(6, 0), EndTime = new TimeOnly(23, 0) },
+                new CourtAvailability { Id = 5, CourtId = 1, Weekday = Weekday.Friday, StartTime = new TimeOnly(6, 0), EndTime = new TimeOnly(23, 0) },
+                new CourtAvailability { Id = 6, CourtId = 1, Weekday = Weekday.Saturday, StartTime = new TimeOnly(7, 0), EndTime = new TimeOnly(22, 0) },
+                new CourtAvailability { Id = 7, CourtId = 1, Weekday = Weekday.Sunday, StartTime = new TimeOnly(7, 0), EndTime = new TimeOnly(22, 0) },
 
                 // Court 2 - Standard (Monday to Friday: 6:00-23:00, Weekend: 7:00-22:00)
-                new CourtAvailability { Id = 8, CourtId = 2, Weekday = Weekday.Monday, StartTime = new DateTime(2024, 1, 1, 6, 0, 0), EndTime = new DateTime(2024, 1, 1, 23, 0, 0) },
-                new CourtAvailability { Id = 9, CourtId = 2, Weekday = Weekday.Tuesday, StartTime = new DateTime(2024, 1, 1, 6, 0, 0), EndTime = new DateTime(2024, 1, 1, 23, 0, 0) },
-                new CourtAvailability { Id = 10, CourtId = 2, Weekday = Weekday.Wednesday, StartTime = new DateTime(2024, 1, 1, 6, 0, 0), EndTime = new DateTime(2024, 1, 1, 23, 0, 0) },
-                new CourtAvailability { Id = 11, CourtId = 2, Weekday = Weekday.Thursday, StartTime = new DateTime(2024, 1, 1, 6, 0, 0), EndTime = new DateTime(2024, 1, 1, 23, 0, 0) },
-                new CourtAvailability { Id = 12, CourtId = 2, Weekday = Weekday.Friday, StartTime = new DateTime(2024, 1, 1, 6, 0, 0), EndTime = new DateTime(2024, 1, 1, 23, 0, 0) },
-                new CourtAvailability { Id = 13, CourtId = 2, Weekday = Weekday.Saturday, StartTime = new DateTime(2024, 1, 1, 7, 0, 0), EndTime = new DateTime(2024, 1, 1, 22, 0, 0) },
-                new CourtAvailability { Id = 14, CourtId = 2, Weekday = Weekday.Sunday, StartTime = new DateTime(2024, 1, 1, 7, 0, 0), EndTime = new DateTime(2024, 1, 1, 22, 0, 0) },
+                new CourtAvailability { Id = 8, CourtId = 2, Weekday = Weekday.Monday, StartTime = new TimeOnly(6, 0), EndTime = new TimeOnly(23, 0) },
+                new CourtAvailability { Id = 9, CourtId = 2, Weekday = Weekday.Tuesday, StartTime = new TimeOnly(6, 0), EndTime = new TimeOnly(23, 0) },
+                new CourtAvailability { Id = 10, CourtId = 2, Weekday = Weekday.Wednesday, StartTime = new TimeOnly(6, 0), EndTime = new TimeOnly(23, 0) },
+                new CourtAvailability { Id = 11, CourtId = 2, Weekday = Weekday.Thursday, StartTime = new TimeOnly(6, 0), EndTime = new TimeOnly(23, 0) },
+                new CourtAvailability { Id = 12, CourtId = 2, Weekday = Weekday.Friday, StartTime = new TimeOnly(6, 0), EndTime = new TimeOnly(23, 0) },
+                new CourtAvailability { Id = 13, CourtId = 2, Weekday = Weekday.Saturday, StartTime = new TimeOnly(7, 0), EndTime = new TimeOnly(22, 0) },
+                new CourtAvailability { Id = 14, CourtId = 2, Weekday = Weekday.Sunday, StartTime = new TimeOnly(7, 0), EndTime = new TimeOnly(22, 0) },
 
                 // Court 3 - Standard (Monday to Friday: 6:00-23:00, Weekend: 7:00-22:00)
-                new CourtAvailability { Id = 15, CourtId = 3, Weekday = Weekday.Monday, StartTime = new DateTime(2024, 1, 1, 6, 0, 0), EndTime = new DateTime(2024, 1, 1, 23, 0, 0) },
-                new CourtAvailability { Id = 16, CourtId = 3, Weekday = Weekday.Tuesday, StartTime = new DateTime(2024, 1, 1, 6, 0, 0), EndTime = new DateTime(2024, 1, 1, 23, 0, 0) },
-                new CourtAvailability { Id = 17, CourtId = 3, Weekday = Weekday.Wednesday, StartTime = new DateTime(2024, 1, 1, 6, 0, 0), EndTime = new DateTime(2024, 1, 1, 23, 0, 0) },
-                new CourtAvailability { Id = 18, CourtId = 3, Weekday = Weekday.Thursday, StartTime = new DateTime(2024, 1, 1, 6, 0, 0), EndTime = new DateTime(2024, 1, 1, 23, 0, 0) },
-                new CourtAvailability { Id = 19, CourtId = 3, Weekday = Weekday.Friday, StartTime = new DateTime(2024, 1, 1, 6, 0, 0), EndTime = new DateTime(2024, 1, 1, 23, 0, 0) },
-                new CourtAvailability { Id = 20, CourtId = 3, Weekday = Weekday.Saturday, StartTime = new DateTime(2024, 1, 1, 7, 0, 0), EndTime = new DateTime(2024, 1, 1, 22, 0, 0) },
-                new CourtAvailability { Id = 21, CourtId = 3, Weekday = Weekday.Sunday, StartTime = new DateTime(2024, 1, 1, 7, 0, 0), EndTime = new DateTime(2024, 1, 1, 22, 0, 0) },
+                new CourtAvailability { Id = 15, CourtId = 3, Weekday = Weekday.Monday, StartTime = new TimeOnly(6, 0), EndTime = new TimeOnly(23, 0) },
+                new CourtAvailability { Id = 16, CourtId = 3, Weekday = Weekday.Tuesday, StartTime = new TimeOnly(6, 0), EndTime = new TimeOnly(23, 0) },
+                new CourtAvailability { Id = 17, CourtId = 3, Weekday = Weekday.Wednesday, StartTime = new TimeOnly(6, 0), EndTime = new TimeOnly(23, 0) },
+                new CourtAvailability { Id = 18, CourtId = 3, Weekday = Weekday.Thursday, StartTime = new TimeOnly(6, 0), EndTime = new TimeOnly(23, 0) },
+                new CourtAvailability { Id = 19, CourtId = 3, Weekday = Weekday.Friday, StartTime = new TimeOnly(6, 0), EndTime = new TimeOnly(23, 0) },
+                new CourtAvailability { Id = 20, CourtId = 3, Weekday = Weekday.Saturday, StartTime = new TimeOnly(7, 0), EndTime = new TimeOnly(22, 0) },
+                new CourtAvailability { Id = 21, CourtId = 3, Weekday = Weekday.Sunday, StartTime = new TimeOnly(7, 0), EndTime = new TimeOnly(22, 0) },
 
                 // Court 4 - Premium (Maintenance - no availability)
                 // No availability records for Court 4 as it's under maintenance
 
                 // Court 5 - Indoor (Monday to Friday: 7:00-22:00, Weekend: 8:00-21:00)
-                new CourtAvailability { Id = 22, CourtId = 5, Weekday = Weekday.Monday, StartTime = new DateTime(2024, 1, 1, 7, 0, 0), EndTime = new DateTime(2024, 1, 1, 22, 0, 0) },
-                new CourtAvailability { Id = 23, CourtId = 5, Weekday = Weekday.Tuesday, StartTime = new DateTime(2024, 1, 1, 7, 0, 0), EndTime = new DateTime(2024, 1, 1, 22, 0, 0) },
-                new CourtAvailability { Id = 24, CourtId = 5, Weekday = Weekday.Wednesday, StartTime = new DateTime(2024, 1, 1, 7, 0, 0), EndTime = new DateTime(2024, 1, 1, 22, 0, 0) },
-                new CourtAvailability { Id = 25, CourtId = 5, Weekday = Weekday.Thursday, StartTime = new DateTime(2024, 1, 1, 7, 0, 0), EndTime = new DateTime(2024, 1, 1, 22, 0, 0) },
-                new CourtAvailability { Id = 26, CourtId = 5, Weekday = Weekday.Friday, StartTime = new DateTime(2024, 1, 1, 7, 0, 0), EndTime = new DateTime(2024, 1, 1, 22, 0, 0) },
-                new CourtAvailability { Id = 27, CourtId = 5, Weekday = Weekday.Saturday, StartTime = new DateTime(2024, 1, 1, 8, 0, 0), EndTime = new DateTime(2024, 1, 1, 21, 0, 0) },
-                new CourtAvailability { Id = 28, CourtId = 5, Weekday = Weekday.Sunday, StartTime = new DateTime(2024, 1, 1, 8, 0, 0), EndTime = new DateTime(2024, 1, 1, 21, 0, 0) }
+                new CourtAvailability { Id = 22, CourtId = 5, Weekday = Weekday.Monday, StartTime = new TimeOnly(7, 0), EndTime = new TimeOnly(22, 0) },
+                new CourtAvailability { Id = 23, CourtId = 5, Weekday = Weekday.Tuesday, StartTime = new TimeOnly(7, 0), EndTime = new TimeOnly(22, 0) },
+                new CourtAvailability { Id = 24, CourtId = 5, Weekday = Weekday.Wednesday, StartTime = new TimeOnly(7, 0), EndTime = new TimeOnly(22, 0) },
+                new CourtAvailability { Id = 25, CourtId = 5, Weekday = Weekday.Thursday, StartTime = new TimeOnly(7, 0), EndTime = new TimeOnly(22, 0) },
+                new CourtAvailability { Id = 26, CourtId = 5, Weekday = Weekday.Friday, StartTime = new TimeOnly(7, 0), EndTime = new TimeOnly(22, 0) },
+                new CourtAvailability { Id = 27, CourtId = 5, Weekday = Weekday.Saturday, StartTime = new TimeOnly(8, 0), EndTime = new TimeOnly(21, 0) },
+                new CourtAvailability { Id = 28, CourtId = 5, Weekday = Weekday.Sunday, StartTime = new TimeOnly(8, 0), EndTime = new TimeOnly(21, 0) }
             );
             #endregion
         }

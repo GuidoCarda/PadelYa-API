@@ -1,6 +1,9 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using padelya_api.Constants;
+using padelya_api.models;
 using padelya_api.Models;
+using padelya_api.Models.Class;
+using padelya_api.Models.Tournament;
 
 namespace padelya_api.Data
 {
@@ -20,10 +23,29 @@ namespace padelya_api.Data
         public DbSet<Court> Courts { get; set; }
         public DbSet<CourtAvailability> CourtAvailabilities { get; set; }
 
+        //Tournaments
+        public DbSet<Tournament> Tournaments { get; set; }
+        public DbSet<Couple> Couples { get; set; }
+        public DbSet<TournamentEnrollment> TournamentEnrollments { get; set; }
+        public DbSet<TournamentMatch> TournamentMatches { get; set; }
+        public DbSet<TournamentPhase> TournamentPhases { get; set; }
+        public DbSet<TournamentBracket> TournamentBracketets { get; set; }
+
+        //Payments
+        public DbSet<Payment> Payments { get; set; }
+
+        //Lessons
+        public DbSet<Lesson> Lessons { get; set; }
+        public DbSet<Stats> Stats { get; set; }
+        public DbSet<Routine> Routines { get; set; }
+        public DbSet<Exercise> Exercises { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
+
+            #region Security Module
             modelBuilder.Entity<PermissionComponent>()
                 .HasKey(p => p.Id);
 
@@ -73,7 +95,6 @@ namespace padelya_api.Data
                         .HasForeignKey("RoleId")
                 );
 
-
             // TPH: Table-Per-Hierarchy
             modelBuilder.Entity<Person>()
                 .HasDiscriminator<string>("PersonType")
@@ -88,7 +109,7 @@ namespace padelya_api.Data
                 .HasForeignKey<User>(u => u.PersonId)
                 .IsRequired(false);
 
-
+            #endregion
 
             #region ComplexManagement
 
@@ -105,6 +126,144 @@ namespace padelya_api.Data
                 .OnDelete(DeleteBehavior.Cascade);
             #endregion
 
+            #region Tournaments
+            // Couple-Player (n:m)
+            modelBuilder.Entity<Couple>()
+                .HasMany(c => c.Players)
+                .WithMany();
+
+            // TournamentMatch: CoupleOne and CoupleTwo
+            modelBuilder.Entity<TournamentMatch>()
+                .HasOne(m => m.CoupleOne)
+                .WithMany()
+                .HasForeignKey(m => m.CoupleOneId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<TournamentMatch>()
+                .HasOne(m => m.CoupleTwo)
+                .WithMany()
+                .HasForeignKey(m => m.CoupleTwoId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // TournamentPhase - Tournament (n:1)
+            modelBuilder.Entity<TournamentPhase>()
+                .HasOne<Tournament>()
+                .WithMany(t => t.TournamentPhases)
+                .HasForeignKey(p => p.TournamentId);
+
+            // Bracket - TournamentPhase (n:1)
+            modelBuilder.Entity<TournamentBracket>()
+                .HasOne<TournamentPhase>()
+                .WithMany(p => p.Brackets)
+                .HasForeignKey(b => b.PhaseId);
+
+            // TournamentEnrollment - Couple (n:1)
+            modelBuilder.Entity<TournamentEnrollment>()
+                .HasOne(e => e.Couple)
+                .WithMany()
+                .HasForeignKey(e => e.CoupleId);
+
+            // TournamentEnrollment - Tournament (n:1)
+            modelBuilder.Entity<TournamentEnrollment>()
+                .HasOne(e => e.Tournament)
+                .WithMany(t => t.Enrollments)
+                .HasForeignKey(e => e.TournamentId);
+
+            // Bracket - TournamentMatch (n:1)
+            modelBuilder.Entity<TournamentMatch>()
+                .HasOne<TournamentBracket>()
+                .WithMany(b => b.Matches)
+                .HasForeignKey(m => m.BracketId);
+            #endregion
+
+            #region Lessons
+            // LESSON - PLAYER (Many-to-Many)
+            modelBuilder.Entity<Lesson>()
+                .HasMany(l => l.Players)
+                .WithMany(p => p.Lessons)
+                .UsingEntity<Dictionary<string, object>>(
+                    "LessonPlayer",
+                    j => j
+                        .HasOne<Player>()
+                        .WithMany()
+                        .HasForeignKey("PlayerId")
+                        .OnDelete(DeleteBehavior.Restrict),
+                    j => j
+                        .HasOne<Lesson>()
+                        .WithMany()
+                        .HasForeignKey("LessonId")
+                        .OnDelete(DeleteBehavior.Cascade) // or Restrict/NoAction if needed
+                );
+
+            // LESSON - TEACHER (Many-to-One)
+            modelBuilder.Entity<Lesson>()
+                .HasOne(l => l.Teacher)
+                .WithMany(t => t.Lessons)
+                .HasForeignKey(l => l.TeacherId);
+
+            // LESSON - BOOKING (One-to-One)
+            // modelBuilder.Entity<Lesson>()
+            //     .HasOne(l => l.Booking)
+            //     .WithOne()
+            //     .HasForeignKey<Lesson>(l => l.BookingId);
+
+            // LESSON - STATS (One-to-Many)
+            modelBuilder.Entity<Lesson>()
+                .HasMany(l => l.Reports)
+                .WithOne()
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // STATS - PLAYER (Many-to-One)
+            modelBuilder.Entity<Stats>()
+                .HasOne(s => s.Player)
+                .WithMany()
+                .HasForeignKey(s => s.PlayerId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // ROUTINE - TEACHER (Many-to-One)
+            modelBuilder.Entity<Routine>()
+                .HasOne(r => r.Creator)
+                .WithMany()
+                .HasForeignKey(r => r.CreatorId);
+
+            // ROUTINE - PLAYER (Many-to-Many)
+            modelBuilder.Entity<Routine>()
+                .HasMany(r => r.Players)
+                .WithMany()
+                .UsingEntity<Dictionary<string, object>>(
+                "RoutinePlayer",
+                j => j
+                    .HasOne<Player>()
+                    .WithMany()
+                    .HasForeignKey("PlayerId")
+                    .OnDelete(DeleteBehavior.Restrict),
+                j => j
+                    .HasOne<Routine>()
+                    .WithMany()
+                    .HasForeignKey("RoutineId")
+                    .OnDelete(DeleteBehavior.Cascade)
+            );
+
+            // ROUTINE - EXERCISE (Many-to-Many)
+            modelBuilder.Entity<Routine>()
+                .HasMany(r => r.Exercises)
+                .WithMany()
+                .UsingEntity<Dictionary<string, object>>(
+                    "RoutineExercise",
+                    j => j
+                        .HasOne<Exercise>()
+                        .WithMany()
+                        .HasForeignKey("ExerciseId")
+                        .OnDelete(DeleteBehavior.Cascade),
+                    j => j
+                        .HasOne<Routine>()
+                        .WithMany()
+                        .HasForeignKey("RoutineId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                );
+
+
+            #endregion
 
             #region Seeding security module
             // db module/role/permissions seeding

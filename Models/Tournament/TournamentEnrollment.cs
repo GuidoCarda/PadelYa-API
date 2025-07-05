@@ -1,0 +1,27 @@
+using System;
+using System.Collections.Generic;
+using padelya_api.Models;
+using padelya_api.Models.Tournament;
+
+namespace padelya_api.Models.Tournament
+{
+    public class TournamentEnrollment
+    {
+        public int Id { get; set; }
+        public DateTime CreatedAt { get; set; }
+
+        // Navigation property for the couple (should contain 2 players)
+        public int CoupleId { get; set; }
+        public Couple Couple { get; set; }
+
+        // Navigation property for Payment (assuming one payment per enrollment)
+        // public int PaymentId { get; set; }
+        // public Payment.Payment Payment { get; set; }
+
+        // Navigation property for Tournament
+        public int TournamentId { get; set; }
+        public Tournament Tournament { get; set; }
+
+        // Add methods here as needed
+    }
+}

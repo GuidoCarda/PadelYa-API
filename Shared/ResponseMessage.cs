@@ -38,30 +38,6 @@ namespace padelya_api.Shared
         [JsonPropertyName("validationErrors")]
         public List<ValidationError>? ValidationErrors { get; set; }
 
-        /// <summary>
-        /// Pagination information when applicable
-        /// </summary>
-        [JsonPropertyName("pagination")]
-        public PaginationInfo? Pagination { get; set; }
-
-        /// <summary>
-        /// Metadata about the response (pagination, timestamps, etc.)
-        /// </summary>
-        [JsonPropertyName("metadata")]
-        public ResponseMetadata? Metadata { get; set; }
-
-        /// <summary>
-        /// Timestamp when the response was generated
-        /// </summary>
-        [JsonPropertyName("timestamp")]
-        public DateTime Timestamp { get; set; } = DateTime.UtcNow;
-
-        /// <summary>
-        /// Request correlation ID for tracking
-        /// </summary>
-        [JsonPropertyName("correlationId")]
-        public string? CorrelationId { get; set; }
-
         #region Success Factory Methods
 
         /// <summary>
@@ -86,20 +62,6 @@ namespace padelya_api.Shared
             {
                 Success = true,
                 Message = message
-            };
-        }
-
-        /// <summary>
-        /// Creates a successful response with pagination
-        /// </summary>
-        public static ResponseMessage<T> SuccessResult(T data, PaginationInfo pagination, string message = "Data retrieved successfully")
-        {
-            return new ResponseMessage<T>
-            {
-                Success = true,
-                Message = message,
-                Data = data,
-                Pagination = pagination
             };
         }
 
@@ -199,28 +161,6 @@ namespace padelya_api.Shared
         }
 
         #endregion
-
-        #region Utility Methods
-
-        /// <summary>
-        /// Sets the correlation ID for request tracking
-        /// </summary>
-        public ResponseMessage<T> WithCorrelationId(string correlationId)
-        {
-            CorrelationId = correlationId;
-            return this;
-        }
-
-        /// <summary>
-        /// Sets metadata for the response
-        /// </summary>
-        public ResponseMessage<T> WithMetadata(ResponseMetadata metadata)
-        {
-            Metadata = metadata;
-            return this;
-        }
-
-        #endregion
     }
 
     /// <summary>
@@ -243,70 +183,6 @@ namespace padelya_api.Shared
             Message = message;
             Value = value;
         }
-    }
-
-    /// <summary>
-    /// Metadata about the response
-    /// </summary>
-    public class ResponseMetadata
-    {
-        [JsonPropertyName("pagination")]
-        public PaginationInfo? Pagination { get; set; }
-
-        [JsonPropertyName("processingTime")]
-        public TimeSpan? ProcessingTime { get; set; }
-
-        [JsonPropertyName("serverInfo")]
-        public ServerInfo? ServerInfo { get; set; }
-    }
-
-    /// <summary>
-    /// Pagination information
-    /// </summary>
-    public class PaginationInfo
-    {
-        [JsonPropertyName("page")]
-        public int Page { get; set; }
-
-        [JsonPropertyName("pageSize")]
-        public int PageSize { get; set; }
-
-        [JsonPropertyName("totalCount")]
-        public int TotalCount { get; set; }
-
-        [JsonPropertyName("totalPages")]
-        public int TotalPages { get; set; }
-
-        [JsonPropertyName("hasNext")]
-        public bool HasNext { get; set; }
-
-        [JsonPropertyName("hasPrevious")]
-        public bool HasPrevious { get; set; }
-
-        public PaginationInfo(int page, int pageSize, int totalCount)
-        {
-            Page = page;
-            PageSize = pageSize;
-            TotalCount = totalCount;
-            TotalPages = (int)Math.Ceiling((double)totalCount / pageSize);
-            HasNext = page < TotalPages;
-            HasPrevious = page > 1;
-        }
-    }
-
-    /// <summary>
-    /// Server information
-    /// </summary>
-    public class ServerInfo
-    {
-        [JsonPropertyName("version")]
-        public string Version { get; set; } = string.Empty;
-
-        [JsonPropertyName("environment")]
-        public string Environment { get; set; } = string.Empty;
-
-        [JsonPropertyName("timestamp")]
-        public DateTime Timestamp { get; set; } = DateTime.UtcNow;
     }
 
     /// <summary>

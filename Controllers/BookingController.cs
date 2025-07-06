@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using padelya_api.DTOs.Booking;
 using padelya_api.Services;
+using padelya_api.Shared;
 
 namespace padelya_api.Controllers
 {
@@ -18,25 +19,48 @@ namespace padelya_api.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            var bookings = await _bookingService.GetAllAsync();
-            return Ok(bookings);
+            try
+            {
+                var bookings = await _bookingService.GetAllAsync();
+                return Ok(ResponseMessage<IEnumerable<BookingDto>>.SuccessResult(bookings, "Bookings retrieved successfully"));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ResponseMessage<IEnumerable<BookingDto>>.Error($"Failed to retrieve bookings: {ex.Message}"));
+            }
         }
 
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {
-            var booking = await _bookingService.GetByIdAsync(id);
-            if (booking == null)
-                return NotFound();
-            return Ok(booking);
-        }
+            try
+            {
+                var booking = await _bookingService.GetByIdAsync(id);
+                if (booking == null)
+                    return NotFound(ResponseMessage<BookingDto>.NotFound($"Booking with ID {id} not found"));
 
+                return Ok(ResponseMessage<BookingDto>.SuccessResult(booking, "Booking retrieved successfully"));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ResponseMessage<BookingDto>.Error($"Failed to retrieve booking: {ex.Message}"));
+            }
+        }
 
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] BookingCreateDto dto)
         {
             if (!ModelState.IsValid)
-                return BadRequest(ModelState);
+            {
+                var validationErrors = ModelState
+                    .Where(x => x.Value.Errors.Count > 0)
+                    .ToDictionary(
+                        kvp => kvp.Key,
+                        kvp => kvp.Value.Errors.Select(e => e.ErrorMessage).ToArray()
+                    );
+
+                return BadRequest(ResponseMessage<BookingResponseDto>.ValidationError("Validation failed", validationErrors));
+            }
 
             try
             {
@@ -44,41 +68,63 @@ namespace padelya_api.Controllers
                 var result = await _bookingService.CreateWithPaymentAsync(dto);
 
                 Console.WriteLine($"Controlador: Resultado recibido - BookingId: {result.Booking.Id}, PaymentId: {result.Payment.Id}");
-                return CreatedAtAction(nameof(GetById), new { id = result.Booking.Id }, result);
+                return CreatedAtAction(
+                    nameof(GetById),
+                    new { id = result.Booking.Id },
+                    ResponseMessage<BookingResponseDto>.SuccessResult(result, "Booking created successfully")
+                );
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Controlador: Error - {ex.Message}");
-                return BadRequest(new { error = ex.Message });
+                return BadRequest(ResponseMessage<BookingResponseDto>.Error($"Failed to create booking: {ex.Message}"));
             }
         }
-
-        // [HttpPost]
-        // public async Task<IActionResult> Create([FromBody] BookingCreateDto dto)
-        // {
-        //     var created = await _bookingService.CreateAsync(dto);
-        //     return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
-        // }
 
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, [FromBody] BookingUpdateDto dto)
         {
             if (!ModelState.IsValid)
-                return BadRequest(ModelState);
+            {
+                var validationErrors = ModelState
+                    .Where(x => x.Value.Errors.Count > 0)
+                    .ToDictionary(
+                        kvp => kvp.Key,
+                        kvp => kvp.Value.Errors.Select(e => e.ErrorMessage).ToArray()
+                    );
 
-            var updated = await _bookingService.UpdateAsync(id, dto);
-            if (updated == null)
-                return NotFound();
-            return Ok(updated);
+                return BadRequest(ResponseMessage<BookingDto>.ValidationError("Validation failed", validationErrors));
+            }
+
+            try
+            {
+                var updated = await _bookingService.UpdateAsync(id, dto);
+                if (updated == null)
+                    return NotFound(ResponseMessage<BookingDto>.NotFound($"Booking with ID {id} not found"));
+
+                return Ok(ResponseMessage<BookingDto>.SuccessResult(updated, "Booking updated successfully"));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ResponseMessage<BookingDto>.Error($"Failed to update booking: {ex.Message}"));
+            }
         }
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
-            var deleted = await _bookingService.DeleteAsync(id);
-            if (!deleted)
-                return NotFound();
-            return NoContent();
+            try
+            {
+                var deleted = await _bookingService.DeleteAsync(id);
+                if (!deleted)
+                    return NotFound(ResponseMessage.NotFound($"Booking with ID {id} not found"));
+
+                return Ok(ResponseMessage.SuccessMessage("Booking deleted successfully"));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ResponseMessage.Error($"Failed to delete booking: {ex.Message}"));
+            }
         }
     }
 }

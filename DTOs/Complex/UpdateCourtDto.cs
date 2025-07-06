@@ -7,5 +7,7 @@ namespace padelya_api.DTOs
         public string? Name { get; set; }
         public CourtStatus? CourtStatus { get; set; }
         public int? BookingPrice { get; set; }
+        public TimeOnly? OpeningTime { get; set; }
+        public TimeOnly? ClosingTime { get; set; }
     }
 }

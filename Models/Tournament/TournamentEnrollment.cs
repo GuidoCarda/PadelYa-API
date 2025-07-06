@@ -14,14 +14,12 @@ namespace padelya_api.Models.Tournament
         public int CoupleId { get; set; }
         public Couple Couple { get; set; }
 
-        // Navigation property for Payment (assuming one payment per enrollment)
-        // public int PaymentId { get; set; }
-        // public Payment.Payment Payment { get; set; }
-
         // Navigation property for Tournament
         public int TournamentId { get; set; }
         public Tournament Tournament { get; set; }
 
+
+        public Payment Payment { get; set; }
         // Add methods here as needed
     }
 }

@@ -21,7 +21,12 @@ namespace padelya_api.Data
 
         public DbSet<Complex> Complex { get; set; }
         public DbSet<Court> Courts { get; set; }
-        public DbSet<CourtAvailability> CourtAvailabilities { get; set; }
+
+        // Represents all ocuppied court slots
+        public DbSet<CourtSlot> CourtSlots { get; set; }
+
+        // Bookings (antes CourtBookings)
+        public DbSet<Booking> Bookings { get; set; }
 
         //Tournaments
         public DbSet<Tournament> Tournaments { get; set; }
@@ -29,16 +34,20 @@ namespace padelya_api.Data
         public DbSet<TournamentEnrollment> TournamentEnrollments { get; set; }
         public DbSet<TournamentMatch> TournamentMatches { get; set; }
         public DbSet<TournamentPhase> TournamentPhases { get; set; }
-        public DbSet<TournamentBracket> TournamentBracketets { get; set; }
+        public DbSet<TournamentBracket> TournamentBrackets { get; set; }
+
+        //Lessons
+        public DbSet<Lesson> Lessons { get; set; }
+        public DbSet<LessonEnrollment> LessonEnrollments { get; set; }
+        public DbSet<Stats> Stats { get; set; }
+
+        //Routines
+        public DbSet<Routine> Routines { get; set; }
+        public DbSet<Exercise> Exercises { get; set; }
 
         //Payments
         public DbSet<Payment> Payments { get; set; }
 
-        //Lessons
-        public DbSet<Lesson> Lessons { get; set; }
-        public DbSet<Stats> Stats { get; set; }
-        public DbSet<Routine> Routines { get; set; }
-        public DbSet<Exercise> Exercises { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -119,12 +128,62 @@ namespace padelya_api.Data
                 .HasForeignKey(c => c.ComplexId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            modelBuilder.Entity<Court>()
-                .HasMany(c => c.Availability)
-                .WithOne()
-                .HasForeignKey(a => a.CourtId)
-                .OnDelete(DeleteBehavior.Cascade);
             #endregion
+
+            #region CourtSlots 
+
+            // CourtSlot 1:1 Booking
+            modelBuilder.Entity<CourtSlot>()
+                .HasOne(cs => cs.Booking)
+                .WithOne(b => b.CourtSlot)
+                .HasForeignKey<Booking>(b => b.CourtSlotId);
+
+            // CourtSlot 1:1 Lesson
+            modelBuilder.Entity<CourtSlot>()
+                .HasOne(cs => cs.Lesson)
+                .WithOne(l => l.CourtSlot)
+                .HasForeignKey<Lesson>(l => l.CourtSlotId);
+
+            // CourtSlot 1:1 TournamentMatch
+            modelBuilder.Entity<CourtSlot>()
+                .HasOne(cs => cs.TournamentMatch)
+                .WithOne(tm => tm.CourtSlot)
+                .HasForeignKey<TournamentMatch>(tm => tm.CourtSlotId);
+
+            // Booking 1:N Payment
+            modelBuilder.Entity<Booking>()
+                .HasMany(b => b.Payments)
+                .WithOne(p => p.Booking)
+                .HasForeignKey(p => p.BookingId);
+
+            // Lesson 1:N LessonEnrollment
+            modelBuilder.Entity<Lesson>()
+                .HasMany(l => l.Enrollments)
+                .WithOne(e => e.Lesson)
+                .HasForeignKey(e => e.LessonId);
+
+            // LessonEnrollment 1:1 Payment
+            modelBuilder.Entity<LessonEnrollment>()
+                .HasOne(e => e.Payment)
+                .WithOne(p => p.LessonEnrollment)
+                .HasForeignKey<Payment>(p => p.LessonEnrollmentId);
+
+            //LessonEnrollment 1:1 Person
+            modelBuilder.Entity<LessonEnrollment>()
+                .HasOne(e => e.Person)
+                .WithMany()
+                .HasForeignKey(e => e.PersonId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // TournamentEnrollment 1:1 Payment
+            modelBuilder.Entity<TournamentEnrollment>()
+                .HasOne(tr => tr.Payment)
+                .WithOne(p => p.TournamentEnrollment)
+                .HasForeignKey<Payment>(p => p.TournamentEnrollmentId);
+
+
+            #endregion
+
 
             #region Tournaments
             // Couple-Player (n:m)
@@ -177,35 +236,11 @@ namespace padelya_api.Data
             #endregion
 
             #region Lessons
-            // LESSON - PLAYER (Many-to-Many)
-            modelBuilder.Entity<Lesson>()
-                .HasMany(l => l.Players)
-                .WithMany(p => p.Lessons)
-                .UsingEntity<Dictionary<string, object>>(
-                    "LessonPlayer",
-                    j => j
-                        .HasOne<Player>()
-                        .WithMany()
-                        .HasForeignKey("PlayerId")
-                        .OnDelete(DeleteBehavior.Restrict),
-                    j => j
-                        .HasOne<Lesson>()
-                        .WithMany()
-                        .HasForeignKey("LessonId")
-                        .OnDelete(DeleteBehavior.Cascade) // or Restrict/NoAction if needed
-                );
-
             // LESSON - TEACHER (Many-to-One)
             modelBuilder.Entity<Lesson>()
                 .HasOne(l => l.Teacher)
                 .WithMany(t => t.Lessons)
                 .HasForeignKey(l => l.TeacherId);
-
-            // LESSON - BOOKING (One-to-One)
-            // modelBuilder.Entity<Lesson>()
-            //     .HasOne(l => l.Booking)
-            //     .WithOne()
-            //     .HasForeignKey<Lesson>(l => l.BookingId);
 
             // LESSON - STATS (One-to-Many)
             modelBuilder.Entity<Lesson>()
@@ -449,7 +484,9 @@ namespace padelya_api.Data
                     Id = 1,
                     Name = "Court 1 - Premium",
                     CourtStatus = CourtStatus.Available,
-                    BookingPrice = 15000, // $25.00 in cents
+                    BookingPrice = 15000, // $15.00 in cents
+                    OpeningTime = new TimeOnly(6, 0), // 6:00 AM
+                    ClosingTime = new TimeOnly(23, 0), // 11:00 PM
                     ComplexId = 1
                 },
                 new Court
@@ -458,6 +495,8 @@ namespace padelya_api.Data
                     Name = "Court 2 - Standard",
                     CourtStatus = CourtStatus.Available,
                     BookingPrice = 20000, // $20.00 in cents
+                    OpeningTime = new TimeOnly(6, 0), // 6:00 AM
+                    ClosingTime = new TimeOnly(23, 0), // 11:00 PM
                     ComplexId = 1
                 },
                 new Court
@@ -465,7 +504,9 @@ namespace padelya_api.Data
                     Id = 3,
                     Name = "Court 3 - Standard",
                     CourtStatus = CourtStatus.Available,
-                    BookingPrice = 12000, // $20.00 in cents
+                    BookingPrice = 12000, // $12.00 in cents
+                    OpeningTime = new TimeOnly(6, 0), // 6:00 AM
+                    ClosingTime = new TimeOnly(23, 0), // 11:00 PM
                     ComplexId = 1
                 },
                 new Court
@@ -474,6 +515,8 @@ namespace padelya_api.Data
                     Name = "Court 4 - Premium",
                     CourtStatus = CourtStatus.Maintenance,
                     BookingPrice = 25000, // $25.00 in cents
+                    OpeningTime = new TimeOnly(6, 0), // 6:00 AM
+                    ClosingTime = new TimeOnly(23, 0), // 11:00 PM
                     ComplexId = 1
                 },
                 new Court
@@ -481,52 +524,13 @@ namespace padelya_api.Data
                     Id = 5,
                     Name = "Court 5 - Indoor",
                     CourtStatus = CourtStatus.Available,
-                    BookingPrice = 20000, // $30.00 in cents
+                    BookingPrice = 20000, // $20.00 in cents
+                    OpeningTime = new TimeOnly(6, 0), // 6:00 AM
+                    ClosingTime = new TimeOnly(23, 0), // 11:00 PM
                     ComplexId = 1
                 }
             );
 
-            // Court Availability seeding
-            modelBuilder.Entity<CourtAvailability>().HasData(
-                // Court 1 - Premium (Monday to Friday: 6:00-23:00, Weekend: 7:00-22:00)
-                new CourtAvailability { Id = 1, CourtId = 1, Weekday = Weekday.Monday, StartTime = new TimeOnly(6, 0), EndTime = new TimeOnly(23, 0) },
-                new CourtAvailability { Id = 2, CourtId = 1, Weekday = Weekday.Tuesday, StartTime = new TimeOnly(6, 0), EndTime = new TimeOnly(23, 0) },
-                new CourtAvailability { Id = 3, CourtId = 1, Weekday = Weekday.Wednesday, StartTime = new TimeOnly(6, 0), EndTime = new TimeOnly(23, 0) },
-                new CourtAvailability { Id = 4, CourtId = 1, Weekday = Weekday.Thursday, StartTime = new TimeOnly(6, 0), EndTime = new TimeOnly(23, 0) },
-                new CourtAvailability { Id = 5, CourtId = 1, Weekday = Weekday.Friday, StartTime = new TimeOnly(6, 0), EndTime = new TimeOnly(23, 0) },
-                new CourtAvailability { Id = 6, CourtId = 1, Weekday = Weekday.Saturday, StartTime = new TimeOnly(7, 0), EndTime = new TimeOnly(22, 0) },
-                new CourtAvailability { Id = 7, CourtId = 1, Weekday = Weekday.Sunday, StartTime = new TimeOnly(7, 0), EndTime = new TimeOnly(22, 0) },
-
-                // Court 2 - Standard (Monday to Friday: 6:00-23:00, Weekend: 7:00-22:00)
-                new CourtAvailability { Id = 8, CourtId = 2, Weekday = Weekday.Monday, StartTime = new TimeOnly(6, 0), EndTime = new TimeOnly(23, 0) },
-                new CourtAvailability { Id = 9, CourtId = 2, Weekday = Weekday.Tuesday, StartTime = new TimeOnly(6, 0), EndTime = new TimeOnly(23, 0) },
-                new CourtAvailability { Id = 10, CourtId = 2, Weekday = Weekday.Wednesday, StartTime = new TimeOnly(6, 0), EndTime = new TimeOnly(23, 0) },
-                new CourtAvailability { Id = 11, CourtId = 2, Weekday = Weekday.Thursday, StartTime = new TimeOnly(6, 0), EndTime = new TimeOnly(23, 0) },
-                new CourtAvailability { Id = 12, CourtId = 2, Weekday = Weekday.Friday, StartTime = new TimeOnly(6, 0), EndTime = new TimeOnly(23, 0) },
-                new CourtAvailability { Id = 13, CourtId = 2, Weekday = Weekday.Saturday, StartTime = new TimeOnly(7, 0), EndTime = new TimeOnly(22, 0) },
-                new CourtAvailability { Id = 14, CourtId = 2, Weekday = Weekday.Sunday, StartTime = new TimeOnly(7, 0), EndTime = new TimeOnly(22, 0) },
-
-                // Court 3 - Standard (Monday to Friday: 6:00-23:00, Weekend: 7:00-22:00)
-                new CourtAvailability { Id = 15, CourtId = 3, Weekday = Weekday.Monday, StartTime = new TimeOnly(6, 0), EndTime = new TimeOnly(23, 0) },
-                new CourtAvailability { Id = 16, CourtId = 3, Weekday = Weekday.Tuesday, StartTime = new TimeOnly(6, 0), EndTime = new TimeOnly(23, 0) },
-                new CourtAvailability { Id = 17, CourtId = 3, Weekday = Weekday.Wednesday, StartTime = new TimeOnly(6, 0), EndTime = new TimeOnly(23, 0) },
-                new CourtAvailability { Id = 18, CourtId = 3, Weekday = Weekday.Thursday, StartTime = new TimeOnly(6, 0), EndTime = new TimeOnly(23, 0) },
-                new CourtAvailability { Id = 19, CourtId = 3, Weekday = Weekday.Friday, StartTime = new TimeOnly(6, 0), EndTime = new TimeOnly(23, 0) },
-                new CourtAvailability { Id = 20, CourtId = 3, Weekday = Weekday.Saturday, StartTime = new TimeOnly(7, 0), EndTime = new TimeOnly(22, 0) },
-                new CourtAvailability { Id = 21, CourtId = 3, Weekday = Weekday.Sunday, StartTime = new TimeOnly(7, 0), EndTime = new TimeOnly(22, 0) },
-
-                // Court 4 - Premium (Maintenance - no availability)
-                // No availability records for Court 4 as it's under maintenance
-
-                // Court 5 - Indoor (Monday to Friday: 7:00-22:00, Weekend: 8:00-21:00)
-                new CourtAvailability { Id = 22, CourtId = 5, Weekday = Weekday.Monday, StartTime = new TimeOnly(7, 0), EndTime = new TimeOnly(22, 0) },
-                new CourtAvailability { Id = 23, CourtId = 5, Weekday = Weekday.Tuesday, StartTime = new TimeOnly(7, 0), EndTime = new TimeOnly(22, 0) },
-                new CourtAvailability { Id = 24, CourtId = 5, Weekday = Weekday.Wednesday, StartTime = new TimeOnly(7, 0), EndTime = new TimeOnly(22, 0) },
-                new CourtAvailability { Id = 25, CourtId = 5, Weekday = Weekday.Thursday, StartTime = new TimeOnly(7, 0), EndTime = new TimeOnly(22, 0) },
-                new CourtAvailability { Id = 26, CourtId = 5, Weekday = Weekday.Friday, StartTime = new TimeOnly(7, 0), EndTime = new TimeOnly(22, 0) },
-                new CourtAvailability { Id = 27, CourtId = 5, Weekday = Weekday.Saturday, StartTime = new TimeOnly(8, 0), EndTime = new TimeOnly(21, 0) },
-                new CourtAvailability { Id = 28, CourtId = 5, Weekday = Weekday.Sunday, StartTime = new TimeOnly(8, 0), EndTime = new TimeOnly(21, 0) }
-            );
             #endregion
         }
     }

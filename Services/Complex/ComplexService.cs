@@ -22,7 +22,6 @@ namespace padelya_api.Services
         public async Task<List<Court>> GetCourtsAsync()
         {
             var courts = await _context.Courts
-                .Include(c => c.Availability)
                 .Where(c => c.CourtStatus != CourtStatus.Deleted)
                 .ToListAsync();
 
@@ -32,7 +31,6 @@ namespace padelya_api.Services
         public async Task<Court?> GetCourtByIdAsync(int id)
         {
             var court = await _context.Courts
-                .Include(c => c.Availability)
                 .Where(c => c.CourtStatus != CourtStatus.Deleted)
                 .FirstOrDefaultAsync(c => c.Id == id);
             return court;
@@ -47,32 +45,14 @@ namespace padelya_api.Services
                 BookingPrice = courtDto.BookingPrice,
                 CourtStatus = courtDto.CourtStatus,
                 ComplexId = courtDto.ComplexId,
+                OpeningTime = courtDto.OpeningTime,
+                ClosingTime = courtDto.ClosingTime
             };
 
             _context.Courts.Add(court);
             await _context.SaveChangesAsync();
 
-
-            var weekdays = Enum.GetValues<Weekday>();
-            var defaultAvailability = new List<CourtAvailability>();
-            foreach (var weekday in weekdays)
-            {
-                var availability = new CourtAvailability
-                {
-                    Weekday = weekday,
-                    StartTime = new TimeOnly(8, 0), // 8:00 AM
-                    EndTime = new TimeOnly(22, 0), // 10:00 PM
-                    CourtId = court.Id
-                };
-
-                defaultAvailability.Add(availability);
-            }
-
-            _context.CourtAvailabilities.AddRange(defaultAvailability);
-            await _context.SaveChangesAsync();
-
             return await _context.Courts
-                .Include(c => c.Availability)
                 .FirstOrDefaultAsync(c => c.Id == court.Id);
         }
 
@@ -80,7 +60,6 @@ namespace padelya_api.Services
         {
 
             var court = await _context.Courts
-                .Include(c => c.Availability)
                 .FirstOrDefaultAsync(c => c.Id == id);
 
             if (court == null)
@@ -101,6 +80,16 @@ namespace padelya_api.Services
             if (updateDto.CourtStatus.HasValue)
             {
                 court.CourtStatus = updateDto.CourtStatus.Value;
+            }
+
+            if (updateDto.OpeningTime.HasValue)
+            {
+                court.OpeningTime = updateDto.OpeningTime.Value;
+            }
+
+            if (updateDto.ClosingTime.HasValue)
+            {
+                court.ClosingTime = updateDto.ClosingTime.Value;
             }
 
             await _context.SaveChangesAsync();

@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using padelya_api.Data;
 
@@ -11,9 +12,11 @@ using padelya_api.Data;
 namespace padelya_api.Migrations
 {
     [DbContext(typeof(PadelYaDbContext))]
-    partial class PadelYaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250705231425_NewDomainDesign")]
+    partial class NewDomainDesign
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -21,30 +24,6 @@ namespace padelya_api.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
-
-            modelBuilder.Entity("Booking", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("CourtSlotId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("PersonId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CourtSlotId")
-                        .IsUnique();
-
-                    b.HasIndex("PersonId");
-
-                    b.ToTable("Bookings");
-                });
 
             modelBuilder.Entity("Couple", b =>
                 {
@@ -76,6 +55,30 @@ namespace padelya_api.Migrations
                     b.HasIndex("PlayersId");
 
                     b.ToTable("CouplePlayer");
+                });
+
+            modelBuilder.Entity("CourtBooking", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CourtSlotId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PersonId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CourtSlotId")
+                        .IsUnique();
+
+                    b.HasIndex("PersonId");
+
+                    b.ToTable("CourtBookings");
                 });
 
             modelBuilder.Entity("CourtSlot", b =>
@@ -798,7 +801,7 @@ namespace padelya_api.Migrations
                     b.Property<decimal>("Amount")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<int?>("BookingId")
+                    b.Property<int?>("CourtBookingId")
                         .HasColumnType("int");
 
                     b.Property<DateTime>("CreatedAt")
@@ -827,7 +830,7 @@ namespace padelya_api.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("BookingId");
+                    b.HasIndex("CourtBookingId");
 
                     b.HasIndex("LessonEnrollmentId")
                         .IsUnique()
@@ -1524,25 +1527,6 @@ namespace padelya_api.Migrations
                     b.HasDiscriminator().HasValue("Teacher");
                 });
 
-            modelBuilder.Entity("Booking", b =>
-                {
-                    b.HasOne("CourtSlot", "CourtSlot")
-                        .WithOne("Booking")
-                        .HasForeignKey("Booking", "CourtSlotId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("padelya_api.Models.Person", "Person")
-                        .WithMany()
-                        .HasForeignKey("PersonId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("CourtSlot");
-
-                    b.Navigation("Person");
-                });
-
             modelBuilder.Entity("CouplePlayer", b =>
                 {
                     b.HasOne("Couple", null)
@@ -1556,6 +1540,25 @@ namespace padelya_api.Migrations
                         .HasForeignKey("PlayersId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("CourtBooking", b =>
+                {
+                    b.HasOne("CourtSlot", "CourtSlot")
+                        .WithOne("CourtBooking")
+                        .HasForeignKey("CourtBooking", "CourtSlotId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("padelya_api.Models.Person", "Person")
+                        .WithMany()
+                        .HasForeignKey("PersonId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CourtSlot");
+
+                    b.Navigation("Person");
                 });
 
             modelBuilder.Entity("CourtSlot", b =>
@@ -1671,9 +1674,9 @@ namespace padelya_api.Migrations
 
             modelBuilder.Entity("padelya_api.Models.Payment", b =>
                 {
-                    b.HasOne("Booking", "Booking")
+                    b.HasOne("CourtBooking", "CourtBooking")
                         .WithMany("Payments")
-                        .HasForeignKey("BookingId");
+                        .HasForeignKey("CourtBookingId");
 
                     b.HasOne("LessonEnrollment", "LessonEnrollment")
                         .WithOne("Payment")
@@ -1689,7 +1692,7 @@ namespace padelya_api.Migrations
                         .WithOne("Payment")
                         .HasForeignKey("padelya_api.Models.Payment", "TournamentEnrollmentId");
 
-                    b.Navigation("Booking");
+                    b.Navigation("CourtBooking");
 
                     b.Navigation("LessonEnrollment");
 
@@ -1827,14 +1830,14 @@ namespace padelya_api.Migrations
                     b.Navigation("Module");
                 });
 
-            modelBuilder.Entity("Booking", b =>
+            modelBuilder.Entity("CourtBooking", b =>
                 {
                     b.Navigation("Payments");
                 });
 
             modelBuilder.Entity("CourtSlot", b =>
                 {
-                    b.Navigation("Booking")
+                    b.Navigation("CourtBooking")
                         .IsRequired();
 
                     b.Navigation("Lesson")

@@ -9,8 +9,9 @@ namespace padelya_api.Models
         public CourtStatus CourtStatus { get; set; }
         public int BookingPrice { get; set; }
 
-        public int ComplexId { get; set; }
+        public TimeOnly OpeningTime { get; set; }
+        public TimeOnly ClosingTime { get; set; }
 
-        public List<CourtAvailability> Availability { get; set; } = [];
+        public int ComplexId { get; set; }
     }
 }

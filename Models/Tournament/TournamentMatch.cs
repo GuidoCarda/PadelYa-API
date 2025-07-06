@@ -19,9 +19,9 @@ namespace padelya_api.Models.Tournament
 
         public int BracketId { get; set; }
 
-        // Navigation property for Booking (assuming one booking per match)
-        // public int BookingId { get; set; }
-        // public Booking.Booking Booking { get; set; }
+        // Navigation property for CourtSlot
+        public int CourtSlotId { get; set; }
+        public CourtSlot CourtSlot { get; set; }
         // Add methods here as needed
     }
 }

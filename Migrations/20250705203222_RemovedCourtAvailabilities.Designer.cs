@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using padelya_api.Data;
 
@@ -11,9 +12,11 @@ using padelya_api.Data;
 namespace padelya_api.Migrations
 {
     [DbContext(typeof(PadelYaDbContext))]
-    partial class PadelYaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250705203222_RemovedCourtAvailabilities")]
+    partial class RemovedCourtAvailabilities
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -21,30 +24,6 @@ namespace padelya_api.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
-
-            modelBuilder.Entity("Booking", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("CourtSlotId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("PersonId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CourtSlotId")
-                        .IsUnique();
-
-                    b.HasIndex("PersonId");
-
-                    b.ToTable("Bookings");
-                });
 
             modelBuilder.Entity("Couple", b =>
                 {
@@ -78,57 +57,19 @@ namespace padelya_api.Migrations
                     b.ToTable("CouplePlayer");
                 });
 
-            modelBuilder.Entity("CourtSlot", b =>
+            modelBuilder.Entity("LessonPlayer", b =>
                 {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("CourtId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("Date")
-                        .HasColumnType("datetime2");
-
-                    b.Property<TimeOnly>("EndTime")
-                        .HasColumnType("time");
-
-                    b.Property<TimeOnly>("StartTime")
-                        .HasColumnType("time");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CourtId");
-
-                    b.ToTable("CourtSlots");
-                });
-
-            modelBuilder.Entity("LessonEnrollment", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("EnrollmentDate")
-                        .HasColumnType("datetime2");
-
                     b.Property<int>("LessonId")
                         .HasColumnType("int");
 
-                    b.Property<int>("PersonId")
+                    b.Property<int>("PlayerId")
                         .HasColumnType("int");
 
-                    b.HasKey("Id");
+                    b.HasKey("LessonId", "PlayerId");
 
-                    b.HasIndex("LessonId");
+                    b.HasIndex("PlayerId");
 
-                    b.HasIndex("PersonId");
-
-                    b.ToTable("LessonEnrollments");
+                    b.ToTable("LessonPlayer");
                 });
 
             modelBuilder.Entity("RolCompositePermission", b =>
@@ -798,14 +739,8 @@ namespace padelya_api.Migrations
                     b.Property<decimal>("Amount")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<int?>("BookingId")
-                        .HasColumnType("int");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
-
-                    b.Property<int?>("LessonEnrollmentId")
-                        .HasColumnType("int");
 
                     b.Property<string>("PaymentMethod")
                         .IsRequired()
@@ -815,29 +750,10 @@ namespace padelya_api.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("PersonId")
+                    b.Property<int>("TransactionId")
                         .HasColumnType("int");
-
-                    b.Property<int?>("TournamentEnrollmentId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("TransactionId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("BookingId");
-
-                    b.HasIndex("LessonEnrollmentId")
-                        .IsUnique()
-                        .HasFilter("[LessonEnrollmentId] IS NOT NULL");
-
-                    b.HasIndex("PersonId");
-
-                    b.HasIndex("TournamentEnrollmentId")
-                        .IsUnique()
-                        .HasFilter("[TournamentEnrollmentId] IS NOT NULL");
 
                     b.ToTable("Payments");
                 });
@@ -959,7 +875,7 @@ namespace padelya_api.Migrations
 
                     b.HasIndex("PhaseId");
 
-                    b.ToTable("TournamentBrackets");
+                    b.ToTable("TournamentBracketets");
                 });
 
             modelBuilder.Entity("padelya_api.Models.Tournament.TournamentEnrollment", b =>
@@ -1005,9 +921,6 @@ namespace padelya_api.Migrations
                     b.Property<int>("CoupleTwoId")
                         .HasColumnType("int");
 
-                    b.Property<int>("CourtSlotId")
-                        .HasColumnType("int");
-
                     b.Property<string>("Result")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -1023,9 +936,6 @@ namespace padelya_api.Migrations
                     b.HasIndex("CoupleOneId");
 
                     b.HasIndex("CoupleTwoId");
-
-                    b.HasIndex("CourtSlotId")
-                        .IsUnique();
 
                     b.ToTable("TournamentMatches");
                 });
@@ -1139,12 +1049,6 @@ namespace padelya_api.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("CourtSlotId")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("PlayerId")
-                        .HasColumnType("int");
-
                     b.Property<decimal>("Price")
                         .HasColumnType("decimal(18,2)");
 
@@ -1152,11 +1056,6 @@ namespace padelya_api.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("CourtSlotId")
-                        .IsUnique();
-
-                    b.HasIndex("PlayerId");
 
                     b.HasIndex("TeacherId");
 
@@ -1524,25 +1423,6 @@ namespace padelya_api.Migrations
                     b.HasDiscriminator().HasValue("Teacher");
                 });
 
-            modelBuilder.Entity("Booking", b =>
-                {
-                    b.HasOne("CourtSlot", "CourtSlot")
-                        .WithOne("Booking")
-                        .HasForeignKey("Booking", "CourtSlotId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("padelya_api.Models.Person", "Person")
-                        .WithMany()
-                        .HasForeignKey("PersonId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("CourtSlot");
-
-                    b.Navigation("Person");
-                });
-
             modelBuilder.Entity("CouplePlayer", b =>
                 {
                     b.HasOne("Couple", null)
@@ -1558,34 +1438,19 @@ namespace padelya_api.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("CourtSlot", b =>
+            modelBuilder.Entity("LessonPlayer", b =>
                 {
-                    b.HasOne("padelya_api.Models.Court", "Court")
+                    b.HasOne("padelya_api.models.Lesson", null)
                         .WithMany()
-                        .HasForeignKey("CourtId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Court");
-                });
-
-            modelBuilder.Entity("LessonEnrollment", b =>
-                {
-                    b.HasOne("padelya_api.models.Lesson", "Lesson")
-                        .WithMany("Enrollments")
                         .HasForeignKey("LessonId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("padelya_api.Models.Person", "Person")
+                    b.HasOne("padelya_api.Models.Player", null)
                         .WithMany()
-                        .HasForeignKey("PersonId")
+                        .HasForeignKey("PlayerId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-
-                    b.Navigation("Lesson");
-
-                    b.Navigation("Person");
                 });
 
             modelBuilder.Entity("RolCompositePermission", b =>
@@ -1669,35 +1534,6 @@ namespace padelya_api.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("padelya_api.Models.Payment", b =>
-                {
-                    b.HasOne("Booking", "Booking")
-                        .WithMany("Payments")
-                        .HasForeignKey("BookingId");
-
-                    b.HasOne("LessonEnrollment", "LessonEnrollment")
-                        .WithOne("Payment")
-                        .HasForeignKey("padelya_api.Models.Payment", "LessonEnrollmentId");
-
-                    b.HasOne("padelya_api.Models.Person", "Person")
-                        .WithMany()
-                        .HasForeignKey("PersonId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("padelya_api.Models.Tournament.TournamentEnrollment", "TournamentEnrollment")
-                        .WithOne("Payment")
-                        .HasForeignKey("padelya_api.Models.Payment", "TournamentEnrollmentId");
-
-                    b.Navigation("Booking");
-
-                    b.Navigation("LessonEnrollment");
-
-                    b.Navigation("Person");
-
-                    b.Navigation("TournamentEnrollment");
-                });
-
             modelBuilder.Entity("padelya_api.Models.Tournament.TournamentBracket", b =>
                 {
                     b.HasOne("padelya_api.Models.Tournament.TournamentPhase", null)
@@ -1746,17 +1582,9 @@ namespace padelya_api.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("CourtSlot", "CourtSlot")
-                        .WithOne("TournamentMatch")
-                        .HasForeignKey("padelya_api.Models.Tournament.TournamentMatch", "CourtSlotId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.Navigation("CoupleOne");
 
                     b.Navigation("CoupleTwo");
-
-                    b.Navigation("CourtSlot");
                 });
 
             modelBuilder.Entity("padelya_api.Models.Tournament.TournamentPhase", b =>
@@ -1795,23 +1623,11 @@ namespace padelya_api.Migrations
 
             modelBuilder.Entity("padelya_api.models.Lesson", b =>
                 {
-                    b.HasOne("CourtSlot", "CourtSlot")
-                        .WithOne("Lesson")
-                        .HasForeignKey("padelya_api.models.Lesson", "CourtSlotId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("padelya_api.Models.Player", null)
-                        .WithMany("Lessons")
-                        .HasForeignKey("PlayerId");
-
                     b.HasOne("padelya_api.Models.Teacher", "Teacher")
                         .WithMany("Lessons")
                         .HasForeignKey("TeacherId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("CourtSlot");
 
                     b.Navigation("Teacher");
                 });
@@ -1825,29 +1641,6 @@ namespace padelya_api.Migrations
                         .IsRequired();
 
                     b.Navigation("Module");
-                });
-
-            modelBuilder.Entity("Booking", b =>
-                {
-                    b.Navigation("Payments");
-                });
-
-            modelBuilder.Entity("CourtSlot", b =>
-                {
-                    b.Navigation("Booking")
-                        .IsRequired();
-
-                    b.Navigation("Lesson")
-                        .IsRequired();
-
-                    b.Navigation("TournamentMatch")
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("LessonEnrollment", b =>
-                {
-                    b.Navigation("Payment")
-                        .IsRequired();
                 });
 
             modelBuilder.Entity("padelya_api.Models.Complex", b =>
@@ -1872,12 +1665,6 @@ namespace padelya_api.Migrations
                     b.Navigation("Matches");
                 });
 
-            modelBuilder.Entity("padelya_api.Models.Tournament.TournamentEnrollment", b =>
-                {
-                    b.Navigation("Payment")
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("padelya_api.Models.Tournament.TournamentPhase", b =>
                 {
                     b.Navigation("Brackets");
@@ -1885,14 +1672,7 @@ namespace padelya_api.Migrations
 
             modelBuilder.Entity("padelya_api.models.Lesson", b =>
                 {
-                    b.Navigation("Enrollments");
-
                     b.Navigation("Reports");
-                });
-
-            modelBuilder.Entity("padelya_api.Models.Player", b =>
-                {
-                    b.Navigation("Lessons");
                 });
 
             modelBuilder.Entity("padelya_api.Models.Teacher", b =>

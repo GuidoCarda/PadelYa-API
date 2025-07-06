@@ -14,14 +14,18 @@ namespace padelya_api.models
         public Teacher Teacher { get; set; }
 
         // Navigation property for Players (1 to 4 players per class)
-        public List<Player> Players { get; set; }
+        // public List<Player> Players { get; set; }
+
+        public List<LessonEnrollment> Enrollments { get; set; }
 
         // Navigation property for Stats (1 to 4 reports per class)
         public List<Stats> Reports { get; set; }
 
-        // Navigation property for Booking (one booking per class)
-        // public int BookingId { get; set; }
-        // public Booking.Booking Booking { get; set; }
+
+        // Navigation property for CourtSlot (One slot per class)
+        public int CourtSlotId { get; set; }
+        public CourtSlot CourtSlot { get; set; }
+
         // Add methods here as needed
     }
 }

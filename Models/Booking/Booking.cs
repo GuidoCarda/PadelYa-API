@@ -1,14 +1,18 @@
 using padelya_api.Models;
 
-public class Booking
+namespace padelya_api.Models
 {
-    public int Id { get; set; }
-    public int CourtSlotId { get; set; }
-    public CourtSlot CourtSlot { get; set; }
+    public class Booking
+    {
 
-    public int PersonId { get; set; }
-    public Person Person { get; set; }
+        public int Id { get; set; }
+        public int CourtSlotId { get; set; }
+        public CourtSlot CourtSlot { get; set; }
 
-    // Pagos (seña, saldo, total, etc.)
-    public List<Payment> Payments { get; set; }
+        public int PersonId { get; set; }
+        public Person Person { get; set; }
+
+        // Pagos (seña, saldo, total, etc.)
+        public List<Payment> Payments { get; set; } = [];
+    }
 }

@@ -7,6 +7,7 @@ namespace padelya_api.Models
         public string Title { get; set; }
         public string Institution { get; set; }
 
-        public List<Lesson> Lessons { get; set; }
+        // Eliminada: public List<Lesson> Lessons { get; set; }
+        // La relación se maneja a través de la FK TeacherId en Lesson
     }
 }

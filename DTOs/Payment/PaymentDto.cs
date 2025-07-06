@@ -1,8 +1,6 @@
-using padelya_api.Models.Tournament;
-
-namespace padelya_api.Models
+namespace padelya_api.DTOs.Payment
 {
-    public class Payment
+    public class PaymentDto
     {
         public int Id { get; set; }
         public decimal Amount { get; set; }
@@ -10,12 +8,6 @@ namespace padelya_api.Models
         public string PaymentStatus { get; set; }
         public DateTime CreatedAt { get; set; }
         public string TransactionId { get; set; }
-
-        // Relaciones polimórficas - solo FK, sin navegación bilateral
-        public int? BookingId { get; set; }
-
-        public int? LessonEnrollmentId { get; set; }
-        public int? TournamentEnrollmentId { get; set; }
         public int PersonId { get; set; }
     }
 }

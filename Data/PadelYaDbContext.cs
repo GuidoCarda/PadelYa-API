@@ -153,7 +153,7 @@ namespace padelya_api.Data
             // Booking 1:N Payment
             modelBuilder.Entity<Booking>()
                 .HasMany(b => b.Payments)
-                .WithOne(p => p.Booking)
+                .WithOne() // Eliminada navegación bilateral
                 .HasForeignKey(p => p.BookingId);
 
             // Lesson 1:N LessonEnrollment
@@ -165,7 +165,7 @@ namespace padelya_api.Data
             // LessonEnrollment 1:1 Payment
             modelBuilder.Entity<LessonEnrollment>()
                 .HasOne(e => e.Payment)
-                .WithOne(p => p.LessonEnrollment)
+                .WithOne() // Eliminada navegación bilateral
                 .HasForeignKey<Payment>(p => p.LessonEnrollmentId);
 
             //LessonEnrollment 1:1 Person
@@ -178,7 +178,7 @@ namespace padelya_api.Data
             // TournamentEnrollment 1:1 Payment
             modelBuilder.Entity<TournamentEnrollment>()
                 .HasOne(tr => tr.Payment)
-                .WithOne(p => p.TournamentEnrollment)
+                .WithOne() // Eliminada navegación bilateral
                 .HasForeignKey<Payment>(p => p.TournamentEnrollmentId);
 
 
@@ -239,7 +239,7 @@ namespace padelya_api.Data
             // LESSON - TEACHER (Many-to-One)
             modelBuilder.Entity<Lesson>()
                 .HasOne(l => l.Teacher)
-                .WithMany(t => t.Lessons)
+                .WithMany() // Eliminada navegación bilateral
                 .HasForeignKey(l => l.TeacherId);
 
             // LESSON - STATS (One-to-Many)

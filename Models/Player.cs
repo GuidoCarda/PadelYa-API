@@ -6,7 +6,8 @@ namespace padelya_api.Models
     {
         public string PreferredPosition { get; set; }
 
-        public List<Lesson> Lessons { get; set; }
+        // Eliminada: public List<Lesson> Lessons { get; set; }
+        // La relación se maneja a través de LessonEnrollment
     }
 
 }

@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Linq;
 using System;
+using padelya_api.DTOs.Complex;
 
 namespace padelya_api.Services
 {
@@ -56,7 +57,8 @@ namespace padelya_api.Services
 
         public async Task<BookingDto> CreateAsync(BookingCreateDto dto)
         {
-            var slot = await _courtSlotService.CreateSlotIfAvailableAsync(dto.CourtId, dto.Date, dto.StartTime, dto.EndTime);
+            var endTime = dto.StartTime.AddMinutes(90);
+            var slot = await _courtSlotService.CreateSlotIfAvailableAsync(dto.CourtId, dto.Date, dto.StartTime, endTime);
 
             // Ahora crea el Booking asociado
             var booking = new Booking
@@ -111,7 +113,8 @@ namespace padelya_api.Services
         {
             Console.WriteLine($"Iniciando creación de reserva: CourtId={dto.CourtId}, Date={dto.Date}, PersonId={dto.PersonId}");
 
-            var slot = await _courtSlotService.CreateSlotIfAvailableAsync(dto.CourtId, dto.Date, dto.StartTime, dto.EndTime);
+            var endTime = dto.StartTime.AddMinutes(90);
+            var slot = await _courtSlotService.CreateSlotIfAvailableAsync(dto.CourtId, dto.Date, dto.StartTime, endTime);
             Console.WriteLine($"Slot creado: Id={slot.Id}");
 
             var court = await _context.Courts.FirstOrDefaultAsync(c => c.Id == dto.CourtId);
@@ -133,7 +136,8 @@ namespace padelya_api.Services
             var booking = new Booking
             {
                 CourtSlotId = slot.Id,
-                PersonId = dto.PersonId
+                PersonId = dto.PersonId,
+                Status = paymentType == "deposit" ? "reserved_deposit" : "reserved_paid"
             };
             _context.Bookings.Add(booking);
             await _context.SaveChangesAsync();
@@ -148,7 +152,8 @@ namespace padelya_api.Services
                 CreatedAt = DateTime.UtcNow,
                 TransactionId = Guid.NewGuid().ToString(),
                 PersonId = dto.PersonId,
-                BookingId = booking.Id  // Asociar el pago a la reserva
+                BookingId = booking.Id,  // Asociar el pago a la reserva
+                PaymentType = paymentType // <--- obligatorio
             };
             _context.Payments.Add(payment);
             await _context.SaveChangesAsync();
@@ -195,6 +200,81 @@ namespace padelya_api.Services
             Console.WriteLine($"Response creado: BookingId={response.Booking.Id}, PaymentId={response.Payment.Id}");
 
             return response;
+        }
+
+        public async Task<IEnumerable<CourtAvailabilityDto>> GetDailyAvailabilityAsync(DateTime date)
+        {
+            var courts = await _context.Courts.ToListAsync();
+            var occupiedSlots = await _context.CourtSlots
+                .Where(cs => cs.Date.Date == date.Date)
+                .Select(cs => new { cs.CourtId, cs.StartTime, cs.EndTime })
+                .ToListAsync();
+
+            var result = new List<CourtAvailabilityDto>();
+            foreach (var court in courts)
+            {
+                var slots = GenerateSlotsForCourt(court, date);
+                var slotDtos = new List<SlotAvailabilityDto>();
+                foreach (var slot in slots)
+                {
+                    bool isOccupied = occupiedSlots.Any(os => os.CourtId == court.Id && os.StartTime == slot.start && os.EndTime == slot.end);
+                    slotDtos.Add(new SlotAvailabilityDto
+                    {
+                        Start = slot.start.ToString("HH:mm"),
+                        End = slot.end.ToString("HH:mm"),
+                        Status = isOccupied ? "booked" : "available"
+                    });
+                }
+                result.Add(new CourtAvailabilityDto
+                {
+                    CourtId = court.Id,
+                    CourtName = court.Name,
+                    Type = court.Type,
+                    BookingPrice = court.BookingPrice,
+                    Slots = slotDtos
+                });
+            }
+            return result;
+        }
+
+        // Helper para generar slots posibles de 90 minutos
+        private List<(TimeOnly start, TimeOnly end)> GenerateSlotsForCourt(Models.Court court, DateTime date)
+        {
+            var slots = new List<(TimeOnly, TimeOnly)>();
+
+            // Validar que la cancha tenga horarios válidos
+            if (court.OpeningTime == TimeOnly.MinValue || court.ClosingTime == TimeOnly.MinValue)
+            {
+                Console.WriteLine($"Court {court.Id} has invalid opening/closing times: {court.OpeningTime} / {court.ClosingTime}");
+                return slots;
+            }
+
+            var start = court.OpeningTime;
+            var end = court.ClosingTime;
+
+            // Validar que apertura sea menor que cierre
+            if (start >= end)
+            {
+                Console.WriteLine($"Court {court.Id} has invalid times: {start} >= {end}");
+                return slots;
+            }
+
+            // Calcular cuántos slots de 90 minutos caben
+            var totalMinutes = (end.ToTimeSpan() - start.ToTimeSpan()).TotalMinutes;
+            var maxSlots = (int)(totalMinutes / 90);
+
+            Console.WriteLine($"Court {court.Id}: {start} to {end}, total minutes: {totalMinutes}, max slots: {maxSlots}");
+
+            // Generar exactamente el número de slots que caben
+            for (int i = 0; i < maxSlots; i++)
+            {
+                var slotStart = start.AddMinutes(i * 90);
+                var slotEnd = slotStart.AddMinutes(90);
+                slots.Add((slotStart, slotEnd));
+            }
+
+            Console.WriteLine($"Court {court.Id} generated {slots.Count} slots");
+            return slots;
         }
     }
 }

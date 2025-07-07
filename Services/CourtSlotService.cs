@@ -35,6 +35,11 @@ namespace padelya_api.Services
             if (court == null)
                 throw new Exception("Court not found.");
 
+            Console.WriteLine(start);
+            Console.WriteLine(court.OpeningTime);
+            Console.WriteLine(end);
+            Console.WriteLine(court.ClosingTime);
+
             if (start < court.OpeningTime || end > court.ClosingTime)
                 throw new Exception("El turno está fuera del horario permitido para la cancha.");
 

@@ -13,5 +13,7 @@ namespace padelya_api.Models
         public TimeOnly ClosingTime { get; set; }
 
         public int ComplexId { get; set; }
+
+        public string Type { get; set; } // Ej: "Cristal", "Césped", etc.
     }
 }

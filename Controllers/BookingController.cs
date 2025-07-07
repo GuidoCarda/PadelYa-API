@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using padelya_api.DTOs.Booking;
 using padelya_api.Services;
 using padelya_api.Shared;
+using padelya_api.DTOs.Complex;
 
 namespace padelya_api.Controllers
 {
@@ -125,6 +126,17 @@ namespace padelya_api.Controllers
             {
                 return BadRequest(ResponseMessage.Error($"Failed to delete booking: {ex.Message}"));
             }
+        }
+
+        [HttpGet("availability")]
+        public async Task<IActionResult> GetDailyAvailability([FromQuery] string date)
+        {
+            if (!DateTime.TryParseExact(date, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var parsedDate))
+            {
+                return BadRequest(ResponseMessage.Error("El formato de fecha debe ser YYYY-MM-DD"));
+            }
+            var availability = await _bookingService.GetDailyAvailabilityAsync(parsedDate);
+            return Ok(ResponseMessage<IEnumerable<CourtAvailabilityDto>>.SuccessResult(availability, "Disponibilidad obtenida correctamente"));
         }
     }
 }

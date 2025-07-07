@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using padelya_api.Data;
 
@@ -11,9 +12,11 @@ using padelya_api.Data;
 namespace padelya_api.Migrations
 {
     [DbContext(typeof(PadelYaDbContext))]
-    partial class PadelYaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250706174604_AddBookingStatusAndPaymentType")]
+    partial class AddBookingStatusAndPaymentType
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -79,40 +82,6 @@ namespace padelya_api.Migrations
                     b.HasIndex("CourtId");
 
                     b.ToTable("CourtSlots");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            CourtId = 1,
-                            Date = new DateTime(2025, 7, 6, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            EndTime = new TimeOnly(10, 30, 0),
-                            StartTime = new TimeOnly(9, 0, 0)
-                        },
-                        new
-                        {
-                            Id = 2,
-                            CourtId = 1,
-                            Date = new DateTime(2025, 7, 6, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            EndTime = new TimeOnly(15, 0, 0),
-                            StartTime = new TimeOnly(13, 30, 0)
-                        },
-                        new
-                        {
-                            Id = 3,
-                            CourtId = 2,
-                            Date = new DateTime(2025, 7, 6, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            EndTime = new TimeOnly(12, 0, 0),
-                            StartTime = new TimeOnly(10, 30, 0)
-                        },
-                        new
-                        {
-                            Id = 4,
-                            CourtId = 3,
-                            Date = new DateTime(2025, 7, 6, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            EndTime = new TimeOnly(19, 30, 0),
-                            StartTime = new TimeOnly(18, 0, 0)
-                        });
                 });
 
             modelBuilder.Entity("LessonEnrollment", b =>
@@ -554,36 +523,6 @@ namespace padelya_api.Migrations
                     b.HasIndex("PersonId");
 
                     b.ToTable("Bookings");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            CourtSlotId = 1,
-                            PersonId = 1,
-                            Status = "reserved_paid"
-                        },
-                        new
-                        {
-                            Id = 2,
-                            CourtSlotId = 2,
-                            PersonId = 2,
-                            Status = "reserved_deposit"
-                        },
-                        new
-                        {
-                            Id = 3,
-                            CourtSlotId = 3,
-                            PersonId = 1,
-                            Status = "reserved_paid"
-                        },
-                        new
-                        {
-                            Id = 4,
-                            CourtSlotId = 4,
-                            PersonId = 3,
-                            Status = "reserved_paid"
-                        });
                 });
 
             modelBuilder.Entity("padelya_api.Models.Class.Exercise", b =>
@@ -737,10 +676,6 @@ namespace padelya_api.Migrations
                     b.Property<TimeOnly>("OpeningTime")
                         .HasColumnType("time");
 
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
                     b.HasKey("Id");
 
                     b.HasIndex("ComplexId");
@@ -756,8 +691,7 @@ namespace padelya_api.Migrations
                             ComplexId = 1,
                             CourtStatus = 1,
                             Name = "Court 1 - Premium",
-                            OpeningTime = new TimeOnly(6, 0, 0),
-                            Type = "Cristal"
+                            OpeningTime = new TimeOnly(6, 0, 0)
                         },
                         new
                         {
@@ -767,8 +701,7 @@ namespace padelya_api.Migrations
                             ComplexId = 1,
                             CourtStatus = 1,
                             Name = "Court 2 - Standard",
-                            OpeningTime = new TimeOnly(6, 0, 0),
-                            Type = "Césped"
+                            OpeningTime = new TimeOnly(6, 0, 0)
                         },
                         new
                         {
@@ -778,8 +711,7 @@ namespace padelya_api.Migrations
                             ComplexId = 1,
                             CourtStatus = 1,
                             Name = "Court 3 - Standard",
-                            OpeningTime = new TimeOnly(6, 0, 0),
-                            Type = "Cristal"
+                            OpeningTime = new TimeOnly(6, 0, 0)
                         },
                         new
                         {
@@ -789,8 +721,7 @@ namespace padelya_api.Migrations
                             ComplexId = 1,
                             CourtStatus = 0,
                             Name = "Court 4 - Premium",
-                            OpeningTime = new TimeOnly(6, 0, 0),
-                            Type = "Césped"
+                            OpeningTime = new TimeOnly(6, 0, 0)
                         },
                         new
                         {
@@ -800,8 +731,7 @@ namespace padelya_api.Migrations
                             ComplexId = 1,
                             CourtStatus = 1,
                             Name = "Court 5 - Indoor",
-                            OpeningTime = new TimeOnly(6, 0, 0),
-                            Type = "Cristal"
+                            OpeningTime = new TimeOnly(6, 0, 0)
                         });
                 });
 
@@ -1179,44 +1109,6 @@ namespace padelya_api.Migrations
                     b.HasIndex("StatusId");
 
                     b.ToTable("Users");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            Email = "user1@test.com",
-                            Name = "Juan",
-                            PasswordHash = "test",
-                            PersonId = 1,
-                            RefreshTokenExpiryTime = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            RoleId = 102,
-                            StatusId = 1,
-                            Surname = "Pérez"
-                        },
-                        new
-                        {
-                            Id = 2,
-                            Email = "user2@test.com",
-                            Name = "Ana",
-                            PasswordHash = "test",
-                            PersonId = 2,
-                            RefreshTokenExpiryTime = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            RoleId = 102,
-                            StatusId = 1,
-                            Surname = "García"
-                        },
-                        new
-                        {
-                            Id = 3,
-                            Email = "user3@test.com",
-                            Name = "Luis",
-                            PasswordHash = "test",
-                            PersonId = 3,
-                            RefreshTokenExpiryTime = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            RoleId = 102,
-                            StatusId = 1,
-                            Surname = "Martínez"
-                        });
                 });
 
             modelBuilder.Entity("padelya_api.Models.UserStatus", b =>
@@ -1619,29 +1511,6 @@ namespace padelya_api.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.HasDiscriminator().HasValue("Player");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            Birthdate = new DateTime(1990, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Category = "Primera",
-                            PreferredPosition = "Derecha"
-                        },
-                        new
-                        {
-                            Id = 2,
-                            Birthdate = new DateTime(1992, 2, 2, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Category = "Segunda",
-                            PreferredPosition = "Revés"
-                        },
-                        new
-                        {
-                            Id = 3,
-                            Birthdate = new DateTime(1994, 3, 3, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Category = "Tercera",
-                            PreferredPosition = "Derecha"
-                        });
                 });
 
             modelBuilder.Entity("padelya_api.Models.Teacher", b =>

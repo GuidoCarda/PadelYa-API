@@ -10,6 +10,7 @@ namespace padelya_api.Models
         public string PaymentStatus { get; set; }
         public DateTime CreatedAt { get; set; }
         public string TransactionId { get; set; }
+        public string PaymentType { get; set; } // deposit, total
 
         // Relaciones polimórficas - solo FK, sin navegación bilateral
         public int? BookingId { get; set; }

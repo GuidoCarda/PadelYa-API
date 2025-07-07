@@ -14,5 +14,7 @@ namespace padelya_api.Models
 
         // Pagos (seña, saldo, total, etc.)
         public List<Payment> Payments { get; set; } = [];
+
+        public string Status { get; set; } // reserved_paid, reserved_deposit
     }
 }

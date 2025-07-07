@@ -487,7 +487,8 @@ namespace padelya_api.Data
                     BookingPrice = 15000, // $15.00 in cents
                     OpeningTime = new TimeOnly(6, 0), // 6:00 AM
                     ClosingTime = new TimeOnly(23, 0), // 11:00 PM
-                    ComplexId = 1
+                    ComplexId = 1,
+                    Type = "Cristal"
                 },
                 new Court
                 {
@@ -497,7 +498,8 @@ namespace padelya_api.Data
                     BookingPrice = 20000, // $20.00 in cents
                     OpeningTime = new TimeOnly(6, 0), // 6:00 AM
                     ClosingTime = new TimeOnly(23, 0), // 11:00 PM
-                    ComplexId = 1
+                    ComplexId = 1,
+                    Type = "Césped"
                 },
                 new Court
                 {
@@ -507,7 +509,8 @@ namespace padelya_api.Data
                     BookingPrice = 12000, // $12.00 in cents
                     OpeningTime = new TimeOnly(6, 0), // 6:00 AM
                     ClosingTime = new TimeOnly(23, 0), // 11:00 PM
-                    ComplexId = 1
+                    ComplexId = 1,
+                    Type = "Cristal"
                 },
                 new Court
                 {
@@ -517,7 +520,8 @@ namespace padelya_api.Data
                     BookingPrice = 25000, // $25.00 in cents
                     OpeningTime = new TimeOnly(6, 0), // 6:00 AM
                     ClosingTime = new TimeOnly(23, 0), // 11:00 PM
-                    ComplexId = 1
+                    ComplexId = 1,
+                    Type = "Césped"
                 },
                 new Court
                 {
@@ -527,11 +531,38 @@ namespace padelya_api.Data
                     BookingPrice = 20000, // $20.00 in cents
                     OpeningTime = new TimeOnly(6, 0), // 6:00 AM
                     ClosingTime = new TimeOnly(23, 0), // 11:00 PM
-                    ComplexId = 1
+                    ComplexId = 1,
+                    Type = "Cristal"
                 }
             );
 
             #endregion
+
+            // Seeding de Player y User para pruebas de Bookings
+            modelBuilder.Entity<Player>().HasData(
+                new Player { Id = 1, Birthdate = new DateTime(1990, 1, 1), Category = "Primera", PreferredPosition = "Derecha" },
+                new Player { Id = 2, Birthdate = new DateTime(1992, 2, 2), Category = "Segunda", PreferredPosition = "Revés" },
+                new Player { Id = 3, Birthdate = new DateTime(1994, 3, 3), Category = "Tercera", PreferredPosition = "Derecha" }
+            );
+            modelBuilder.Entity<User>().HasData(
+                new User { Id = 1, PersonId = 1, Name = "Juan", Surname = "Pérez", Email = "user1@test.com", PasswordHash = "test", StatusId = 1, RoleId = 102 },
+                new User { Id = 2, PersonId = 2, Name = "Ana", Surname = "García", Email = "user2@test.com", PasswordHash = "test", StatusId = 1, RoleId = 102 },
+                new User { Id = 3, PersonId = 3, Name = "Luis", Surname = "Martínez", Email = "user3@test.com", PasswordHash = "test", StatusId = 1, RoleId = 102 }
+            );
+
+            // Seeding de CourtSlots y Bookings para pruebas de disponibilidad
+            modelBuilder.Entity<CourtSlot>().HasData(
+                new CourtSlot { Id = 1, CourtId = 1, Date = new DateTime(2025, 7, 6), StartTime = new TimeOnly(9, 0), EndTime = new TimeOnly(10, 30) },
+                new CourtSlot { Id = 2, CourtId = 1, Date = new DateTime(2025, 7, 6), StartTime = new TimeOnly(13, 30), EndTime = new TimeOnly(15, 0) },
+                new CourtSlot { Id = 3, CourtId = 2, Date = new DateTime(2025, 7, 6), StartTime = new TimeOnly(10, 30), EndTime = new TimeOnly(12, 0) },
+                new CourtSlot { Id = 4, CourtId = 3, Date = new DateTime(2025, 7, 6), StartTime = new TimeOnly(18, 0), EndTime = new TimeOnly(19, 30) }
+            );
+            modelBuilder.Entity<Booking>().HasData(
+                new Booking { Id = 1, CourtSlotId = 1, PersonId = 1, Status = "reserved_paid" },
+                new Booking { Id = 2, CourtSlotId = 2, PersonId = 2, Status = "reserved_deposit" },
+                new Booking { Id = 3, CourtSlotId = 3, PersonId = 1, Status = "reserved_paid" },
+                new Booking { Id = 4, CourtSlotId = 4, PersonId = 3, Status = "reserved_paid" }
+            );
         }
     }
 }

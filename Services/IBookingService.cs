@@ -1,5 +1,6 @@
 using padelya_api.DTOs.Booking;
 using padelya_api.DTOs.Payment;
+using padelya_api.DTOs.Complex;
 
 namespace padelya_api.Services
 {
@@ -13,5 +14,7 @@ namespace padelya_api.Services
 
         Task<BookingDto> UpdateAsync(int id, BookingUpdateDto dto);
         Task<bool> DeleteAsync(int id);
+
+        Task<IEnumerable<CourtAvailabilityDto>> GetDailyAvailabilityAsync(DateTime date);
     }
 }

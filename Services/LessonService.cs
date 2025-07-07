@@ -215,42 +215,48 @@ namespace padelya_api.Services
                     .Include(l => l.Enrollments)
                     .AsQueryable();
 
+                // Buscar el usuario asociado al teacher a través de PersonId
+                var lessonsWithUsers = from lesson in query
+                                     join user in _context.Users on lesson.Teacher.Id equals user.PersonId into userGroup
+                                     from user in userGroup.DefaultIfEmpty()
+                                     select new { lesson, user };
+
                 // Aplicar filtros
                 if (filterDto.StartDate.HasValue)
                 {
-                    query = query.Where(l => l.CourtSlot.Date >= filterDto.StartDate.Value);
+                    lessonsWithUsers = lessonsWithUsers.Where(x => x.lesson.CourtSlot.Date >= filterDto.StartDate.Value);
                 }
 
                 if (filterDto.EndDate.HasValue)
                 {
-                    query = query.Where(l => l.CourtSlot.Date <= filterDto.EndDate.Value);
+                    lessonsWithUsers = lessonsWithUsers.Where(x => x.lesson.CourtSlot.Date <= filterDto.EndDate.Value);
                 }
 
                 if (filterDto.TeacherId.HasValue)
                 {
-                    query = query.Where(l => l.TeacherId == filterDto.TeacherId.Value);
+                    lessonsWithUsers = lessonsWithUsers.Where(x => x.lesson.TeacherId == filterDto.TeacherId.Value);
                 }
 
                 if (filterDto.CourtId.HasValue)
                 {
-                    query = query.Where(l => l.CourtSlot.CourtId == filterDto.CourtId.Value);
+                    lessonsWithUsers = lessonsWithUsers.Where(x => x.lesson.CourtSlot.CourtId == filterDto.CourtId.Value);
                 }
 
                 if (!string.IsNullOrWhiteSpace(filterDto.ClassType))
                 {
-                    query = query.Where(l => l.ClassType!.Contains(filterDto.ClassType));
+                    lessonsWithUsers = lessonsWithUsers.Where(x => x.lesson.ClassType!.Contains(filterDto.ClassType));
                 }
 
                 if (filterDto.AvailableOnly == true)
                 {
-                    query = query.Where(l => l.Enrollments.Count < l.MaxCapacity);
+                    lessonsWithUsers = lessonsWithUsers.Where(x => x.lesson.Enrollments.Count < x.lesson.MaxCapacity);
                 }
                 
-                query = query.OrderBy(l => l.CourtSlot.Date).ThenBy(l => l.CourtSlot.StartTime);
+                var orderedResults = lessonsWithUsers.OrderBy(x => x.lesson.CourtSlot.Date).ThenBy(x => x.lesson.CourtSlot.StartTime);
 
-                var lessons = await query.ToListAsync();
+                var results = await orderedResults.ToListAsync();
                 
-                var lessonDtos = lessons.Select(l => MapToLessonListDto(l)).ToList();
+                var lessonDtos = results.Select(r => MapToLessonListDto(r.lesson, r.user)).ToList();
                 
                 return ResponseMessage<List<LessonListDto>>.SuccessResult(lessonDtos);
             }
@@ -478,6 +484,30 @@ namespace padelya_api.Services
             }
         }
 
+        public async Task<ResponseMessage<List<object>>> GetTeachersAsync()
+        {
+            try
+            {
+                var teachers = await _context.Users
+                    .Where(u => u.Person != null && u.Person is Teacher)
+                    .Select(u => new
+                    {
+                        id = u.PersonId,
+                        name = u.Name,
+                        surname = u.Surname,
+                        email = u.Email
+                    })
+                    .ToListAsync();
+
+                var teacherObjects = teachers.Cast<object>().ToList();
+                return ResponseMessage<List<object>>.SuccessResult(teacherObjects);
+            }
+            catch (Exception ex)
+            {
+                return ResponseMessage<List<object>>.Error($"Error al obtener profesores: {ex.Message}");
+            }
+        }
+
         #region Helper Methods
 
         private DateTime CalculateNextDate(DateTime currentDate, string pattern, int interval, List<DayOfWeek>? weeklyDays)
@@ -526,7 +556,7 @@ namespace padelya_api.Services
             };
         }
 
-        private LessonListDto MapToLessonListDto(Lesson lesson)
+        private LessonListDto MapToLessonListDto(Lesson lesson, User? user)
         {
             var status = "Programada";
             if (lesson.HasEnded) status = "Finalizada";
@@ -543,7 +573,7 @@ namespace padelya_api.Services
                 StartTime = lesson.CourtSlot.StartTime,
                 EndTime = lesson.CourtSlot.EndTime,
                 CourtName = lesson.CourtSlot.Court?.Name ?? "Cancha no encontrada",
-                TeacherName = lesson.Teacher?.Title ?? "Profesor no encontrado",
+                TeacherName = user != null ? $"{user.Name} {user.Surname}" : "Profesor no encontrado",
                 Status = status
             };
         }

@@ -253,6 +253,23 @@ namespace padelya_api.Controllers
 
             return BadRequest(result);
         }
+
+        /// <summary>
+        /// Obtener profesores para filtros
+        /// </summary>
+        [HttpGet("teachers")]
+        // [RequirePermission("class:view")]
+        public async Task<IActionResult> GetTeachers()
+        {
+            var result = await _lessonService.GetTeachersAsync();
+            
+            if (result.Success)
+            {
+                return Ok(result.Data);
+            }
+
+            return BadRequest(result);
+        }
     }
 
     /// <summary>

@@ -245,21 +245,14 @@ namespace padelya_api.Services
                 {
                     query = query.Where(l => l.Enrollments.Count < l.MaxCapacity);
                 }
-
-                // Ordenar por fecha y hora
+                
                 query = query.OrderBy(l => l.CourtSlot.Date).ThenBy(l => l.CourtSlot.StartTime);
 
-                // Paginación
-                var totalItems = await query.CountAsync();
-                var lessons = await query
-                    .Skip((filterDto.PageNumber - 1) * filterDto.PageSize)
-                    .Take(filterDto.PageSize)
-                    .ToListAsync();
-
-                var listDtos = lessons.Select(MapToLessonListDto).ToList();
-
-                return ResponseMessage<List<LessonListDto>>.SuccessResult(listDtos, 
-                    $"Se encontraron {totalItems} clases");
+                var lessons = await query.ToListAsync();
+                
+                var lessonDtos = lessons.Select(l => MapToLessonListDto(l)).ToList();
+                
+                return ResponseMessage<List<LessonListDto>>.SuccessResult(lessonDtos);
             }
             catch (Exception ex)
             {
@@ -434,31 +427,15 @@ namespace padelya_api.Services
             }
         }
 
-        public async Task<ResponseMessage<List<LessonListDto>>> GetLessonsByTeacherAsync(
-            int teacherId, DateTime? startDate = null, DateTime? endDate = null)
+        public async Task<ResponseMessage<List<LessonListDto>>> GetLessonsByTeacherAsync(int teacherId, DateTime? startDate = null, DateTime? endDate = null)
         {
-            var filterDto = new LessonFilterDto
-            {
-                TeacherId = teacherId,
-                StartDate = startDate,
-                EndDate = endDate,
-                PageSize = 1000 // Sin paginación para este caso
-            };
-
+            var filterDto = new LessonFilterDto { TeacherId = teacherId, StartDate = startDate, EndDate = endDate };
             return await GetLessonsAsync(filterDto);
         }
 
-        public async Task<ResponseMessage<List<LessonListDto>>> GetLessonsByCourtAsync(
-            int courtId, DateTime? startDate = null, DateTime? endDate = null)
+        public async Task<ResponseMessage<List<LessonListDto>>> GetLessonsByCourtAsync(int courtId, DateTime? startDate = null, DateTime? endDate = null)
         {
-            var filterDto = new LessonFilterDto
-            {
-                CourtId = courtId,
-                StartDate = startDate,
-                EndDate = endDate,
-                PageSize = 1000 // Sin paginación para este caso
-            };
-
+            var filterDto = new LessonFilterDto { CourtId = courtId, StartDate = startDate, EndDate = endDate };
             return await GetLessonsAsync(filterDto);
         }
 

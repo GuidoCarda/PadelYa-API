@@ -86,7 +86,7 @@ namespace padelya_api.Controllers
             
             if (result.Success)
             {
-                return Ok(result);
+                return Ok(result.Data);
             }
 
             return BadRequest(result);
@@ -185,7 +185,7 @@ namespace padelya_api.Controllers
             
             if (result.Success)
             {
-                return Ok(result);
+                return Ok(result.Data);
             }
 
             return BadRequest(result);
@@ -205,7 +205,7 @@ namespace padelya_api.Controllers
             
             if (result.Success)
             {
-                return Ok(result);
+                return Ok(result.Data);
             }
 
             return BadRequest(result);

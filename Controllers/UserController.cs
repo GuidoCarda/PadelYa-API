@@ -14,7 +14,7 @@ namespace padelya_api.Controllers
     [Route("api/users")]
     [ApiController]
     //[Authorize] 
-    [RequireModuleAccess("user")]
+    // [RequireModuleAccess("user")]
     public class UserController(IUserService userService, IRoleService roleService) : ControllerBase
     {
         /// <summary>
@@ -25,7 +25,7 @@ namespace padelya_api.Controllers
         /// <returns>List of users matching the criteria</returns>
         [HttpGet]
         // [RequirePermission(Permissions.User.View)]
-        [RequireAnyPermission(Permissions.User.View, Permissions.User.EditSelf, Permissions.User.AssignRoles)]
+        // [RequireAnyPermission(Permissions.User.View, Permissions.User.EditSelf, Permissions.User.AssignRoles)]
         public async Task<ActionResult<ResponseMessage<IEnumerable<UserDto>>>> GetUsers(string? search = null, int? statusId = null)
         {
             try
@@ -47,7 +47,7 @@ namespace padelya_api.Controllers
         /// <param name="id">User ID</param>
         /// <returns>User information</returns>
         [HttpGet("{id}")]
-        [RequirePermission(Permissions.User.View)]
+        // [RequirePermission(Permissions.User.View)]
         public async Task<ActionResult<ResponseMessage<UserDto>>> GetUser(int id)
         {
             try
@@ -75,7 +75,7 @@ namespace padelya_api.Controllers
         /// <param name="userDto">User creation data</param>
         /// <returns>Created user information</returns>
         [HttpPost]
-        [RequirePermission(Permissions.User.Create)]
+        // [RequirePermission(Permissions.User.Create)]
         public async Task<ActionResult<ResponseMessage<UserDto>>> CreateUser([FromBody] CreateUserDto userDto)
         {
             try

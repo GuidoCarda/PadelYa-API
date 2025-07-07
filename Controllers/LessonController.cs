@@ -9,7 +9,7 @@ namespace padelya_api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize]
+    // [Authorize]
     public class LessonController : ControllerBase
     {
         private readonly ILessonService _lessonService;
@@ -23,7 +23,7 @@ namespace padelya_api.Controllers
         /// Crear una nueva clase (único o recurrente)
         /// </summary>
         [HttpPost]
-        [RequirePermission("class:create")]
+        // [RequirePermission("class:create")]
         public async Task<IActionResult> CreateLesson([FromBody] LessonCreateDto createDto)
         {
             if (!ModelState.IsValid)
@@ -57,7 +57,7 @@ namespace padelya_api.Controllers
         /// Obtener clase por ID
         /// </summary>
         [HttpGet("{id}")]
-        [RequirePermission("class:view")]
+        // [RequirePermission("class:view")]
         public async Task<IActionResult> GetLessonById(int id)
         {
             var result = await _lessonService.GetLessonByIdAsync(id);
@@ -79,7 +79,7 @@ namespace padelya_api.Controllers
         /// Obtener lista de clases con filtros
         /// </summary>
         [HttpGet]
-        [RequirePermission("class:view")]
+        // [RequirePermission("class:view")]
         public async Task<IActionResult> GetLessons([FromQuery] LessonFilterDto filterDto)
         {
             var result = await _lessonService.GetLessonsAsync(filterDto);
@@ -96,7 +96,7 @@ namespace padelya_api.Controllers
         /// Actualizar una clase existente
         /// </summary>
         [HttpPut("{id}")]
-        [RequirePermission("class:edit")]
+        // [RequirePermission("class:edit")]
         public async Task<IActionResult> UpdateLesson(int id, [FromBody] LessonUpdateDto updateDto)
         {
             if (id != updateDto.Id)
@@ -131,7 +131,7 @@ namespace padelya_api.Controllers
         /// Eliminar una clase
         /// </summary>
         [HttpDelete("{id}")]
-        [RequirePermission("class:cancel")] // Usamos cancel permission para delete también
+        // [RequirePermission("class:cancel")] // Usamos cancel permission para delete también
         public async Task<IActionResult> DeleteLesson(int id)
         {
             var result = await _lessonService.DeleteLessonAsync(id);
@@ -153,7 +153,7 @@ namespace padelya_api.Controllers
         /// Cancelar una clase
         /// </summary>
         [HttpPost("{id}/cancel")]
-        [RequirePermission("class:cancel")]
+        // [RequirePermission("class:cancel")]
         public async Task<IActionResult> CancelLesson(int id)
         {
             var result = await _lessonService.CancelLessonAsync(id);
@@ -175,7 +175,7 @@ namespace padelya_api.Controllers
         /// Obtener clases por profesor
         /// </summary>
         [HttpGet("teacher/{teacherId}")]
-        [RequirePermission("class:view")]
+        // [RequirePermission("class:view")]
         public async Task<IActionResult> GetLessonsByTeacher(
             int teacherId, 
             [FromQuery] DateTime? startDate = null, 
@@ -195,7 +195,7 @@ namespace padelya_api.Controllers
         /// Obtener clases por cancha
         /// </summary>
         [HttpGet("court/{courtId}")]
-        [RequirePermission("class:view")]
+        // [RequirePermission("class:view")]
         public async Task<IActionResult> GetLessonsByCourt(
             int courtId, 
             [FromQuery] DateTime? startDate = null, 
@@ -215,7 +215,7 @@ namespace padelya_api.Controllers
         /// Verificar disponibilidad de cancha
         /// </summary>
         [HttpPost("availability/check")]
-        [RequirePermission("class:view")]
+        // [RequirePermission("class:view")]
         public async Task<IActionResult> CheckCourtAvailability([FromBody] CourtAvailabilityCheckDto checkDto)
         {
             if (!ModelState.IsValid)
@@ -240,7 +240,7 @@ namespace padelya_api.Controllers
         /// Obtener clases disponibles para inscripción
         /// </summary>
         [HttpGet("available")]
-        [RequirePermission("class:view")]
+        // [RequirePermission("class:view")]
         public async Task<IActionResult> GetAvailableLessons([FromQuery] LessonFilterDto filterDto)
         {
             filterDto.AvailableOnly = true;

@@ -55,5 +55,61 @@ namespace padelya_api.Services
 
             return tournaments;
         }
+        public async Task<bool> DeleteTournamentAsync(int id)
+        {
+            var tournament = await _context.Tournaments.FindAsync(id);
+
+            if (tournament == null)
+            {
+                return false;
+            }
+
+            tournament.TournamentStatus = TournamentStatus.Deleted;
+            await _context.SaveChangesAsync();
+            return true;
+        }
+        public async Task<Tournament?> UpdateTournamentAsync(int id, UpdateTournamentDto updateDto)
+        {
+            var tournament = await _context.Tournaments.FindAsync(id);
+
+            if (tournament == null)
+            {
+                return null; 
+            }
+
+            // Actualiza solo las propiedades que no son nulas en el DTO
+            if (updateDto.Title != null)
+                tournament.Title = updateDto.Title;
+
+            if (updateDto.Category != null)
+                tournament.Category = updateDto.Category;
+
+            if (updateDto.Quota.HasValue)
+                tournament.Quota = updateDto.Quota.Value;
+
+            if (updateDto.EnrollmentPrice.HasValue)
+                tournament.EnrollmentPrice = updateDto.EnrollmentPrice.Value;
+
+            if (updateDto.EnrollmentStartDate.HasValue)
+                tournament.EnrollmentStartDate = updateDto.EnrollmentStartDate.Value;
+
+            if (updateDto.EnrollmentEndDate.HasValue)
+                tournament.EnrollmentEndDate = updateDto.EnrollmentEndDate.Value;
+
+            if (updateDto.TournamentStartDate.HasValue)
+                tournament.TournamentStartDate = updateDto.TournamentStartDate.Value;
+
+            if (updateDto.TournamentEndDate.HasValue)
+                tournament.TournamentEndDate = updateDto.TournamentEndDate.Value;
+
+            await _context.SaveChangesAsync();
+            return tournament;
+        }
+
+        public async Task<Tournament?> GetTournamentByIdAsync(int id)
+        {
+            var tournament = await _context.Tournaments.FindAsync(id);
+            return tournament;
+        }
     }
 }

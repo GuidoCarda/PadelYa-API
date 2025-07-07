@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using padelya_api.Constants;
 using padelya_api.models;
 using padelya_api.Models;
@@ -233,6 +233,12 @@ namespace padelya_api.Data
                 .HasOne<TournamentBracket>()
                 .WithMany(b => b.Matches)
                 .HasForeignKey(m => m.BracketId);
+
+            // Tournament Configuration
+            modelBuilder.Entity<Tournament>()
+                .Property(t => t.TournamentStatus)
+                .HasConversion<string>();
+
             #endregion
 
             #region Lessons

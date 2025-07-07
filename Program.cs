@@ -61,6 +61,7 @@ builder.Services.AddScoped<IPermissionService, PermissionService>();
 builder.Services.AddScoped<IComplexService, ComplexService>();
 builder.Services.AddScoped<IBookingService, BookingService>();
 builder.Services.AddScoped<ICourtSlotService, CourtSlotService>();
+builder.Services.AddScoped<ITournamentService, TournamentService>();
 
 
 var app = builder.Build();

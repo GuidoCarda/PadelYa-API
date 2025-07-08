@@ -11,12 +11,12 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll", policy =>
-        {
-            policy.AllowAnyOrigin()
-                  .AllowAnyHeader()
-                  .AllowAnyMethod();
-        });
+  options.AddPolicy("AllowAll", policy =>
+      {
+        policy.AllowAnyOrigin()
+                .AllowAnyHeader()
+                .AllowAnyMethod();
+      });
 });
 
 // Add services to the container.
@@ -32,24 +32,24 @@ builder.Services.AddDbContext<PadelYaDbContext>(
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            ValidIssuer = builder.Configuration["AppSettings:Issuer"],
-            ValidAudience = builder.Configuration["AppSettings:Audience"],
-            IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(builder.Configuration["AppSettings:Token"]!))
-        };
+      options.TokenValidationParameters = new TokenValidationParameters
+      {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = builder.Configuration["AppSettings:Issuer"],
+        ValidAudience = builder.Configuration["AppSettings:Audience"],
+        IssuerSigningKey = new SymmetricSecurityKey(
+              Encoding.UTF8.GetBytes(builder.Configuration["AppSettings:Token"]!))
+      };
     });
 
 // Add Authorization with custom policy
 builder.Services.AddAuthorization(options =>
 {
-    options.AddPolicy("RequirePermission", policy =>
-        policy.RequireAuthenticatedUser());
+  options.AddPolicy("RequirePermission", policy =>
+      policy.RequireAuthenticatedUser());
 });
 
 
@@ -62,6 +62,7 @@ builder.Services.AddScoped<IComplexService, ComplexService>();
 builder.Services.AddScoped<IBookingService, BookingService>();
 builder.Services.AddScoped<ICourtSlotService, CourtSlotService>();
 builder.Services.AddScoped<ILessonService, LessonService>();
+builder.Services.AddScoped<ITournamentService, TournamentService>();
 
 
 var app = builder.Build();
@@ -69,9 +70,9 @@ var app = builder.Build();
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    app.MapScalarApiReference();
-    app.MapOpenApi();
-    app.UseCors("AllowAll");
+  app.MapScalarApiReference();
+  app.MapOpenApi();
+  app.UseCors("AllowAll");
 }
 
 //app.UseHttpsRedirection();

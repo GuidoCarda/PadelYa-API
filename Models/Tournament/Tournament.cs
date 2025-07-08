@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using padelya_api.Constants;
 
 namespace padelya_api.Models.Tournament
 {
@@ -9,7 +10,7 @@ namespace padelya_api.Models.Tournament
 
         // Scalar properties
         public string CurrentPhase { get; set; }
-        public string TournamentStatus { get; set; }
+        public TournamentStatus TournamentStatus { get; set; }
         public string Title { get; set; }
         public string Category { get; set; }
         public int Quota { get; set; }

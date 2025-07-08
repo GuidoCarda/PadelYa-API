@@ -13,10 +13,14 @@ namespace padelya_api.Services
         AlreadyExists
     }
 
-    public class RoleService(PadelYaDbContext context, IConfiguration configuration) : IRoleService
+    public class RoleService : IRoleService
     {
-        private readonly PadelYaDbContext _context = context;
-        private readonly IConfiguration _configuration;
+        private readonly PadelYaDbContext _context;
+
+        public RoleService(PadelYaDbContext context)
+        {
+            _context = context;
+        }
 
         public async Task<List<RolComposite>> GetRolesAsync()
         {

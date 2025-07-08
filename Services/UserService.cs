@@ -110,24 +110,39 @@ namespace padelya_api.Services
             Person? person = null;
             if (request?.Person?.PersonType == "Teacher")
             {
+                // Intentar castear a TeacherDto, si falla usar valores por defecto
+                string title = "Profesor";
+                string institution = "PadelYa";
+                
+                if (request.Person is TeacherDto teacherDto)
+                {
+                    title = teacherDto.Title ?? title;
+                    institution = teacherDto.Institution ?? institution;
+                }
 
-                var teacherDto = (TeacherDto)request.Person;
                 person = new Teacher
                 {
                     Birthdate = request.Person.Birthdate,
                     Category = request.Person.Category,
-                    Institution = teacherDto.Institution,
-                    Title = teacherDto.Title
+                    Institution = institution,
+                    Title = title
                 };
             }
             else if (request?.Person?.PersonType == "Player")
             {
-                var playerDto = (PlayerDto)request.Person;
+                // Intentar castear a PlayerDto, si falla usar valores por defecto
+                string preferredPosition = "Cualquiera";
+                
+                if (request.Person is PlayerDto playerDto)
+                {
+                    preferredPosition = playerDto.PreferredPosition ?? preferredPosition;
+                }
+
                 person = new Player
                 {
                     Birthdate = request.Person.Birthdate,
                     Category = request.Person.Category,
-                    PreferredPosition = playerDto.PreferredPosition
+                    PreferredPosition = preferredPosition
                 };
             }
 

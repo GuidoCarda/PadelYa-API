@@ -67,14 +67,13 @@ namespace padelya_api.DTOs.User
 
     public class PlayerDto : PersonDto
     {
-        public new string Category { get; set; }
-        public new string PreferredPosition { get; set; }
+        public string PreferredPosition { get; set; }
     }
 
     public class TeacherDto : PersonDto
     {
-        public new string Title { get; set; }
-        public new string Institution { get; set; }
+        public string Title { get; set; }
+        public string Institution { get; set; }
     }
 
 

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using padelya_api.Constants;
 using padelya_api.DTOs.Payment;
 
 namespace padelya_api.DTOs.Booking
@@ -8,7 +9,10 @@ namespace padelya_api.DTOs.Booking
     public int Id { get; set; }
     public int CourtSlotId { get; set; }
     public int PersonId { get; set; }
-    public string Status { get; set; }
+
+
+    public BookingStatus Status { get; set; }
+    public string DisplayStatus { get; set; } = string.Empty;
 
     // Información del slot/cancha
     public DateTime Date { get; set; }

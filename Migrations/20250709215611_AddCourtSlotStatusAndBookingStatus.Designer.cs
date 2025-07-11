@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using padelya_api.Data;
 
@@ -11,9 +12,11 @@ using padelya_api.Data;
 namespace padelya_api.Migrations
 {
     [DbContext(typeof(PadelYaDbContext))]
-    partial class PadelYaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250709215611_AddCourtSlotStatusAndBookingStatus")]
+    partial class AddCourtSlotStatusAndBookingStatus
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -578,28 +581,28 @@ namespace padelya_api.Migrations
                             Id = 1,
                             CourtSlotId = 1,
                             PersonId = 1,
-                            Status = "ReservedPaid"
+                            Status = "Reserved_Paid"
                         },
                         new
                         {
                             Id = 2,
                             CourtSlotId = 2,
                             PersonId = 2,
-                            Status = "ReservedDeposit"
+                            Status = "Reserved_Deposit"
                         },
                         new
                         {
                             Id = 3,
                             CourtSlotId = 3,
                             PersonId = 1,
-                            Status = "ReservedPaid"
+                            Status = "Reserved_Paid"
                         },
                         new
                         {
                             Id = 4,
                             CourtSlotId = 4,
                             PersonId = 3,
-                            Status = "ReservedPaid"
+                            Status = "Reserved_Paid"
                         });
                 });
 

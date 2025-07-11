@@ -7,568 +7,588 @@ using padelya_api.Models.Tournament;
 
 namespace padelya_api.Data
 {
-    public class PadelYaDbContext(DbContextOptions<PadelYaDbContext> options) : DbContext(options)
+  public class PadelYaDbContext(DbContextOptions<PadelYaDbContext> options) : DbContext(options)
+  {
+
+    public DbSet<User> Users { get; set; }
+    public DbSet<Player> Players { get; set; }
+    public DbSet<Teacher> Teachers { get; set; }
+    public DbSet<UserStatus> UserStatuses { get; set; }
+    public DbSet<Module> Modules { get; set; }
+    public DbSet<PermissionComponent> PermissionComponents { get; set; }
+    public DbSet<SimplePermission> SimplePermissions { get; set; }
+    public DbSet<RolComposite> RolComposites { get; set; }
+
+    public DbSet<Complex> Complex { get; set; }
+    public DbSet<Court> Courts { get; set; }
+
+    // Represents all ocuppied court slots
+    public DbSet<CourtSlot> CourtSlots { get; set; }
+
+    // Bookings (antes CourtBookings)
+    public DbSet<Booking> Bookings { get; set; }
+
+    //Tournaments
+    public DbSet<Tournament> Tournaments { get; set; }
+    public DbSet<Couple> Couples { get; set; }
+    public DbSet<TournamentEnrollment> TournamentEnrollments { get; set; }
+    public DbSet<TournamentMatch> TournamentMatches { get; set; }
+    public DbSet<TournamentPhase> TournamentPhases { get; set; }
+    public DbSet<TournamentBracket> TournamentBrackets { get; set; }
+
+    //Lessons
+    public DbSet<Lesson> Lessons { get; set; }
+    public DbSet<LessonEnrollment> LessonEnrollments { get; set; }
+    public DbSet<Stats> Stats { get; set; }
+
+    //Routines
+    public DbSet<Routine> Routines { get; set; }
+    public DbSet<Exercise> Exercises { get; set; }
+
+    //Payments
+    public DbSet<Payment> Payments { get; set; }
+
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-
-        public DbSet<User> Users { get; set; }
-        public DbSet<Player> Players { get; set; }
-        public DbSet<Teacher> Teachers { get; set; }
-        public DbSet<UserStatus> UserStatuses { get; set; }
-        public DbSet<Module> Modules { get; set; }
-        public DbSet<PermissionComponent> PermissionComponents { get; set; }
-        public DbSet<SimplePermission> SimplePermissions { get; set; }
-        public DbSet<RolComposite> RolComposites { get; set; }
-
-        public DbSet<Complex> Complex { get; set; }
-        public DbSet<Court> Courts { get; set; }
-
-        // Represents all ocuppied court slots
-        public DbSet<CourtSlot> CourtSlots { get; set; }
-
-        // Bookings (antes CourtBookings)
-        public DbSet<Booking> Bookings { get; set; }
-
-        //Tournaments
-        public DbSet<Tournament> Tournaments { get; set; }
-        public DbSet<Couple> Couples { get; set; }
-        public DbSet<TournamentEnrollment> TournamentEnrollments { get; set; }
-        public DbSet<TournamentMatch> TournamentMatches { get; set; }
-        public DbSet<TournamentPhase> TournamentPhases { get; set; }
-        public DbSet<TournamentBracket> TournamentBrackets { get; set; }
-
-        //Lessons
-        public DbSet<Lesson> Lessons { get; set; }
-        public DbSet<LessonEnrollment> LessonEnrollments { get; set; }
-        public DbSet<Stats> Stats { get; set; }
-
-        //Routines
-        public DbSet<Routine> Routines { get; set; }
-        public DbSet<Exercise> Exercises { get; set; }
-
-        //Payments
-        public DbSet<Payment> Payments { get; set; }
-
-
-        protected override void OnModelCreating(ModelBuilder modelBuilder)
-        {
-            base.OnModelCreating(modelBuilder);
-
-
-            #region Security Module
-            modelBuilder.Entity<PermissionComponent>()
-                .HasKey(p => p.Id);
-
-            // Inheritance config: TPH
-            modelBuilder.Entity<PermissionComponent>()
-                .HasDiscriminator<string>("PermissionType")
-                .HasValue<SimplePermission>("Simple")
-                .HasValue<RolComposite>("Composite");
-
-            // User - UserStatus
-            modelBuilder.Entity<User>()
-                .HasOne(u => u.Status)
-                .WithMany()
-                .HasForeignKey("StatusId");
-
-            modelBuilder.Entity<User>()
-                .Property(u => u.StatusId)
-                .HasDefaultValue(1);
-
-            // User - RolComposite
-            modelBuilder.Entity<User>()
-                .HasOne(u => u.Role)
-                .WithMany()
-                .HasForeignKey("RoleId");
-
-
-            // SimplePermission - Module (1:1)
-            modelBuilder.Entity<SimplePermission>()
-                .HasOne(sp => sp.Module)
-                .WithMany(m => m.Permissions)
-                .HasForeignKey("ModuleId")
-                .IsRequired();
-
-            // RolComposite - PermissionComponent (many-to-many self reference)
-            modelBuilder.Entity<RolComposite>()
-                .HasMany(r => r.Permissions)
-                .WithMany()
-                .UsingEntity<Dictionary<string, object>>(
-                    "RolCompositePermission",
-                    j => j
-                        .HasOne<PermissionComponent>()
-                        .WithMany()
-                        .HasForeignKey("PermissionComponentId"),
-                    j => j
-                        .HasOne<RolComposite>()
-                        .WithMany()
-                        .HasForeignKey("RoleId")
-                );
-
-            // TPH: Table-Per-Hierarchy
-            modelBuilder.Entity<Person>()
-                .HasDiscriminator<string>("PersonType")
-                .HasValue<Person>("Person")
-                .HasValue<Player>("Player")
-                .HasValue<Teacher>("Teacher");
-
-            // User - Person (1:1 optional, unidirectional)
-            modelBuilder.Entity<User>()
-                .HasOne(u => u.Person)
-                .WithOne() // without inverse reference
-                .HasForeignKey<User>(u => u.PersonId)
-                .IsRequired(false);
-
-            #endregion
-
-            #region ComplexManagement
-
-            modelBuilder.Entity<Complex>()
-                .HasMany(c => c.Courts)
-                .WithOne()
-                .HasForeignKey(c => c.ComplexId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            #endregion
-
-            #region CourtSlots 
-
-            // CourtSlot 1:1 Booking
-            modelBuilder.Entity<CourtSlot>()
-                .HasOne(cs => cs.Booking)
-                .WithOne(b => b.CourtSlot)
-                .HasForeignKey<Booking>(b => b.CourtSlotId);
-
-            // CourtSlot 1:1 Lesson
-            modelBuilder.Entity<CourtSlot>()
-                .HasOne(cs => cs.Lesson)
-                .WithOne(l => l.CourtSlot)
-                .HasForeignKey<Lesson>(l => l.CourtSlotId);
-
-            // CourtSlot 1:1 TournamentMatch
-            modelBuilder.Entity<CourtSlot>()
-                .HasOne(cs => cs.TournamentMatch)
-                .WithOne(tm => tm.CourtSlot)
-                .HasForeignKey<TournamentMatch>(tm => tm.CourtSlotId);
-
-            // Booking 1:N Payment
-            modelBuilder.Entity<Booking>()
-                .HasMany(b => b.Payments)
-                .WithOne() // Eliminada navegación bilateral
-                .HasForeignKey(p => p.BookingId);
-
-            // Lesson 1:N LessonEnrollment
-            modelBuilder.Entity<Lesson>()
-                .HasMany(l => l.Enrollments)
-                .WithOne(e => e.Lesson)
-                .HasForeignKey(e => e.LessonId);
-
-            // LessonEnrollment 1:1 Payment
-            modelBuilder.Entity<LessonEnrollment>()
-                .HasOne(e => e.Payment)
-                .WithOne() // Eliminada navegación bilateral
-                .HasForeignKey<Payment>(p => p.LessonEnrollmentId);
-
-            //LessonEnrollment 1:1 Person
-            modelBuilder.Entity<LessonEnrollment>()
-                .HasOne(e => e.Person)
-                .WithMany()
-                .HasForeignKey(e => e.PersonId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            // TournamentEnrollment 1:1 Payment
-            modelBuilder.Entity<TournamentEnrollment>()
-                .HasOne(tr => tr.Payment)
-                .WithOne() // Eliminada navegación bilateral
-                .HasForeignKey<Payment>(p => p.TournamentEnrollmentId);
-
-
-            #endregion
-
-
-            #region Tournaments
-            // Couple-Player (n:m)
-            modelBuilder.Entity<Couple>()
-                .HasMany(c => c.Players)
-                .WithMany();
-
-            // TournamentMatch: CoupleOne and CoupleTwo
-            modelBuilder.Entity<TournamentMatch>()
-                .HasOne(m => m.CoupleOne)
-                .WithMany()
-                .HasForeignKey(m => m.CoupleOneId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            modelBuilder.Entity<TournamentMatch>()
-                .HasOne(m => m.CoupleTwo)
-                .WithMany()
-                .HasForeignKey(m => m.CoupleTwoId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            // TournamentPhase - Tournament (n:1)
-            modelBuilder.Entity<TournamentPhase>()
-                .HasOne<Tournament>()
-                .WithMany(t => t.TournamentPhases)
-                .HasForeignKey(p => p.TournamentId);
-
-            // Bracket - TournamentPhase (n:1)
-            modelBuilder.Entity<TournamentBracket>()
-                .HasOne<TournamentPhase>()
-                .WithMany(p => p.Brackets)
-                .HasForeignKey(b => b.PhaseId);
-
-            // TournamentEnrollment - Couple (n:1)
-            modelBuilder.Entity<TournamentEnrollment>()
-                .HasOne(e => e.Couple)
-                .WithMany()
-                .HasForeignKey(e => e.CoupleId);
-
-            // TournamentEnrollment - Tournament (n:1)
-            modelBuilder.Entity<TournamentEnrollment>()
-                .HasOne(e => e.Tournament)
-                .WithMany(t => t.Enrollments)
-                .HasForeignKey(e => e.TournamentId);
-
-            // Bracket - TournamentMatch (n:1)
-            modelBuilder.Entity<TournamentMatch>()
-                .HasOne<TournamentBracket>()
-                .WithMany(b => b.Matches)
-                .HasForeignKey(m => m.BracketId);
-
-            // Tournament Configuration
-            modelBuilder.Entity<Tournament>()
-                .Property(t => t.TournamentStatus)
-                .HasConversion<string>();
-
-            #endregion
-
-            #region Lessons
-            // LESSON - TEACHER (Many-to-One)
-            modelBuilder.Entity<Lesson>()
-                .HasOne(l => l.Teacher)
-                .WithMany() // Eliminada navegación bilateral
-                .HasForeignKey(l => l.TeacherId);
-
-            // LESSON - STATS (One-to-Many)
-            modelBuilder.Entity<Lesson>()
-                .HasMany(l => l.Reports)
-                .WithOne()
-                .OnDelete(DeleteBehavior.Cascade);
-
-            // STATS - PLAYER (Many-to-One)
-            modelBuilder.Entity<Stats>()
-                .HasOne(s => s.Player)
-                .WithMany()
-                .HasForeignKey(s => s.PlayerId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            // ROUTINE - TEACHER (Many-to-One)
-            modelBuilder.Entity<Routine>()
-                .HasOne(r => r.Creator)
-                .WithMany()
-                .HasForeignKey(r => r.CreatorId);
-
-            // ROUTINE - PLAYER (Many-to-Many)
-            modelBuilder.Entity<Routine>()
-                .HasMany(r => r.Players)
-                .WithMany()
-                .UsingEntity<Dictionary<string, object>>(
-                "RoutinePlayer",
-                j => j
-                    .HasOne<Player>()
-                    .WithMany()
-                    .HasForeignKey("PlayerId")
-                    .OnDelete(DeleteBehavior.Restrict),
-                j => j
-                    .HasOne<Routine>()
-                    .WithMany()
-                    .HasForeignKey("RoutineId")
-                    .OnDelete(DeleteBehavior.Cascade)
-            );
-
-            // ROUTINE - EXERCISE (Many-to-Many)
-            modelBuilder.Entity<Routine>()
-                .HasMany(r => r.Exercises)
-                .WithMany()
-                .UsingEntity<Dictionary<string, object>>(
-                    "RoutineExercise",
-                    j => j
-                        .HasOne<Exercise>()
-                        .WithMany()
-                        .HasForeignKey("ExerciseId")
-                        .OnDelete(DeleteBehavior.Cascade),
-                    j => j
-                        .HasOne<Routine>()
-                        .WithMany()
-                        .HasForeignKey("RoutineId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                );
-
-
-            #endregion
-
-            #region Seeding security module
-            // db module/role/permissions seeding
-            // 1. Modules
-            modelBuilder.Entity<Module>().HasData(
-                new Module { Id = 1, Name = "booking" },
-                new Module { Id = 2, Name = "court" },
-                new Module { Id = 3, Name = "user" },
-                new Module { Id = 4, Name = "role" },
-                new Module { Id = 5, Name = "tournament" },
-                new Module { Id = 6, Name = "class" },
-                new Module { Id = 7, Name = "routine" },
-                new Module { Id = 8, Name = "feedback" }
-            );
-
-            // 2. SimplePermissions
-            modelBuilder.Entity<SimplePermission>().HasData(
-                // Booking permissions
-                new { Id = 1, Name = "booking:make", ModuleId = 1, PermissionType = "Simple" },
-                new { Id = 2, Name = "booking:create", ModuleId = 1, PermissionType = "Simple" },
-                new { Id = 3, Name = "booking:edit", ModuleId = 1, PermissionType = "Simple" },
-                new { Id = 4, Name = "booking:cancel", ModuleId = 1, PermissionType = "Simple" },
-                new { Id = 5, Name = "booking:view", ModuleId = 1, PermissionType = "Simple" },
-                new { Id = 6, Name = "booking:view_own", ModuleId = 1, PermissionType = "Simple" },
-                new { Id = 7, Name = "booking:assign_user", ModuleId = 1, PermissionType = "Simple" },
-                new { Id = 8, Name = "booking:mark_paid", ModuleId = 1, PermissionType = "Simple" },
-
-                // Tournament permissions
-                new { Id = 9, Name = "tournament:create", ModuleId = 5, PermissionType = "Simple" },
-                new { Id = 10, Name = "tournament:edit", ModuleId = 5, PermissionType = "Simple" },
-                new { Id = 11, Name = "tournament:cancel", ModuleId = 5, PermissionType = "Simple" },
-                new { Id = 12, Name = "tournament:view", ModuleId = 5, PermissionType = "Simple" },
-                new { Id = 13, Name = "tournament:join", ModuleId = 5, PermissionType = "Simple" },
-                new { Id = 14, Name = "tournament:assign_user", ModuleId = 5, PermissionType = "Simple" },
-                new { Id = 15, Name = "tournament:manage_scores", ModuleId = 5, PermissionType = "Simple" },
-
-                // Class permissions
-                new { Id = 16, Name = "class:create", ModuleId = 6, PermissionType = "Simple" },
-                new { Id = 17, Name = "class:edit", ModuleId = 6, PermissionType = "Simple" },
-                new { Id = 18, Name = "class:cancel", ModuleId = 6, PermissionType = "Simple" },
-                new { Id = 19, Name = "class:view", ModuleId = 6, PermissionType = "Simple" },
-                new { Id = 20, Name = "class:join", ModuleId = 6, PermissionType = "Simple" },
-                new { Id = 21, Name = "class:assign_user", ModuleId = 6, PermissionType = "Simple" },
-                new { Id = 22, Name = "class:leave", ModuleId = 6, PermissionType = "Simple" },
-
-                // User management permissions
-                new { Id = 23, Name = "user:create", ModuleId = 3, PermissionType = "Simple" },
-                new { Id = 24, Name = "user:edit", ModuleId = 3, PermissionType = "Simple" },
-                new { Id = 25, Name = "user:edit_self", ModuleId = 3, PermissionType = "Simple" },
-                new { Id = 26, Name = "user:view", ModuleId = 3, PermissionType = "Simple" },
-                new { Id = 27, Name = "user:assign_roles", ModuleId = 3, PermissionType = "Simple" },
-                new { Id = 28, Name = "user:deactivate", ModuleId = 3, PermissionType = "Simple" },
-
-                // Role management permissions
-                new { Id = 29, Name = "role:create", ModuleId = 4, PermissionType = "Simple" },
-                new { Id = 30, Name = "role:edit", ModuleId = 4, PermissionType = "Simple" },
-                new { Id = 31, Name = "role:delete", ModuleId = 4, PermissionType = "Simple" },
-                new { Id = 32, Name = "role:permission:assign", ModuleId = 4, PermissionType = "Simple" },
-                new { Id = 33, Name = "role:view", ModuleId = 4, PermissionType = "Simple" },
-
-                // Routine permissions
-                new { Id = 34, Name = "routine:create", ModuleId = 7, PermissionType = "Simple" },
-                new { Id = 35, Name = "routine:edit", ModuleId = 7, PermissionType = "Simple" },
-                new { Id = 36, Name = "routine:delete", ModuleId = 7, PermissionType = "Simple" },
-                new { Id = 37, Name = "routine:view", ModuleId = 7, PermissionType = "Simple" },
-                new { Id = 38, Name = "routine:assign_user", ModuleId = 7, PermissionType = "Simple" },
-
-                // Feedback permissions
-                new { Id = 39, Name = "feedback:create", ModuleId = 8, PermissionType = "Simple" },
-                new { Id = 40, Name = "feedback:edit", ModuleId = 8, PermissionType = "Simple" },
-                new { Id = 41, Name = "feedback:delete", ModuleId = 8, PermissionType = "Simple" },
-                new { Id = 42, Name = "feedback:view", ModuleId = 8, PermissionType = "Simple" }
-            );
-
-            // 3. Roles (RolComposite)
-            modelBuilder.Entity<RolComposite>().HasData(
-                new { Id = 100, Name = "Admin", PermissionType = "Composite" },
-                new { Id = 101, Name = "Teacher", PermissionType = "Composite" },
-                new { Id = 102, Name = "Player", PermissionType = "Composite" }
-            );
-
-            // 4. Asignar permisos a roles (tabla intermedia)
-            modelBuilder.Entity("RolCompositePermission").HasData(
-                // Admin: todos los permisos
-                new { RoleId = 100, PermissionComponentId = 1 },
-                new { RoleId = 100, PermissionComponentId = 2 },
-                new { RoleId = 100, PermissionComponentId = 3 },
-                new { RoleId = 100, PermissionComponentId = 4 },
-                new { RoleId = 100, PermissionComponentId = 5 },
-                new { RoleId = 100, PermissionComponentId = 6 },
-                new { RoleId = 100, PermissionComponentId = 7 },
-                new { RoleId = 100, PermissionComponentId = 8 },
-                new { RoleId = 100, PermissionComponentId = 9 },
-                new { RoleId = 100, PermissionComponentId = 10 },
-                new { RoleId = 100, PermissionComponentId = 11 },
-                new { RoleId = 100, PermissionComponentId = 12 },
-                new { RoleId = 100, PermissionComponentId = 13 },
-                new { RoleId = 100, PermissionComponentId = 14 },
-                new { RoleId = 100, PermissionComponentId = 15 },
-                new { RoleId = 100, PermissionComponentId = 16 },
-                new { RoleId = 100, PermissionComponentId = 17 },
-                new { RoleId = 100, PermissionComponentId = 18 },
-                new { RoleId = 100, PermissionComponentId = 19 },
-                new { RoleId = 100, PermissionComponentId = 20 },
-                new { RoleId = 100, PermissionComponentId = 21 },
-                new { RoleId = 100, PermissionComponentId = 22 },
-                new { RoleId = 100, PermissionComponentId = 23 },
-                new { RoleId = 100, PermissionComponentId = 24 },
-                new { RoleId = 100, PermissionComponentId = 25 },
-                new { RoleId = 100, PermissionComponentId = 26 },
-                new { RoleId = 100, PermissionComponentId = 27 },
-                new { RoleId = 100, PermissionComponentId = 28 },
-                new { RoleId = 100, PermissionComponentId = 29 },
-                new { RoleId = 100, PermissionComponentId = 30 },
-                new { RoleId = 100, PermissionComponentId = 31 },
-                new { RoleId = 100, PermissionComponentId = 32 },
-                new { RoleId = 100, PermissionComponentId = 33 },
-                new { RoleId = 100, PermissionComponentId = 34 },
-                new { RoleId = 100, PermissionComponentId = 35 },
-                new { RoleId = 100, PermissionComponentId = 36 },
-                new { RoleId = 100, PermissionComponentId = 37 },
-                new { RoleId = 100, PermissionComponentId = 38 },
-                new { RoleId = 100, PermissionComponentId = 39 },
-                new { RoleId = 100, PermissionComponentId = 40 },
-                new { RoleId = 100, PermissionComponentId = 41 },
-                new { RoleId = 100, PermissionComponentId = 42 },
-
-                // Teacher: permisos específicos
-                new { RoleId = 101, PermissionComponentId = 1 }, // booking:make
-                new { RoleId = 101, PermissionComponentId = 5 }, // booking:view
-                new { RoleId = 101, PermissionComponentId = 6 }, // booking:view_own
-                new { RoleId = 101, PermissionComponentId = 16 }, // class:create
-                new { RoleId = 101, PermissionComponentId = 17 }, // class:edit
-                new { RoleId = 101, PermissionComponentId = 19 }, // class:view
-                new { RoleId = 101, PermissionComponentId = 21 }, // class:assign_user
-                new { RoleId = 101, PermissionComponentId = 34 }, // routine:create
-                new { RoleId = 101, PermissionComponentId = 35 }, // routine:edit
-                new { RoleId = 101, PermissionComponentId = 37 }, // routine:view
-                new { RoleId = 101, PermissionComponentId = 38 }, // routine:assign_user
-                new { RoleId = 101, PermissionComponentId = 39 }, // feedback:create
-                new { RoleId = 101, PermissionComponentId = 40 }, // feedback:edit
-                new { RoleId = 101, PermissionComponentId = 42 }, // feedback:view
-                new { RoleId = 101, PermissionComponentId = 25 }, // user:edit_self
-                new { RoleId = 101, PermissionComponentId = 26 }, // user:view
-
-                // Player: permisos básicos
-                new { RoleId = 102, PermissionComponentId = 1 }, // booking:make
-                new { RoleId = 102, PermissionComponentId = 5 }, // booking:view
-                new { RoleId = 102, PermissionComponentId = 6 }, // booking:view_own
-                new { RoleId = 102, PermissionComponentId = 20 }, // class:join
-                new { RoleId = 102, PermissionComponentId = 22 }, // class:leave
-                new { RoleId = 102, PermissionComponentId = 19 }, // class:view
-                new { RoleId = 102, PermissionComponentId = 37 }, // routine:view
-                new { RoleId = 102, PermissionComponentId = 42 }, // feedback:view
-                new { RoleId = 102, PermissionComponentId = 25 }, // user:edit_self
-                new { RoleId = 102, PermissionComponentId = 26 }  // user:view
-            );
-
-            modelBuilder.Entity<UserStatus>().HasData(
-                new UserStatus { Id = 1, Name = "Active" },
-                new UserStatus { Id = 2, Name = "Inactive" }
-            );
-
-            #endregion
-
-            #region Complex Seeding
-            // Complex seeding
-            modelBuilder.Entity<Complex>().HasData(
-                new Complex
-                {
-                    Id = 1,
-                    Name = "PadelYa Sports Complex",
-                    Address = "123 Sports Avenue, Downtown District, City Center",
-                    OpeningTime = new DateTime(2024, 1, 1, 6, 0, 0), // 6:00 AM
-                    ClosingTime = new DateTime(2024, 1, 1, 23, 0, 0)  // 11:00 PM
-                }
-            );
-
-            // Courts seeding
-            modelBuilder.Entity<Court>().HasData(
-                new Court
-                {
-                    Id = 1,
-                    Name = "Court 1 - Premium",
-                    CourtStatus = CourtStatus.Available,
-                    BookingPrice = 15000, // $15.00 in cents
-                    OpeningTime = new TimeOnly(6, 0), // 6:00 AM
-                    ClosingTime = new TimeOnly(23, 0), // 11:00 PM
-                    ComplexId = 1,
-                    Type = "Cristal"
-                },
-                new Court
-                {
-                    Id = 2,
-                    Name = "Court 2 - Standard",
-                    CourtStatus = CourtStatus.Available,
-                    BookingPrice = 20000, // $20.00 in cents
-                    OpeningTime = new TimeOnly(6, 0), // 6:00 AM
-                    ClosingTime = new TimeOnly(23, 0), // 11:00 PM
-                    ComplexId = 1,
-                    Type = "Césped"
-                },
-                new Court
-                {
-                    Id = 3,
-                    Name = "Court 3 - Standard",
-                    CourtStatus = CourtStatus.Available,
-                    BookingPrice = 12000, // $12.00 in cents
-                    OpeningTime = new TimeOnly(6, 0), // 6:00 AM
-                    ClosingTime = new TimeOnly(23, 0), // 11:00 PM
-                    ComplexId = 1,
-                    Type = "Cristal"
-                },
-                new Court
-                {
-                    Id = 4,
-                    Name = "Court 4 - Premium",
-                    CourtStatus = CourtStatus.Maintenance,
-                    BookingPrice = 25000, // $25.00 in cents
-                    OpeningTime = new TimeOnly(6, 0), // 6:00 AM
-                    ClosingTime = new TimeOnly(23, 0), // 11:00 PM
-                    ComplexId = 1,
-                    Type = "Césped"
-                },
-                new Court
-                {
-                    Id = 5,
-                    Name = "Court 5 - Indoor",
-                    CourtStatus = CourtStatus.Available,
-                    BookingPrice = 20000, // $20.00 in cents
-                    OpeningTime = new TimeOnly(6, 0), // 6:00 AM
-                    ClosingTime = new TimeOnly(23, 0), // 11:00 PM
-                    ComplexId = 1,
-                    Type = "Cristal"
-                }
-            );
-
-            #endregion
-
-            // Seeding de Player y User para pruebas de Bookings
-            modelBuilder.Entity<Player>().HasData(
-                new Player { Id = 1, Birthdate = new DateTime(1990, 1, 1), Category = "Primera", PreferredPosition = "Derecha" },
-                new Player { Id = 2, Birthdate = new DateTime(1992, 2, 2), Category = "Segunda", PreferredPosition = "Revés" },
-                new Player { Id = 3, Birthdate = new DateTime(1994, 3, 3), Category = "Tercera", PreferredPosition = "Derecha" }
-            );
-            modelBuilder.Entity<User>().HasData(
-                new User { Id = 1, PersonId = 1, Name = "Juan", Surname = "Pérez", Email = "user1@test.com", PasswordHash = "test", StatusId = 1, RoleId = 102 },
-                new User { Id = 2, PersonId = 2, Name = "Ana", Surname = "García", Email = "user2@test.com", PasswordHash = "test", StatusId = 1, RoleId = 102 },
-                new User { Id = 3, PersonId = 3, Name = "Luis", Surname = "Martínez", Email = "user3@test.com", PasswordHash = "test", StatusId = 1, RoleId = 102 }
-            );
-
-            // Seeding de CourtSlots y Bookings para pruebas de disponibilidad
-            modelBuilder.Entity<CourtSlot>().HasData(
-                new CourtSlot { Id = 1, CourtId = 1, Date = new DateTime(2025, 7, 6), StartTime = new TimeOnly(9, 0), EndTime = new TimeOnly(10, 30) },
-                new CourtSlot { Id = 2, CourtId = 1, Date = new DateTime(2025, 7, 6), StartTime = new TimeOnly(13, 30), EndTime = new TimeOnly(15, 0) },
-                new CourtSlot { Id = 3, CourtId = 2, Date = new DateTime(2025, 7, 6), StartTime = new TimeOnly(10, 30), EndTime = new TimeOnly(12, 0) },
-                new CourtSlot { Id = 4, CourtId = 3, Date = new DateTime(2025, 7, 6), StartTime = new TimeOnly(18, 0), EndTime = new TimeOnly(19, 30) }
-            );
-            modelBuilder.Entity<Booking>().HasData(
-                new Booking { Id = 1, CourtSlotId = 1, PersonId = 1, Status = "reserved_paid" },
-                new Booking { Id = 2, CourtSlotId = 2, PersonId = 2, Status = "reserved_deposit" },
-                new Booking { Id = 3, CourtSlotId = 3, PersonId = 1, Status = "reserved_paid" },
-                new Booking { Id = 4, CourtSlotId = 4, PersonId = 3, Status = "reserved_paid" }
-            );
-        }
+      base.OnModelCreating(modelBuilder);
+
+
+      #region Security Module
+      modelBuilder.Entity<PermissionComponent>()
+          .HasKey(p => p.Id);
+
+      // Inheritance config: TPH
+      modelBuilder.Entity<PermissionComponent>()
+          .HasDiscriminator<string>("PermissionType")
+          .HasValue<SimplePermission>("Simple")
+          .HasValue<RolComposite>("Composite");
+
+      // User - UserStatus
+      modelBuilder.Entity<User>()
+          .HasOne(u => u.Status)
+          .WithMany()
+          .HasForeignKey("StatusId");
+
+      modelBuilder.Entity<User>()
+          .Property(u => u.StatusId)
+          .HasDefaultValue(1);
+
+      // User - RolComposite
+      modelBuilder.Entity<User>()
+          .HasOne(u => u.Role)
+          .WithMany()
+          .HasForeignKey("RoleId");
+
+
+      // SimplePermission - Module (1:1)
+      modelBuilder.Entity<SimplePermission>()
+          .HasOne(sp => sp.Module)
+          .WithMany(m => m.Permissions)
+          .HasForeignKey("ModuleId")
+          .IsRequired();
+
+      // RolComposite - PermissionComponent (many-to-many self reference)
+      modelBuilder.Entity<RolComposite>()
+          .HasMany(r => r.Permissions)
+          .WithMany()
+          .UsingEntity<Dictionary<string, object>>(
+              "RolCompositePermission",
+              j => j
+                  .HasOne<PermissionComponent>()
+                  .WithMany()
+                  .HasForeignKey("PermissionComponentId"),
+              j => j
+                  .HasOne<RolComposite>()
+                  .WithMany()
+                  .HasForeignKey("RoleId")
+          );
+
+      // TPH: Table-Per-Hierarchy
+      modelBuilder.Entity<Person>()
+          .HasDiscriminator<string>("PersonType")
+          .HasValue<Person>("Person")
+          .HasValue<Player>("Player")
+          .HasValue<Teacher>("Teacher");
+
+      // User - Person (1:1 optional, unidirectional)
+      modelBuilder.Entity<User>()
+          .HasOne(u => u.Person)
+          .WithOne() // without inverse reference
+          .HasForeignKey<User>(u => u.PersonId)
+          .IsRequired(false);
+
+      #endregion
+
+      #region ComplexManagement
+
+      modelBuilder.Entity<Complex>()
+          .HasMany(c => c.Courts)
+          .WithOne()
+          .HasForeignKey(c => c.ComplexId)
+          .OnDelete(DeleteBehavior.Cascade);
+
+      #endregion
+
+      #region CourtSlots 
+
+      // CourtSlot 1:1 Booking
+      modelBuilder.Entity<CourtSlot>()
+          .HasOne(cs => cs.Booking)
+          .WithOne(b => b.CourtSlot)
+          .HasForeignKey<Booking>(b => b.CourtSlotId);
+
+      // CourtSlot 1:1 Lesson
+      modelBuilder.Entity<CourtSlot>()
+          .HasOne(cs => cs.Lesson)
+          .WithOne(l => l.CourtSlot)
+          .HasForeignKey<Lesson>(l => l.CourtSlotId);
+
+      // CourtSlot 1:1 TournamentMatch
+      modelBuilder.Entity<CourtSlot>()
+          .HasOne(cs => cs.TournamentMatch)
+          .WithOne(tm => tm.CourtSlot)
+          .HasForeignKey<TournamentMatch>(tm => tm.CourtSlotId);
+
+      // Booking 1:N Payment
+      modelBuilder.Entity<Booking>()
+          .HasMany(b => b.Payments)
+          .WithOne() // Eliminada navegación bilateral
+          .HasForeignKey(p => p.BookingId);
+
+      modelBuilder.Entity<Booking>()
+        .Property(b => b.Status)
+        .HasConversion<string>();
+
+      modelBuilder.Entity<Payment>()
+        .Property(p => p.PaymentType)
+        .HasConversion<string>();
+
+      modelBuilder.Entity<Payment>()
+        .Property(p => p.PaymentStatus)
+        .HasConversion<string>();
+
+      modelBuilder.Entity<CourtSlot>()
+        .Property(cs => cs.Status)
+        .HasConversion<string>();
+
+      modelBuilder.Entity<Tournament>()
+        .Property(t => t.TournamentStatus)
+        .HasConversion<string>();
+
+      // Lesson 1:N LessonEnrollment
+      modelBuilder.Entity<Lesson>()
+          .HasMany(l => l.Enrollments)
+          .WithOne(e => e.Lesson)
+          .HasForeignKey(e => e.LessonId);
+
+      // LessonEnrollment 1:1 Payment
+      modelBuilder.Entity<LessonEnrollment>()
+          .HasOne(e => e.Payment)
+          .WithOne() // Eliminada navegación bilateral
+          .HasForeignKey<Payment>(p => p.LessonEnrollmentId);
+
+      //LessonEnrollment 1:1 Person
+      modelBuilder.Entity<LessonEnrollment>()
+          .HasOne(e => e.Person)
+          .WithMany()
+          .HasForeignKey(e => e.PersonId)
+          .OnDelete(DeleteBehavior.Restrict);
+
+      // TournamentEnrollment 1:1 Payment
+      modelBuilder.Entity<TournamentEnrollment>()
+          .HasOne(tr => tr.Payment)
+          .WithOne() // Eliminada navegación bilateral
+          .HasForeignKey<Payment>(p => p.TournamentEnrollmentId);
+
+
+      #endregion
+
+
+      #region Tournaments
+      // Couple-Player (n:m)
+      modelBuilder.Entity<Couple>()
+          .HasMany(c => c.Players)
+          .WithMany();
+
+      // TournamentMatch: CoupleOne and CoupleTwo
+      modelBuilder.Entity<TournamentMatch>()
+          .HasOne(m => m.CoupleOne)
+          .WithMany()
+          .HasForeignKey(m => m.CoupleOneId)
+          .OnDelete(DeleteBehavior.Restrict);
+
+      modelBuilder.Entity<TournamentMatch>()
+          .HasOne(m => m.CoupleTwo)
+          .WithMany()
+          .HasForeignKey(m => m.CoupleTwoId)
+          .OnDelete(DeleteBehavior.Restrict);
+
+      // TournamentPhase - Tournament (n:1)
+      modelBuilder.Entity<TournamentPhase>()
+          .HasOne<Tournament>()
+          .WithMany(t => t.TournamentPhases)
+          .HasForeignKey(p => p.TournamentId);
+
+      // Bracket - TournamentPhase (n:1)
+      modelBuilder.Entity<TournamentBracket>()
+          .HasOne<TournamentPhase>()
+          .WithMany(p => p.Brackets)
+          .HasForeignKey(b => b.PhaseId);
+
+      // TournamentEnrollment - Couple (n:1)
+      modelBuilder.Entity<TournamentEnrollment>()
+          .HasOne(e => e.Couple)
+          .WithMany()
+          .HasForeignKey(e => e.CoupleId);
+
+      // TournamentEnrollment - Tournament (n:1)
+      modelBuilder.Entity<TournamentEnrollment>()
+          .HasOne(e => e.Tournament)
+          .WithMany(t => t.Enrollments)
+          .HasForeignKey(e => e.TournamentId);
+
+      // Bracket - TournamentMatch (n:1)
+      modelBuilder.Entity<TournamentMatch>()
+          .HasOne<TournamentBracket>()
+          .WithMany(b => b.Matches)
+          .HasForeignKey(m => m.BracketId);
+
+      // Tournament Configuration
+      modelBuilder.Entity<Tournament>()
+          .Property(t => t.TournamentStatus)
+          .HasConversion<string>();
+
+      #endregion
+
+      #region Lessons
+      // LESSON - TEACHER (Many-to-One)
+      modelBuilder.Entity<Lesson>()
+          .HasOne(l => l.Teacher)
+          .WithMany() // Eliminada navegación bilateral
+          .HasForeignKey(l => l.TeacherId);
+
+      // LESSON - STATS (One-to-Many)
+      modelBuilder.Entity<Lesson>()
+          .HasMany(l => l.Reports)
+          .WithOne()
+          .OnDelete(DeleteBehavior.Cascade);
+
+      // STATS - PLAYER (Many-to-One)
+      modelBuilder.Entity<Stats>()
+          .HasOne(s => s.Player)
+          .WithMany()
+          .HasForeignKey(s => s.PlayerId)
+          .OnDelete(DeleteBehavior.Restrict);
+
+      // ROUTINE - TEACHER (Many-to-One)
+      modelBuilder.Entity<Routine>()
+          .HasOne(r => r.Creator)
+          .WithMany()
+          .HasForeignKey(r => r.CreatorId);
+
+      // ROUTINE - PLAYER (Many-to-Many)
+      modelBuilder.Entity<Routine>()
+          .HasMany(r => r.Players)
+          .WithMany()
+          .UsingEntity<Dictionary<string, object>>(
+          "RoutinePlayer",
+          j => j
+              .HasOne<Player>()
+              .WithMany()
+              .HasForeignKey("PlayerId")
+              .OnDelete(DeleteBehavior.Restrict),
+          j => j
+              .HasOne<Routine>()
+              .WithMany()
+              .HasForeignKey("RoutineId")
+              .OnDelete(DeleteBehavior.Cascade)
+      );
+
+      // ROUTINE - EXERCISE (Many-to-Many)
+      modelBuilder.Entity<Routine>()
+          .HasMany(r => r.Exercises)
+          .WithMany()
+          .UsingEntity<Dictionary<string, object>>(
+              "RoutineExercise",
+              j => j
+                  .HasOne<Exercise>()
+                  .WithMany()
+                  .HasForeignKey("ExerciseId")
+                  .OnDelete(DeleteBehavior.Cascade),
+              j => j
+                  .HasOne<Routine>()
+                  .WithMany()
+                  .HasForeignKey("RoutineId")
+                  .OnDelete(DeleteBehavior.Cascade)
+          );
+
+
+      #endregion
+
+      #region Seeding security module
+      // db module/role/permissions seeding
+      // 1. Modules
+      modelBuilder.Entity<Module>().HasData(
+          new Module { Id = 1, Name = "booking" },
+          new Module { Id = 2, Name = "court" },
+          new Module { Id = 3, Name = "user" },
+          new Module { Id = 4, Name = "role" },
+          new Module { Id = 5, Name = "tournament" },
+          new Module { Id = 6, Name = "class" },
+          new Module { Id = 7, Name = "routine" },
+          new Module { Id = 8, Name = "feedback" }
+      );
+
+      // 2. SimplePermissions
+      modelBuilder.Entity<SimplePermission>().HasData(
+          // Booking permissions
+          new { Id = 1, Name = "booking:make", ModuleId = 1, PermissionType = "Simple" },
+          new { Id = 2, Name = "booking:create", ModuleId = 1, PermissionType = "Simple" },
+          new { Id = 3, Name = "booking:edit", ModuleId = 1, PermissionType = "Simple" },
+          new { Id = 4, Name = "booking:cancel", ModuleId = 1, PermissionType = "Simple" },
+          new { Id = 5, Name = "booking:view", ModuleId = 1, PermissionType = "Simple" },
+          new { Id = 6, Name = "booking:view_own", ModuleId = 1, PermissionType = "Simple" },
+          new { Id = 7, Name = "booking:assign_user", ModuleId = 1, PermissionType = "Simple" },
+          new { Id = 8, Name = "booking:mark_paid", ModuleId = 1, PermissionType = "Simple" },
+
+          // Tournament permissions
+          new { Id = 9, Name = "tournament:create", ModuleId = 5, PermissionType = "Simple" },
+          new { Id = 10, Name = "tournament:edit", ModuleId = 5, PermissionType = "Simple" },
+          new { Id = 11, Name = "tournament:cancel", ModuleId = 5, PermissionType = "Simple" },
+          new { Id = 12, Name = "tournament:view", ModuleId = 5, PermissionType = "Simple" },
+          new { Id = 13, Name = "tournament:join", ModuleId = 5, PermissionType = "Simple" },
+          new { Id = 14, Name = "tournament:assign_user", ModuleId = 5, PermissionType = "Simple" },
+          new { Id = 15, Name = "tournament:manage_scores", ModuleId = 5, PermissionType = "Simple" },
+
+          // Class permissions
+          new { Id = 16, Name = "class:create", ModuleId = 6, PermissionType = "Simple" },
+          new { Id = 17, Name = "class:edit", ModuleId = 6, PermissionType = "Simple" },
+          new { Id = 18, Name = "class:cancel", ModuleId = 6, PermissionType = "Simple" },
+          new { Id = 19, Name = "class:view", ModuleId = 6, PermissionType = "Simple" },
+          new { Id = 20, Name = "class:join", ModuleId = 6, PermissionType = "Simple" },
+          new { Id = 21, Name = "class:assign_user", ModuleId = 6, PermissionType = "Simple" },
+          new { Id = 22, Name = "class:leave", ModuleId = 6, PermissionType = "Simple" },
+
+          // User management permissions
+          new { Id = 23, Name = "user:create", ModuleId = 3, PermissionType = "Simple" },
+          new { Id = 24, Name = "user:edit", ModuleId = 3, PermissionType = "Simple" },
+          new { Id = 25, Name = "user:edit_self", ModuleId = 3, PermissionType = "Simple" },
+          new { Id = 26, Name = "user:view", ModuleId = 3, PermissionType = "Simple" },
+          new { Id = 27, Name = "user:assign_roles", ModuleId = 3, PermissionType = "Simple" },
+          new { Id = 28, Name = "user:deactivate", ModuleId = 3, PermissionType = "Simple" },
+
+          // Role management permissions
+          new { Id = 29, Name = "role:create", ModuleId = 4, PermissionType = "Simple" },
+          new { Id = 30, Name = "role:edit", ModuleId = 4, PermissionType = "Simple" },
+          new { Id = 31, Name = "role:delete", ModuleId = 4, PermissionType = "Simple" },
+          new { Id = 32, Name = "role:permission:assign", ModuleId = 4, PermissionType = "Simple" },
+          new { Id = 33, Name = "role:view", ModuleId = 4, PermissionType = "Simple" },
+
+          // Routine permissions
+          new { Id = 34, Name = "routine:create", ModuleId = 7, PermissionType = "Simple" },
+          new { Id = 35, Name = "routine:edit", ModuleId = 7, PermissionType = "Simple" },
+          new { Id = 36, Name = "routine:delete", ModuleId = 7, PermissionType = "Simple" },
+          new { Id = 37, Name = "routine:view", ModuleId = 7, PermissionType = "Simple" },
+          new { Id = 38, Name = "routine:assign_user", ModuleId = 7, PermissionType = "Simple" },
+
+          // Feedback permissions
+          new { Id = 39, Name = "feedback:create", ModuleId = 8, PermissionType = "Simple" },
+          new { Id = 40, Name = "feedback:edit", ModuleId = 8, PermissionType = "Simple" },
+          new { Id = 41, Name = "feedback:delete", ModuleId = 8, PermissionType = "Simple" },
+          new { Id = 42, Name = "feedback:view", ModuleId = 8, PermissionType = "Simple" }
+      );
+
+      // 3. Roles (RolComposite)
+      modelBuilder.Entity<RolComposite>().HasData(
+          new { Id = 100, Name = "Admin", PermissionType = "Composite" },
+          new { Id = 101, Name = "Teacher", PermissionType = "Composite" },
+          new { Id = 102, Name = "Player", PermissionType = "Composite" }
+      );
+
+      // 4. Asignar permisos a roles (tabla intermedia)
+      modelBuilder.Entity("RolCompositePermission").HasData(
+          // Admin: todos los permisos
+          new { RoleId = 100, PermissionComponentId = 1 },
+          new { RoleId = 100, PermissionComponentId = 2 },
+          new { RoleId = 100, PermissionComponentId = 3 },
+          new { RoleId = 100, PermissionComponentId = 4 },
+          new { RoleId = 100, PermissionComponentId = 5 },
+          new { RoleId = 100, PermissionComponentId = 6 },
+          new { RoleId = 100, PermissionComponentId = 7 },
+          new { RoleId = 100, PermissionComponentId = 8 },
+          new { RoleId = 100, PermissionComponentId = 9 },
+          new { RoleId = 100, PermissionComponentId = 10 },
+          new { RoleId = 100, PermissionComponentId = 11 },
+          new { RoleId = 100, PermissionComponentId = 12 },
+          new { RoleId = 100, PermissionComponentId = 13 },
+          new { RoleId = 100, PermissionComponentId = 14 },
+          new { RoleId = 100, PermissionComponentId = 15 },
+          new { RoleId = 100, PermissionComponentId = 16 },
+          new { RoleId = 100, PermissionComponentId = 17 },
+          new { RoleId = 100, PermissionComponentId = 18 },
+          new { RoleId = 100, PermissionComponentId = 19 },
+          new { RoleId = 100, PermissionComponentId = 20 },
+          new { RoleId = 100, PermissionComponentId = 21 },
+          new { RoleId = 100, PermissionComponentId = 22 },
+          new { RoleId = 100, PermissionComponentId = 23 },
+          new { RoleId = 100, PermissionComponentId = 24 },
+          new { RoleId = 100, PermissionComponentId = 25 },
+          new { RoleId = 100, PermissionComponentId = 26 },
+          new { RoleId = 100, PermissionComponentId = 27 },
+          new { RoleId = 100, PermissionComponentId = 28 },
+          new { RoleId = 100, PermissionComponentId = 29 },
+          new { RoleId = 100, PermissionComponentId = 30 },
+          new { RoleId = 100, PermissionComponentId = 31 },
+          new { RoleId = 100, PermissionComponentId = 32 },
+          new { RoleId = 100, PermissionComponentId = 33 },
+          new { RoleId = 100, PermissionComponentId = 34 },
+          new { RoleId = 100, PermissionComponentId = 35 },
+          new { RoleId = 100, PermissionComponentId = 36 },
+          new { RoleId = 100, PermissionComponentId = 37 },
+          new { RoleId = 100, PermissionComponentId = 38 },
+          new { RoleId = 100, PermissionComponentId = 39 },
+          new { RoleId = 100, PermissionComponentId = 40 },
+          new { RoleId = 100, PermissionComponentId = 41 },
+          new { RoleId = 100, PermissionComponentId = 42 },
+
+          // Teacher: permisos específicos
+          new { RoleId = 101, PermissionComponentId = 1 }, // booking:make
+          new { RoleId = 101, PermissionComponentId = 5 }, // booking:view
+          new { RoleId = 101, PermissionComponentId = 6 }, // booking:view_own
+          new { RoleId = 101, PermissionComponentId = 16 }, // class:create
+          new { RoleId = 101, PermissionComponentId = 17 }, // class:edit
+          new { RoleId = 101, PermissionComponentId = 19 }, // class:view
+          new { RoleId = 101, PermissionComponentId = 21 }, // class:assign_user
+          new { RoleId = 101, PermissionComponentId = 34 }, // routine:create
+          new { RoleId = 101, PermissionComponentId = 35 }, // routine:edit
+          new { RoleId = 101, PermissionComponentId = 37 }, // routine:view
+          new { RoleId = 101, PermissionComponentId = 38 }, // routine:assign_user
+          new { RoleId = 101, PermissionComponentId = 39 }, // feedback:create
+          new { RoleId = 101, PermissionComponentId = 40 }, // feedback:edit
+          new { RoleId = 101, PermissionComponentId = 42 }, // feedback:view
+          new { RoleId = 101, PermissionComponentId = 25 }, // user:edit_self
+          new { RoleId = 101, PermissionComponentId = 26 }, // user:view
+
+          // Player: permisos básicos
+          new { RoleId = 102, PermissionComponentId = 1 }, // booking:make
+          new { RoleId = 102, PermissionComponentId = 5 }, // booking:view
+          new { RoleId = 102, PermissionComponentId = 6 }, // booking:view_own
+          new { RoleId = 102, PermissionComponentId = 20 }, // class:join
+          new { RoleId = 102, PermissionComponentId = 22 }, // class:leave
+          new { RoleId = 102, PermissionComponentId = 19 }, // class:view
+          new { RoleId = 102, PermissionComponentId = 37 }, // routine:view
+          new { RoleId = 102, PermissionComponentId = 42 }, // feedback:view
+          new { RoleId = 102, PermissionComponentId = 25 }, // user:edit_self
+          new { RoleId = 102, PermissionComponentId = 26 }  // user:view
+      );
+
+      modelBuilder.Entity<UserStatus>().HasData(
+          new UserStatus { Id = 1, Name = "Active" },
+          new UserStatus { Id = 2, Name = "Inactive" }
+      );
+
+      #endregion
+
+      #region Complex Seeding
+      // Complex seeding
+      modelBuilder.Entity<Complex>().HasData(
+          new Complex
+          {
+            Id = 1,
+            Name = "PadelYa Sports Complex",
+            Address = "123 Sports Avenue, Downtown District, City Center",
+            OpeningTime = new DateTime(2024, 1, 1, 6, 0, 0), // 6:00 AM
+            ClosingTime = new DateTime(2024, 1, 1, 23, 0, 0)  // 11:00 PM
+          }
+      );
+
+      // Courts seeding
+      modelBuilder.Entity<Court>().HasData(
+          new Court
+          {
+            Id = 1,
+            Name = "Court 1 - Premium",
+            CourtStatus = CourtStatus.Available,
+            BookingPrice = 15000, // $15.00 in cents
+            OpeningTime = new TimeOnly(6, 0), // 6:00 AM
+            ClosingTime = new TimeOnly(23, 0), // 11:00 PM
+            ComplexId = 1,
+            Type = "Cristal"
+          },
+          new Court
+          {
+            Id = 2,
+            Name = "Court 2 - Standard",
+            CourtStatus = CourtStatus.Available,
+            BookingPrice = 20000, // $20.00 in cents
+            OpeningTime = new TimeOnly(6, 0), // 6:00 AM
+            ClosingTime = new TimeOnly(23, 0), // 11:00 PM
+            ComplexId = 1,
+            Type = "Césped"
+          },
+          new Court
+          {
+            Id = 3,
+            Name = "Court 3 - Standard",
+            CourtStatus = CourtStatus.Available,
+            BookingPrice = 12000, // $12.00 in cents
+            OpeningTime = new TimeOnly(6, 0), // 6:00 AM
+            ClosingTime = new TimeOnly(23, 0), // 11:00 PM
+            ComplexId = 1,
+            Type = "Cristal"
+          },
+          new Court
+          {
+            Id = 4,
+            Name = "Court 4 - Premium",
+            CourtStatus = CourtStatus.Maintenance,
+            BookingPrice = 25000, // $25.00 in cents
+            OpeningTime = new TimeOnly(6, 0), // 6:00 AM
+            ClosingTime = new TimeOnly(23, 0), // 11:00 PM
+            ComplexId = 1,
+            Type = "Césped"
+          },
+          new Court
+          {
+            Id = 5,
+            Name = "Court 5 - Indoor",
+            CourtStatus = CourtStatus.Available,
+            BookingPrice = 20000, // $20.00 in cents
+            OpeningTime = new TimeOnly(6, 0), // 6:00 AM
+            ClosingTime = new TimeOnly(23, 0), // 11:00 PM
+            ComplexId = 1,
+            Type = "Cristal"
+          }
+      );
+
+      #endregion
+
+      // Seeding de Player y User para pruebas de Bookings
+      modelBuilder.Entity<Player>().HasData(
+          new Player { Id = 1, Birthdate = new DateTime(1990, 1, 1), Category = "Primera", PreferredPosition = "Derecha" },
+          new Player { Id = 2, Birthdate = new DateTime(1992, 2, 2), Category = "Segunda", PreferredPosition = "Revés" },
+          new Player { Id = 3, Birthdate = new DateTime(1994, 3, 3), Category = "Tercera", PreferredPosition = "Derecha" }
+      );
+      modelBuilder.Entity<User>().HasData(
+          new User { Id = 1, PersonId = 1, Name = "Juan", Surname = "Pérez", Email = "user1@test.com", PasswordHash = "test", StatusId = 1, RoleId = 102 },
+          new User { Id = 2, PersonId = 2, Name = "Ana", Surname = "García", Email = "user2@test.com", PasswordHash = "test", StatusId = 1, RoleId = 102 },
+          new User { Id = 3, PersonId = 3, Name = "Luis", Surname = "Martínez", Email = "user3@test.com", PasswordHash = "test", StatusId = 1, RoleId = 102 }
+      );
+
+      // Seeding de CourtSlots y Bookings para pruebas de disponibilidad
+      modelBuilder.Entity<CourtSlot>().HasData(
+          new CourtSlot { Id = 1, CourtId = 1, Date = new DateTime(2025, 7, 6), StartTime = new TimeOnly(9, 0), EndTime = new TimeOnly(10, 30) },
+          new CourtSlot { Id = 2, CourtId = 1, Date = new DateTime(2025, 7, 6), StartTime = new TimeOnly(13, 30), EndTime = new TimeOnly(15, 0) },
+          new CourtSlot { Id = 3, CourtId = 2, Date = new DateTime(2025, 7, 6), StartTime = new TimeOnly(10, 30), EndTime = new TimeOnly(12, 0) },
+          new CourtSlot { Id = 4, CourtId = 3, Date = new DateTime(2025, 7, 6), StartTime = new TimeOnly(18, 0), EndTime = new TimeOnly(19, 30) }
+      );
+      modelBuilder.Entity<Booking>().HasData(
+          new Booking { Id = 1, CourtSlotId = 1, PersonId = 1, Status = BookingStatus.ReservedPaid },
+          new Booking { Id = 2, CourtSlotId = 2, PersonId = 2, Status = BookingStatus.ReservedDeposit },
+          new Booking { Id = 3, CourtSlotId = 3, PersonId = 1, Status = BookingStatus.ReservedPaid },
+          new Booking { Id = 4, CourtSlotId = 4, PersonId = 3, Status = BookingStatus.ReservedPaid }
+      );
     }
+  }
 }

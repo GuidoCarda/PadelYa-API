@@ -1,3 +1,5 @@
+using padelya_api.Constants;
+
 namespace padelya_api.DTOs.Booking
 {
   public class BookingCreateDto
@@ -6,6 +8,6 @@ namespace padelya_api.DTOs.Booking
     public DateTime Date { get; set; }
     public TimeOnly StartTime { get; set; }
     public int PersonId { get; set; }
-    public string PaymentType { get; set; } // 'deposit' o 'total'
+    public PaymentType PaymentType { get; set; } // deposit, total, balance
   }
 }

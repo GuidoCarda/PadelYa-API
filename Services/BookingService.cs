@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using System.Linq;
 using System;
 using padelya_api.DTOs.Complex;
+using padelya_api.Constants;
 
 namespace padelya_api.Services
 {
@@ -24,6 +25,7 @@ namespace padelya_api.Services
 
     public async Task<IEnumerable<BookingDto>> GetAllAsync(string? email = null, string? status = null)
     {
+
       var query = _context.Bookings
           .Include(b => b.CourtSlot)
           .Include(b => b.CourtSlot.Court)
@@ -44,7 +46,10 @@ namespace padelya_api.Services
 
       if (!string.IsNullOrEmpty(status))
       {
-        query = query.Where(b => b.Status == status);
+        if (Enum.TryParse<BookingStatus>(status, true, out var statusEnum))
+        {
+          query = query.Where(b => b.Status == statusEnum);
+        }
       }
 
       var bookings = await query.ToListAsync();
@@ -54,7 +59,10 @@ namespace padelya_api.Services
         Id = b.Id,
         CourtSlotId = b.CourtSlotId,
         PersonId = b.PersonId,
+
+
         Status = b.Status,
+        DisplayStatus = b.DisplayStatus,
 
         // Información del slot/cancha
         Date = b.CourtSlot.Date,
@@ -169,10 +177,10 @@ namespace padelya_api.Services
         throw new Exception("Court not found.");
 
       decimal amount = 0;
-      string paymentType = dto.PaymentType?.ToLower();
-      if (paymentType == "deposit")
+      PaymentType paymentType = dto.PaymentType;
+      if (paymentType == PaymentType.Deposit)
         amount = court.BookingPrice * 0.5m;
-      else if (paymentType == "total")
+      else if (paymentType == PaymentType.Deposit)
         amount = court.BookingPrice;
       else
         throw new Exception("Tipo de pago inválido. Use 'deposit' o 'total'.");
@@ -184,8 +192,9 @@ namespace padelya_api.Services
       {
         CourtSlotId = slot.Id,
         PersonId = dto.PersonId,
-        Status = paymentType == "deposit" ? "reserved_deposit" : "reserved_paid"
+        Status = paymentType == PaymentType.Deposit ? BookingStatus.ReservedDeposit : BookingStatus.ReservedPaid
       };
+
       _context.Bookings.Add(booking);
       await _context.SaveChangesAsync();
       Console.WriteLine($"Booking creado: Id={booking.Id}");
@@ -195,7 +204,7 @@ namespace padelya_api.Services
       {
         Amount = amount,
         PaymentMethod = "Simulado",
-        PaymentStatus = "Aprobado",
+        PaymentStatus = PaymentStatus.Approved,
         CreatedAt = DateTime.UtcNow,
         TransactionId = Guid.NewGuid().ToString(),
         PersonId = dto.PersonId,

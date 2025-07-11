@@ -13,7 +13,7 @@ namespace padelya_api.Services
     Task<BookingResponseDto> CreateWithPaymentAsync(BookingCreateDto dto);
 
     Task<BookingDto> UpdateAsync(int id, BookingUpdateDto dto);
-    Task<bool> DeleteAsync(int id);
+    Task<bool> DeleteAsync(int id, string? cancelledBy);
 
     Task<IEnumerable<CourtAvailabilityDto>> GetDailyAvailabilityAsync(DateTime date);
   }

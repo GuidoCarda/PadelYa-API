@@ -97,6 +97,7 @@ namespace padelya_api.Services
     {
       var booking = await _context.Bookings
           .Include(bk => bk.CourtSlot)
+          .Include(bk => bk.Payments)
           .Include(bk => bk.Person)
           .FirstOrDefaultAsync(bk => bk.Id == id);
 
@@ -107,6 +108,7 @@ namespace padelya_api.Services
         Id = booking.Id,
         CourtSlotId = booking.CourtSlotId,
         PersonId = booking.PersonId,
+        Status = booking.Status
       };
     }
 
@@ -155,11 +157,23 @@ namespace padelya_api.Services
       };
     }
 
-    public async Task<bool> DeleteAsync(int id)
+    public async Task<bool> DeleteAsync(int id, string? cancelledBy)
     {
-      var booking = await _context.Bookings.FindAsync(id);
+      var booking = await _context.Bookings
+        .Include(b => b.CourtSlot)
+        .FirstOrDefaultAsync(b => b.Id == id);
+
       if (booking == null) return false;
-      _context.Bookings.Remove(booking);
+
+      booking.Status = cancelledBy == "admin"
+        ? BookingStatus.CancelledByAdmin
+        : BookingStatus.CancelledByClient;
+
+      booking.CancelledBy = "admin";
+      booking.CancelledAt = DateTime.Now;
+
+      booking.CourtSlot.Status = CourtSlotStatus.Cancelled;
+
       await _context.SaveChangesAsync();
       return true;
     }
@@ -262,7 +276,7 @@ namespace padelya_api.Services
     {
       var courts = await _context.Courts.ToListAsync();
       var occupiedSlots = await _context.CourtSlots
-          .Where(cs => cs.Date.Date == date.Date)
+          .Where(cs => cs.Date.Date == date.Date && cs.Status == CourtSlotStatus.Active)
           .Select(cs => new { cs.CourtId, cs.StartTime, cs.EndTime })
           .ToListAsync();
 

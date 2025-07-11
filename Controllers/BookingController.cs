@@ -112,11 +112,11 @@ namespace padelya_api.Controllers
     }
 
     [HttpDelete("{id}")]
-    public async Task<IActionResult> Delete(int id)
+    public async Task<IActionResult> Delete(int id, string? cancelledBy = "admin")
     {
       try
       {
-        var deleted = await _bookingService.DeleteAsync(id);
+        var deleted = await _bookingService.DeleteAsync(id, cancelledBy);
         if (!deleted)
           return NotFound(ResponseMessage.NotFound($"Booking with ID {id} not found"));
 

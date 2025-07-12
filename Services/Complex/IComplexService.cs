@@ -6,13 +6,13 @@ using padelya_api.Models;
 
 namespace padelya_api.Services
 {
-    public interface IComplexService
-    {
-        Task<Complex> GetComplexAsync();
-        Task<List<Court>> GetCourtsAsync();
-        Task<Court?> GetCourtByIdAsync(int id);
-        Task<Court?> CreateCourtAsync(CreateCourtDto request);
-        Task<Court?> UpdateCourtAsync(int id, UpdateCourtDto request);
-        Task<bool> DeleteCourtAsync(int id);
-    }
+  public interface IComplexService
+  {
+    Task<Complex> GetComplexAsync();
+    Task<List<CourtListDto>> GetCourtsAsync();
+    Task<Court?> GetCourtByIdAsync(int id);
+    Task<Court?> CreateCourtAsync(CreateCourtDto request);
+    Task<Court?> UpdateCourtAsync(int id, UpdateCourtDto request);
+    Task<bool> DeleteCourtAsync(int id);
+  }
 }

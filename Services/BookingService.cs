@@ -274,7 +274,10 @@ namespace padelya_api.Services
 
     public async Task<IEnumerable<CourtAvailabilityDto>> GetDailyAvailabilityAsync(DateTime date)
     {
-      var courts = await _context.Courts.ToListAsync();
+      var courts = await _context.Courts
+        .Where(c => c.CourtStatus == CourtStatus.Available)
+        .ToListAsync();
+
       var occupiedSlots = await _context.CourtSlots
           .Where(cs => cs.Date.Date == date.Date && cs.Status == CourtSlotStatus.Active)
           .Select(cs => new { cs.CourtId, cs.StartTime, cs.EndTime })

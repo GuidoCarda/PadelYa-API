@@ -3,6 +3,7 @@ using padelya_api.DTOs.Booking;
 using padelya_api.Services;
 using padelya_api.Shared;
 using padelya_api.DTOs.Complex;
+using padelya_api.DTOs.Payment;
 
 namespace padelya_api.Controllers
 {
@@ -23,7 +24,7 @@ namespace padelya_api.Controllers
       try
       {
         var bookings = await _bookingService.GetAllAsync(email, status);
-        return Ok(ResponseMessage<IEnumerable<BookingDto>>.SuccessResult(bookings, "Bookings retrieved successfully"));
+        return Ok(ResponseMessage<IEnumerable<BookingDto>>.SuccessResult(bookings, "Reservas obtenidas correctamente"));
       }
       catch (Exception ex)
       {
@@ -40,7 +41,7 @@ namespace padelya_api.Controllers
         if (booking == null)
           return NotFound(ResponseMessage<BookingDto>.NotFound($"Booking with ID {id} not found"));
 
-        return Ok(ResponseMessage<BookingDto>.SuccessResult(booking, "Booking retrieved successfully"));
+        return Ok(ResponseMessage<BookingDto>.SuccessResult(booking, "Reserva obtenida correctamente"));
       }
       catch (Exception ex)
       {
@@ -72,13 +73,13 @@ namespace padelya_api.Controllers
         return CreatedAtAction(
             nameof(GetById),
             new { id = result.Booking.Id },
-            ResponseMessage<BookingResponseDto>.SuccessResult(result, "Booking created successfully")
+            ResponseMessage<BookingResponseDto>.SuccessResult(result, "Reserva creada correctamente")
         );
       }
       catch (Exception ex)
       {
         Console.WriteLine($"Controlador: Error - {ex.Message}");
-        return BadRequest(ResponseMessage<BookingResponseDto>.Error($"Failed to create booking: {ex.Message}"));
+        return BadRequest(ResponseMessage<BookingResponseDto>.Error($"Error al crear reserva: {ex.Message}"));
       }
     }
 
@@ -94,7 +95,7 @@ namespace padelya_api.Controllers
                 kvp => kvp.Value.Errors.Select(e => e.ErrorMessage).ToArray()
             );
 
-        return BadRequest(ResponseMessage<BookingDto>.ValidationError("Validation failed", validationErrors));
+        return BadRequest(ResponseMessage<BookingDto>.ValidationError("Error al actualizar reserva con id {id}", validationErrors));
       }
 
       try
@@ -107,7 +108,7 @@ namespace padelya_api.Controllers
       }
       catch (Exception ex)
       {
-        return BadRequest(ResponseMessage<BookingDto>.Error($"Failed to update booking: {ex.Message}"));
+        return BadRequest(ResponseMessage<BookingDto>.Error($"Error al actualizar reserva con id {id}: {ex.Message}"));
       }
     }
 
@@ -124,7 +125,25 @@ namespace padelya_api.Controllers
       }
       catch (Exception ex)
       {
-        return BadRequest(ResponseMessage.Error($"Failed to delete booking: {ex.Message}"));
+        return BadRequest(ResponseMessage.Error($"Error al eliminar reserva con id {id}: {ex.Message}"));
+      }
+    }
+
+
+    [HttpPost("{id}/payment")]
+    public async Task<IActionResult> RegisterPayment(int id, [FromBody] RegisterPaymentDto dto)
+    {
+      try
+      {
+        var result = await _bookingService.RegisterPaymentAsync(id, dto);
+        if (result == null)
+          return NotFound(ResponseMessage<BookingDto>.NotFound($"Reserva con id {id} no encontrada"));
+
+        return Ok(ResponseMessage<BookingDto>.SuccessResult(result, "Booking updated successfully"));
+      }
+      catch (Exception ex)
+      {
+        return BadRequest(ResponseMessage.Error($"Error al registrar pago en reserva con id {id}: {ex.Message}"));
       }
     }
 

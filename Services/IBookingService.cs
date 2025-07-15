@@ -7,7 +7,7 @@ namespace padelya_api.Services
   public interface IBookingService
   {
     Task<IEnumerable<BookingDto>> GetAllAsync(string? email = null, string? status = null);
-    Task<BookingDto> GetByIdAsync(int id);
+    Task<BookingDto?> GetByIdAsync(int id);
     Task<BookingDto> CreateAsync(BookingCreateDto dto);
 
     Task<BookingResponseDto> CreateWithPaymentAsync(BookingCreateDto dto);
@@ -16,5 +16,8 @@ namespace padelya_api.Services
     Task<bool> DeleteAsync(int id, string? cancelledBy);
 
     Task<IEnumerable<CourtAvailabilityDto>> GetDailyAvailabilityAsync(DateTime date);
+
+
+    Task<BookingDto?> RegisterPaymentAsync(int id, RegisterPaymentDto paymentDto);
   }
 }

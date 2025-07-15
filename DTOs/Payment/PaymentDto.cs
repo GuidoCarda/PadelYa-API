@@ -12,4 +12,10 @@ namespace padelya_api.DTOs.Payment
     public string TransactionId { get; set; }
     public int PersonId { get; set; }
   }
+
+
+  public class RegisterPaymentDto
+  {
+    public string PaymentMethod { get; set; } = "Efectivo";
+  }
 }

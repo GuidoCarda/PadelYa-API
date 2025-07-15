@@ -93,10 +93,11 @@ namespace padelya_api.Services
       });
     }
 
-    public async Task<BookingDto> GetByIdAsync(int id)
+    public async Task<BookingDto?> GetByIdAsync(int id)
     {
       var booking = await _context.Bookings
           .Include(bk => bk.CourtSlot)
+          .Include(b => b.CourtSlot.Court)
           .Include(bk => bk.Payments)
           .Include(bk => bk.Person)
           .FirstOrDefaultAsync(bk => bk.Id == id);
@@ -108,7 +109,35 @@ namespace padelya_api.Services
         Id = booking.Id,
         CourtSlotId = booking.CourtSlotId,
         PersonId = booking.PersonId,
-        Status = booking.Status
+        Status = booking.Status,
+        DisplayStatus = booking.DisplayStatus,
+
+        // Información del slot/cancha
+        Date = booking.CourtSlot.Date,
+        StartTime = booking.CourtSlot.StartTime,
+        EndTime = booking.CourtSlot.EndTime,
+        CourtId = booking.CourtSlot.Court.Id,
+        CourtName = booking.CourtSlot.Court.Name,
+        CourtType = booking.CourtSlot.Court.Type,
+
+        // Información del usuario (obtener desde la tabla User)
+        UserName = _context.Users.FirstOrDefault(u => u.PersonId == booking.PersonId)?.Name ?? "",
+        UserSurname = _context.Users.FirstOrDefault(u => u.PersonId == booking.PersonId)?.Surname ?? "",
+        UserEmail = _context.Users.FirstOrDefault(u => u.PersonId == booking.PersonId)?.Email ?? "",
+
+        // Información de pagos
+        Payments = booking.Payments.Select(p => new PaymentDto
+        {
+          Id = p.Id,
+          Amount = p.Amount,
+          PaymentMethod = p.PaymentMethod,
+          PaymentStatus = p.PaymentStatus,
+          CreatedAt = p.CreatedAt,
+          TransactionId = p.TransactionId,
+          PersonId = p.PersonId
+        }).ToList(),
+        TotalPaid = booking.Payments.Sum(p => p.Amount),
+        TotalAmount = booking.CourtSlot.Court.BookingPrice
       };
     }
 
@@ -308,6 +337,66 @@ namespace padelya_api.Services
         });
       }
       return result;
+    }
+
+
+    public async Task<BookingDto?> RegisterPaymentAsync(int id, RegisterPaymentDto paymentDto)
+    {
+      var booking = await GetByIdAsync(id);
+
+      if (booking == null) throw new Exception("Reserva no encontrada.");
+
+      decimal pendingAmount = booking.TotalAmount - booking.TotalPaid;
+
+      if (pendingAmount <= 0)
+        throw new Exception("La reserva ya está pagada completamente.");
+
+      var payment = new Payment
+      {
+        BookingId = id,
+        Amount = pendingAmount,
+        CreatedAt = DateTime.Now,
+        PaymentStatus = PaymentStatus.Approved,
+        TransactionId = "simulado",
+        PaymentType = PaymentType.Balance,
+        PaymentMethod = paymentDto.PaymentMethod,
+        PersonId = booking.PersonId
+      };
+
+      _context.Payments.Add(payment);
+      await _context.SaveChangesAsync();
+
+      var updatedBooking = new BookingDto
+      {
+        Id = booking.Id,
+        CourtSlotId = booking.CourtSlotId,
+        PersonId = booking.PersonId,
+        Status = booking.Status,
+        DisplayStatus = booking.DisplayStatus,
+        Date = booking.Date,
+        StartTime = booking.StartTime,
+        EndTime = booking.EndTime,
+        CourtId = booking.CourtId,
+        CourtName = booking.CourtName,
+        CourtType = booking.CourtType,
+        UserName = booking.UserName,
+        UserSurname = booking.UserSurname,
+        UserEmail = booking.UserEmail,
+        Payments = booking.Payments.Concat(new List<PaymentDto> { new PaymentDto
+        {
+            Id = payment.Id,
+            Amount = payment.Amount,
+            PaymentMethod = payment.PaymentMethod,
+            PaymentStatus = payment.PaymentStatus,
+            CreatedAt = payment.CreatedAt,
+            TransactionId = payment.TransactionId,
+            PersonId = payment.PersonId
+        }}).ToList(),
+        TotalPaid = booking.TotalPaid + payment.Amount,
+        TotalAmount = booking.TotalAmount
+      };
+
+      return updatedBooking;
     }
 
     // Helper para generar slots posibles de 90 minutos

@@ -157,5 +157,21 @@ namespace padelya_api.Controllers
       var availability = await _bookingService.GetDailyAvailabilityAsync(parsedDate);
       return Ok(ResponseMessage<IEnumerable<CourtAvailabilityDto>>.SuccessResult(availability, "Disponibilidad obtenida correctamente"));
     }
+
+
+
+    [HttpGet("user/{userId}")]
+    public async Task<IActionResult> GetUserBookings(int userId, [FromQuery] string? status)
+    {
+      try
+      {
+        var bookings = await _bookingService.GetUserBookingsAsync(userId, status);
+        return Ok(ResponseMessage<IEnumerable<BookingDto>>.SuccessResult(bookings, "Reservas del usuario obtenidas correctamente"));
+      }
+      catch (Exception ex)
+      {
+        return BadRequest(ResponseMessage<IEnumerable<BookingDto>>.Error($"Failed to retrieve user bookings: {ex.Message}"));
+      }
+    }
   }
 }

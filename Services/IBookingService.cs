@@ -19,5 +19,7 @@ namespace padelya_api.Services
 
 
     Task<BookingDto?> RegisterPaymentAsync(int id, RegisterPaymentDto paymentDto);
+
+    Task<List<BookingDto>> GetUserBookingsAsync(int userId, string? status = null);
   }
 }

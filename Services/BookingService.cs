@@ -52,7 +52,7 @@ namespace padelya_api.Services
         }
       }
 
-      var bookings = await query.ToListAsync();
+      var bookings = await query.OrderByDescending(bk => bk.Id).ToListAsync();
 
       return bookings.Select(b => new BookingDto
       {
@@ -223,7 +223,7 @@ namespace padelya_api.Services
       PaymentType paymentType = dto.PaymentType;
       if (paymentType == PaymentType.Deposit)
         amount = court.BookingPrice * 0.5m;
-      else if (paymentType == PaymentType.Deposit)
+      else if (paymentType == PaymentType.Total)
         amount = court.BookingPrice;
       else
         throw new Exception("Tipo de pago inválido. Use 'deposit' o 'total'.");
@@ -397,6 +397,64 @@ namespace padelya_api.Services
       };
 
       return updatedBooking;
+    }
+
+    public async Task<List<BookingDto>> GetUserBookingsAsync(int userId, string? status = null)
+    {
+      var query = _context.Bookings
+          .Include(b => b.CourtSlot)
+          .Include(b => b.CourtSlot.Court)
+          .Include(b => b.Person)
+          .Include(b => b.Payments)
+          .Where(b => b.PersonId == userId)
+          .AsQueryable();
+
+      // Apply status filter if provided
+      if (!string.IsNullOrEmpty(status))
+      {
+        if (Enum.TryParse<BookingStatus>(status, true, out var statusEnum))
+        {
+          query = query.Where(b => b.Status == statusEnum);
+        }
+      }
+
+      var bookings = await query.OrderByDescending(bk => bk.Id).ToListAsync();
+
+      return bookings.Select(b => new BookingDto
+      {
+        Id = b.Id,
+        CourtSlotId = b.CourtSlotId,
+        PersonId = b.PersonId,
+        Status = b.Status,
+        DisplayStatus = b.DisplayStatus,
+
+        // Información del slot/cancha
+        Date = b.CourtSlot.Date,
+        StartTime = b.CourtSlot.StartTime,
+        EndTime = b.CourtSlot.EndTime,
+        CourtId = b.CourtSlot.Court.Id,
+        CourtName = b.CourtSlot.Court.Name,
+        CourtType = b.CourtSlot.Court.Type,
+
+        // Información del usuario (obtener desde la tabla User)
+        UserName = _context.Users.FirstOrDefault(u => u.PersonId == b.PersonId)?.Name ?? "",
+        UserSurname = _context.Users.FirstOrDefault(u => u.PersonId == b.PersonId)?.Surname ?? "",
+        UserEmail = _context.Users.FirstOrDefault(u => u.PersonId == b.PersonId)?.Email ?? "",
+
+        // Información de pagos
+        Payments = b.Payments.Select(p => new PaymentDto
+        {
+          Id = p.Id,
+          Amount = p.Amount,
+          PaymentMethod = p.PaymentMethod,
+          PaymentStatus = p.PaymentStatus,
+          CreatedAt = p.CreatedAt,
+          TransactionId = p.TransactionId,
+          PersonId = p.PersonId
+        }).ToList(),
+        TotalPaid = b.Payments.Sum(p => p.Amount),
+        TotalAmount = b.CourtSlot.Court.BookingPrice
+      }).ToList();
     }
 
     // Helper para generar slots posibles de 90 minutos

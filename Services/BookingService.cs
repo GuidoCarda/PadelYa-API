@@ -120,6 +120,7 @@ namespace padelya_api.Services
         CourtName = booking.CourtSlot.Court.Name,
         CourtType = booking.CourtSlot.Court.Type,
 
+
         // Información del usuario (obtener desde la tabla User)
         UserName = _context.Users.FirstOrDefault(u => u.PersonId == booking.PersonId)?.Name ?? "",
         UserSurname = _context.Users.FirstOrDefault(u => u.PersonId == booking.PersonId)?.Surname ?? "",

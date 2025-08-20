@@ -250,6 +250,24 @@ namespace padelya_api.Controllers
       }
     }
 
+
+    [HttpGet("modules")]
+    [HttpGet]
+    public async Task<ActionResult<ResponseMessage<List<ModulePermissionsDto>>>> GetModules()
+    {
+      try
+      {
+        var roles = await roleService.GetPermissions();
+        var response = ResponseMessage<List<ModulePermissionsDto>>.SuccessResult(roles, "Modules retrieved successfully");
+        return Ok(response);
+      }
+      catch (Exception ex)
+      {
+        var response = ResponseMessage<List<ModulePermissionsDto>>.Error($"Error retrieving modules: {ex.Message}", "ROLES_RETRIEVAL_ERROR");
+        return StatusCode(500, response);
+      }
+    }
+
     #region Simple Validation Methods
 
     /// <summary>

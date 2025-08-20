@@ -21,6 +21,13 @@ namespace padelya_api.Services
     public int UserCount { get; set; }
   }
 
+  public class ModulePermissionsDto
+  {
+    public int Id { get; set; }
+    public string Name { get; set; }
+    public List<PermissionComponent> Permissions { get; set; } = [];
+  }
+
   public class RoleService : IRoleService
   {
     private readonly PadelYaDbContext _context;
@@ -209,5 +216,28 @@ namespace padelya_api.Services
 
       return false;
     }
+
+
+    public async Task<List<ModulePermissionsDto>> GetPermissions()
+    {
+      var modulePermissions = await _context.Modules
+        .Include(m => m.Permissions)
+          .Select(m => new ModulePermissionsDto
+          {
+            Id = m.Id,
+            Name = m.Name,
+            Permissions = m.Permissions.Cast<PermissionComponent>().ToList()
+          })
+          .ToListAsync();
+
+      return modulePermissions;
+    }
   }
+
+
+
 }
+
+
+
+

@@ -22,5 +22,8 @@ namespace padelya_api.Services
 
     // Role permission checking (for role management, not user authorization)
     bool RoleHasPermission(PermissionComponent component, int permissionId);
+
+
+    Task<List<ModulePermissionsDto>> GetPermissions();
   }
 }

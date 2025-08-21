@@ -252,7 +252,6 @@ namespace padelya_api.Controllers
 
 
     [HttpGet("modules")]
-    [HttpGet]
     public async Task<ActionResult<ResponseMessage<List<ModulePermissionsDto>>>> GetModules()
     {
       try

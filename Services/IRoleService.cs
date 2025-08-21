@@ -16,6 +16,7 @@ namespace padelya_api.Services
     Task<IEnumerable<PermissionComponent>> GetRolePermissionsAsync(int roleId);
     Task<AddPermissionResult> AddPermissionsToRoleAsync(int roleId, List<int> permissionsIds);
     Task<bool> RemovePermissionFromRoleAsync(int roleId, int permissionId);
+    Task<bool> RemovePermissionsFromRoleAsync(int roleId, List<int> permissionIds);
 
     // User-role management
     Task<IEnumerable<User>> GetUsersByRoleAsync(int roleId);

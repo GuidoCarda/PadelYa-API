@@ -233,6 +233,37 @@ namespace padelya_api.Controllers
       }
     }
 
+    // DELETE: api/roles/{id}/permissions/bulk
+    [HttpDelete("{id}/permissions/bulk")]
+    public async Task<ActionResult<ResponseMessage>> RemovePermissionsFromRole(int id, [FromBody] RemovePermissionsDto removePermissionsDto)
+    {
+      try
+      {
+        if (removePermissionsDto.PermissionIds == null || removePermissionsDto.PermissionIds.Count == 0)
+        {
+          var validationResponse = ResponseMessage.ValidationError("Invalid input data",
+              new List<ValidationError> { new ValidationError("PermissionIds", "At least one permission ID is required") });
+          return BadRequest(validationResponse);
+        }
+
+        var result = await roleService.RemovePermissionsFromRoleAsync(id, removePermissionsDto.PermissionIds);
+        if (!result)
+        {
+          var notFoundResponse = ResponseMessage.NotFound("Role not found or no valid permissions to remove");
+          return NotFound(notFoundResponse);
+        }
+
+        var response = ResponseMessage.SuccessMessage("Permissions removed successfully");
+        return Ok(response);
+      }
+      catch (Exception ex)
+      {
+        var response = ResponseMessage.Error($"Error removing permission from role: {ex.Message}", "REMOVE_PERMISSION_ERROR");
+        return StatusCode(500, response);
+      }
+    }
+
+
     // GET: api/roles/{id}/users
     [HttpGet("{id}/users")]
     public async Task<ActionResult<ResponseMessage<IEnumerable<object>>>> GetUsersByRole(int id)

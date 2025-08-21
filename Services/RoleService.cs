@@ -193,6 +193,31 @@ namespace padelya_api.Services
       return true;
     }
 
+    public async Task<bool> RemovePermissionsFromRoleAsync(int roleId, List<int> permissionIds)
+    {
+      var role = await _context.PermissionComponents
+          .OfType<RolComposite>()
+          .Include(r => r.Permissions)
+          .FirstOrDefaultAsync(r => r.Id == roleId);
+
+      if (role == null) return false;
+
+      var permissionsToRemove = await _context.PermissionComponents
+          .Where(p => permissionIds.Contains(p.Id))
+          .ToListAsync();
+
+      if (permissionsToRemove.Count == 0)
+        return false;
+
+      foreach (var permission in permissionsToRemove)
+      {
+        role.Permissions.Remove(permission);
+      }
+
+      await _context.SaveChangesAsync();
+      return true;
+    }
+
     public async Task<IEnumerable<User>> GetUsersByRoleAsync(int roleId)
     {
       return await _context.Users

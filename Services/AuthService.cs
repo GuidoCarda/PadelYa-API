@@ -60,6 +60,7 @@ namespace padelya_api.Services
 
       GetPermissionsAndModules(user.Role, permissions, modules);
 
+
       return new TokenResponseDto
       {
         AccessToken = CreateToken(user),
@@ -132,11 +133,12 @@ namespace padelya_api.Services
       _context.Users.Add(user);
       await _context.SaveChangesAsync();
 
-
       var userWithRole = await _context.Users
-       .Include(u => u.Role)
-       .ThenInclude(r => r.Permissions)
-       .FirstOrDefaultAsync(u => u.Id == user.Id);
+               .Include(u => u.Role)
+                   .ThenInclude(r => r.Permissions)
+                   .ThenInclude(p => (p as SimplePermission).Module)
+               .FirstOrDefaultAsync(u => u.Id == user.Id);
+
 
       var tokenResponse = await CreateTokenResponse(userWithRole!);
       tokenResponse.Person = person;
@@ -197,6 +199,7 @@ namespace padelya_api.Services
 
     private void GetPermissionsAndModules(PermissionComponent component, HashSet<string> permissions, HashSet<string> modules)
     {
+
       if (component is SimplePermission simple)
       {
         permissions.Add(simple.Name);
@@ -227,8 +230,6 @@ namespace padelya_api.Services
                 new Claim("name", user.Name),
                 new Claim("surname", user.Surname),
             };
-
-      Console.WriteLine(JsonSerializer.Serialize(user));
 
       // Add person_id if this user is linked to a domain person
       if (user.PersonId.HasValue)
@@ -280,8 +281,6 @@ namespace padelya_api.Services
       Console.WriteLine($"Recovery email sent to {email}");
       return true;
     }
-
-
 
   }
 }

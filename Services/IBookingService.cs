@@ -20,6 +20,10 @@ namespace padelya_api.Services
 
     Task<BookingDto?> RegisterPaymentAsync(int id, RegisterPaymentDto paymentDto);
 
+    // List bookings for the logged-in user (maps userId -> personId internally)
     Task<List<BookingDto>> GetUserBookingsAsync(int userId, string? status = null);
+
+    // List bookings by domain subject (Person)
+    Task<List<BookingDto>> GetBookingsByPersonIdAsync(int personId, string? status = null);
   }
 }

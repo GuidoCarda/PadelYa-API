@@ -144,6 +144,10 @@ namespace padelya_api.Services
 
     public async Task<BookingDto> CreateAsync(BookingCreateDto dto)
     {
+      var existsPerson = await _context.Set<Person>().AnyAsync(p => p.Id == dto.PersonId);
+      if (!existsPerson)
+        throw new Exception("Person not found.");
+
       var endTime = dto.StartTime.AddMinutes(90);
       var slot = await _courtSlotService.CreateSlotIfAvailableAsync(dto.CourtId, dto.Date, dto.StartTime, endTime);
 
@@ -211,6 +215,10 @@ namespace padelya_api.Services
     public async Task<BookingResponseDto> CreateWithPaymentAsync(BookingCreateDto dto)
     {
       Console.WriteLine($"Iniciando creación de reserva: CourtId={dto.CourtId}, Date={dto.Date}, PersonId={dto.PersonId}");
+
+      var existsPerson = await _context.Set<Person>().AnyAsync(p => p.Id == dto.PersonId);
+      if (!existsPerson)
+        throw new Exception("Person not found.");
 
       var endTime = dto.StartTime.AddMinutes(90);
       var slot = await _courtSlotService.CreateSlotIfAvailableAsync(dto.CourtId, dto.Date, dto.StartTime, endTime);
@@ -422,12 +430,20 @@ namespace padelya_api.Services
 
     public async Task<List<BookingDto>> GetUserBookingsAsync(int userId, string? status = null)
     {
+      var personId = await _context.Users
+          .Where(u => u.Id == userId)
+          .Select(u => u.PersonId)
+          .FirstOrDefaultAsync();
+
+      if (!personId.HasValue)
+        return new List<BookingDto>();
+
       var query = _context.Bookings
           .Include(b => b.CourtSlot)
           .Include(b => b.CourtSlot.Court)
           .Include(b => b.Person)
           .Include(b => b.Payments)
-          .Where(b => b.PersonId == userId)
+          .Where(b => b.PersonId == personId.Value)
           .AsQueryable();
 
       // Apply status filter if provided
@@ -463,6 +479,60 @@ namespace padelya_api.Services
         UserEmail = _context.Users.FirstOrDefault(u => u.PersonId == b.PersonId)?.Email ?? "",
 
         // Información de pagos
+        Payments = b.Payments.Select(p => new PaymentDto
+        {
+          Id = p.Id,
+          Amount = p.Amount,
+          PaymentMethod = p.PaymentMethod,
+          PaymentStatus = p.PaymentStatus,
+          CreatedAt = p.CreatedAt,
+          TransactionId = p.TransactionId,
+          PersonId = p.PersonId
+        }).ToList(),
+        TotalPaid = b.Payments.Sum(p => p.Amount),
+        TotalAmount = b.CourtSlot.Court.BookingPrice
+      }).ToList();
+    }
+
+    public async Task<List<BookingDto>> GetBookingsByPersonIdAsync(int personId, string? status = null)
+    {
+      var query = _context.Bookings
+          .Include(b => b.CourtSlot)
+          .Include(b => b.CourtSlot.Court)
+          .Include(b => b.Person)
+          .Include(b => b.Payments)
+          .Where(b => b.PersonId == personId)
+          .AsQueryable();
+
+      if (!string.IsNullOrEmpty(status))
+      {
+        if (Enum.TryParse<BookingStatus>(status, true, out var statusEnum))
+        {
+          query = query.Where(b => b.Status == statusEnum);
+        }
+      }
+
+      var bookings = await query.OrderByDescending(bk => bk.Id).ToListAsync();
+
+      return bookings.Select(b => new BookingDto
+      {
+        Id = b.Id,
+        CourtSlotId = b.CourtSlotId,
+        PersonId = b.PersonId,
+        Status = b.Status,
+        DisplayStatus = b.DisplayStatus,
+
+        Date = b.CourtSlot.Date,
+        StartTime = b.CourtSlot.StartTime,
+        EndTime = b.CourtSlot.EndTime,
+        CourtId = b.CourtSlot.Court.Id,
+        CourtName = b.CourtSlot.Court.Name,
+        CourtType = b.CourtSlot.Court.Type,
+
+        UserName = _context.Users.FirstOrDefault(u => u.PersonId == b.PersonId)?.Name ?? "",
+        UserSurname = _context.Users.FirstOrDefault(u => u.PersonId == b.PersonId)?.Surname ?? "",
+        UserEmail = _context.Users.FirstOrDefault(u => u.PersonId == b.PersonId)?.Email ?? "",
+
         Payments = b.Payments.Select(p => new PaymentDto
         {
           Id = p.Id,

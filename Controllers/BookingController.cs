@@ -173,5 +173,19 @@ namespace padelya_api.Controllers
         return BadRequest(ResponseMessage<IEnumerable<BookingDto>>.Error($"Failed to retrieve user bookings: {ex.Message}"));
       }
     }
+
+    [HttpGet("person/{personId}")]
+    public async Task<IActionResult> GetPersonBookings(int personId, [FromQuery] string? status)
+    {
+      try
+      {
+        var bookings = await _bookingService.GetBookingsByPersonIdAsync(personId, status);
+        return Ok(ResponseMessage<IEnumerable<BookingDto>>.SuccessResult(bookings, "Reservas por persona obtenidas correctamente"));
+      }
+      catch (Exception ex)
+      {
+        return BadRequest(ResponseMessage<IEnumerable<BookingDto>>.Error($"Failed to retrieve person bookings: {ex.Message}"));
+      }
+    }
   }
 }

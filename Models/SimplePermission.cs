@@ -4,6 +4,8 @@
     {
         public int ModuleId { get; set; }
         public Module Module { get; set; }
+        public string? DisplayName { get; set; }
+        public string? Description { get; set; }
 
         public override void Display(int depth)
         {

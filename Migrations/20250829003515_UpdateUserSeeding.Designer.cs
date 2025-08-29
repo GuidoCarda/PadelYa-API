@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using padelya_api.Data;
 
@@ -11,9 +12,11 @@ using padelya_api.Data;
 namespace padelya_api.Migrations
 {
     [DbContext(typeof(PadelYaDbContext))]
-    partial class PadelYaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250829003515_UpdateUserSeeding")]
+    partial class UpdateUserSeeding
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1314,7 +1317,7 @@ namespace padelya_api.Migrations
                             Id = 1,
                             Email = "admin@padelya.com",
                             Name = "Admin",
-                            PasswordHash = "AQAAAAIAAYagAAAAEG5lfoUTu6r2+ZvrS33ePXDMdIIbp6s1lxbAH8I4hJv9JKy4nB7LEP9X8/e9ypyvsQ==",
+                            PasswordHash = "AQAAAAIAAYagAAAAELbXp1J3SVCChWxMdpMp/E4oohRGiMVMVzE+gEmCNUyRmZDjDYguncfKAsuY+Qr/rA==",
                             RefreshTokenExpiryTime = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             RoleId = 100,
                             StatusId = 1,
@@ -1325,7 +1328,7 @@ namespace padelya_api.Migrations
                             Id = 2,
                             Email = "teacher@padelya.com",
                             Name = "María",
-                            PasswordHash = "AQAAAAIAAYagAAAAEG5lfoUTu6r2+ZvrS33ePXDMdIIbp6s1lxbAH8I4hJv9JKy4nB7LEP9X8/e9ypyvsQ==",
+                            PasswordHash = "AQAAAAIAAYagAAAAELbXp1J3SVCChWxMdpMp/E4oohRGiMVMVzE+gEmCNUyRmZDjDYguncfKAsuY+Qr/rA==",
                             PersonId = 4,
                             RefreshTokenExpiryTime = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             RoleId = 101,
@@ -1337,7 +1340,7 @@ namespace padelya_api.Migrations
                             Id = 3,
                             Email = "player1@padelya.com",
                             Name = "Juan",
-                            PasswordHash = "AQAAAAIAAYagAAAAEG5lfoUTu6r2+ZvrS33ePXDMdIIbp6s1lxbAH8I4hJv9JKy4nB7LEP9X8/e9ypyvsQ==",
+                            PasswordHash = "AQAAAAIAAYagAAAAELbXp1J3SVCChWxMdpMp/E4oohRGiMVMVzE+gEmCNUyRmZDjDYguncfKAsuY+Qr/rA==",
                             PersonId = 1,
                             RefreshTokenExpiryTime = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             RoleId = 102,
@@ -1349,7 +1352,7 @@ namespace padelya_api.Migrations
                             Id = 4,
                             Email = "player2@padelya.com",
                             Name = "Ana",
-                            PasswordHash = "AQAAAAIAAYagAAAAEG5lfoUTu6r2+ZvrS33ePXDMdIIbp6s1lxbAH8I4hJv9JKy4nB7LEP9X8/e9ypyvsQ==",
+                            PasswordHash = "AQAAAAIAAYagAAAAELbXp1J3SVCChWxMdpMp/E4oohRGiMVMVzE+gEmCNUyRmZDjDYguncfKAsuY+Qr/rA==",
                             PersonId = 2,
                             RefreshTokenExpiryTime = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             RoleId = 102,
@@ -1361,7 +1364,7 @@ namespace padelya_api.Migrations
                             Id = 5,
                             Email = "player3@padelya.com",
                             Name = "Luis",
-                            PasswordHash = "AQAAAAIAAYagAAAAEG5lfoUTu6r2+ZvrS33ePXDMdIIbp6s1lxbAH8I4hJv9JKy4nB7LEP9X8/e9ypyvsQ==",
+                            PasswordHash = "AQAAAAIAAYagAAAAELbXp1J3SVCChWxMdpMp/E4oohRGiMVMVzE+gEmCNUyRmZDjDYguncfKAsuY+Qr/rA==",
                             PersonId = 3,
                             RefreshTokenExpiryTime = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             RoleId = 102,

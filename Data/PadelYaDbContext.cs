@@ -608,10 +608,70 @@ namespace padelya_api.Data
           new Player { Id = 2, Birthdate = new DateTime(1992, 2, 2), Category = "Segunda", PreferredPosition = "Revés" },
           new Player { Id = 3, Birthdate = new DateTime(1994, 3, 3), Category = "Tercera", PreferredPosition = "Derecha" }
       );
+
+      modelBuilder.Entity<Teacher>().HasData(
+          new Teacher { Id = 4, Birthdate = new DateTime(1985, 5, 15), Category = "Profesional", Institution = "PadelYa Academy", Title = "Profesor Certificado" }
+      );
+
       modelBuilder.Entity<User>().HasData(
-          new User { Id = 1, PersonId = 1, Name = "Juan", Surname = "Pérez", Email = "user1@test.com", PasswordHash = "test", StatusId = 1, RoleId = 102 },
-          new User { Id = 2, PersonId = 2, Name = "Ana", Surname = "García", Email = "user2@test.com", PasswordHash = "test", StatusId = 1, RoleId = 102 },
-          new User { Id = 3, PersonId = 3, Name = "Luis", Surname = "Martínez", Email = "user3@test.com", PasswordHash = "test", StatusId = 1, RoleId = 102 }
+          // Admin user without person
+          new User
+          {
+            Id = 1,
+            PersonId = null,
+            Name = "Admin",
+            Surname = "System",
+            Email = "admin@padelya.com",
+            PasswordHash = "AQAAAAIAAYagAAAAEG5lfoUTu6r2+ZvrS33ePXDMdIIbp6s1lxbAH8I4hJv9JKy4nB7LEP9X8/e9ypyvsQ==", // test1234
+            StatusId = 1,
+            RoleId = 100
+          },
+          // Teacher user
+          new User
+          {
+            Id = 2,
+            PersonId = 4,
+            Name = "María",
+            Surname = "González",
+            Email = "teacher@padelya.com",
+            PasswordHash = "AQAAAAIAAYagAAAAEG5lfoUTu6r2+ZvrS33ePXDMdIIbp6s1lxbAH8I4hJv9JKy4nB7LEP9X8/e9ypyvsQ==", // test1234
+            StatusId = 1,
+            RoleId = 101
+          },
+          // Player users
+          new User
+          {
+            Id = 3,
+            PersonId = 1,
+            Name = "Juan",
+            Surname = "Pérez",
+            Email = "player1@padelya.com",
+            PasswordHash = "AQAAAAIAAYagAAAAEG5lfoUTu6r2+ZvrS33ePXDMdIIbp6s1lxbAH8I4hJv9JKy4nB7LEP9X8/e9ypyvsQ==", // test1234
+            StatusId = 1,
+            RoleId = 102
+          },
+          new User
+          {
+            Id = 4,
+            PersonId = 2,
+            Name = "Ana",
+            Surname = "García",
+            Email = "player2@padelya.com",
+            PasswordHash = "AQAAAAIAAYagAAAAEG5lfoUTu6r2+ZvrS33ePXDMdIIbp6s1lxbAH8I4hJv9JKy4nB7LEP9X8/e9ypyvsQ==", // test1234
+            StatusId = 1,
+            RoleId = 102
+          },
+          new User
+          {
+            Id = 5,
+            PersonId = 3,
+            Name = "Luis",
+            Surname = "Martínez",
+            Email = "player3@padelya.com",
+            PasswordHash = "AQAAAAIAAYagAAAAEG5lfoUTu6r2+ZvrS33ePXDMdIIbp6s1lxbAH8I4hJv9JKy4nB7LEP9X8/e9ypyvsQ==", // test1234
+            StatusId = 1,
+            RoleId = 102
+          }
       );
 
       // Seeding de CourtSlots y Bookings para pruebas de disponibilidad

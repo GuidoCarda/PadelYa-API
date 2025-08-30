@@ -39,6 +39,10 @@ public class PaymentsController : ControllerBase
                     UnitPrice = dto.UnitPrice
                 }
             },
+      Metadata = new Dictionary<string, object>
+      {
+        ["booking_id"] = "test"
+      },
       BackUrls = new PreferenceBackUrlsRequest
       {
         Success = "https://9pkvr4lt-3000.brs.devtunnels.ms/bookings/success",
@@ -92,6 +96,14 @@ public class PaymentsController : ControllerBase
       Console.WriteLine($"Error procesando webhook: {ex.Message}");
       return BadRequest(new { error = ex.Message });
     }
+  }
+
+
+  [HttpGet("summary")]
+  public async Task<IActionResult> GetSummary([FromQuery] string paymentId)
+  {
+    var summary = await _paymentService.GetSummaryAsync(paymentId);
+    return Ok(summary);
   }
 }
 

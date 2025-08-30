@@ -7,6 +7,8 @@ using padelya_api.DTOs.Payment;
 using LocalPayment = padelya_api.Models.Payment;
 using LocalPaymentStatus = padelya_api.Constants.PaymentStatus;
 using LocalPaymentType = padelya_api.Constants.PaymentType;
+using System.Text.Json;
+using padelya_api.DTOs.Booking;
 
 namespace padelya_api.Services
 {
@@ -16,6 +18,7 @@ namespace padelya_api.Services
     Task<PaymentDto> GetPaymentByIdAsync(int id);
     Task<bool> UpdatePaymentStatusAsync(PaymentStatusUpdateDto dto);
     Task<LocalPaymentStatus> ProcessMercadoPagoWebhookAsync(MercadoPagoWebhookDto webhookData);
+    Task<PaymentSummaryDto> GetSummaryAsync(string paymentId);
   }
 
   public class PaymentService : IPaymentService
@@ -94,11 +97,20 @@ namespace padelya_api.Services
     public async Task<LocalPaymentStatus> ProcessMercadoPagoWebhookAsync(MercadoPagoWebhookDto webhookData)
     {
       MercadoPagoConfig.AccessToken = _configuration["MercadoPago:AccessToken"];
+      Console.WriteLine(JsonSerializer.Serialize(webhookData, new JsonSerializerOptions
+      {
+        WriteIndented = true // Enables pretty-printing
+      }));
 
       var paymentId = webhookData.Data.Id;
 
       var client = new PaymentClient();
       var payment = await client.GetAsync(long.Parse(paymentId));
+
+      Console.WriteLine(JsonSerializer.Serialize(payment, new JsonSerializerOptions
+      {
+        WriteIndented = true // Enables pretty-printing
+      }));
 
       var localPayment = await _context.Payments
           .FirstOrDefaultAsync(p => p.TransactionId == paymentId);
@@ -113,6 +125,17 @@ namespace padelya_api.Services
           bookingId = parsedBookingId;
         }
 
+        Console.WriteLine(JsonSerializer.Serialize(payment.Metadata, new JsonSerializerOptions
+        {
+          WriteIndented = true // Enables pretty-printing
+        }));
+
+        var personIdString = payment.Metadata?["person_id"] as string;
+        if (string.IsNullOrEmpty(personIdString) || !int.TryParse(personIdString, out int personId))
+          throw new Exception("PersonId not found or invalid");
+
+        Console.WriteLine($"Pago aprobado. BookingId: {bookingId}");
+
         var newPayment = new LocalPayment
         {
           Amount = payment.TransactionAmount ?? 0,
@@ -121,12 +144,34 @@ namespace padelya_api.Services
           CreatedAt = payment.DateApproved ?? DateTime.UtcNow,
           TransactionId = paymentId,
           BookingId = bookingId,
-          // TODO: Asociar PersonId correctamente segun usuario
-          PersonId = 1,
+          PersonId = personId,
           PaymentType = LocalPaymentType.Total // o Deposit, según corresponda
         };
         _context.Payments.Add(newPayment);
         await _context.SaveChangesAsync();
+
+
+        var booking = await _context.Bookings
+          .FirstOrDefaultAsync(b => b.Id == bookingId);
+
+        if (booking == null)
+          throw new Exception("Booking not found");
+
+        booking.Status = BookingStatus.ReservedPaid;
+        await _context.SaveChangesAsync();
+
+        Console.WriteLine($"Booking updated to ReservedPaid. BookingId: {bookingId}");
+
+        var slot = await _context.CourtSlots
+          .FirstOrDefaultAsync(s => s.Id == booking.CourtSlotId);
+        if (slot == null)
+          throw new Exception("Court slot not found");
+        if (slot.Status == CourtSlotStatus.Pending)
+          slot.Status = CourtSlotStatus.Active;
+        await _context.SaveChangesAsync();
+
+        Console.WriteLine($"Court slot updated to ReservedPaid. CourtSlotId: {booking.CourtSlotId}");
+
       }
       // Si ya existe, solo actualizamos el estado
       else if (localPayment != null)
@@ -151,6 +196,58 @@ namespace padelya_api.Services
         _ => LocalPaymentStatus.Pending
       };
     }
+
+
+    public async Task<PaymentSummaryDto> GetSummaryAsync(string paymentId)
+    {
+      Console.WriteLine($"Getting summary for paymentId: {paymentId}");
+
+      var payment = await _context.Payments.FirstOrDefaultAsync(p => p.TransactionId == paymentId);
+
+
+      Console.WriteLine(JsonSerializer.Serialize(payment, new JsonSerializerOptions
+      {
+        WriteIndented = true // Enables pretty-printing
+      }));
+
+      if (payment == null)
+        throw new Exception("Payment not found");
+
+      var booking = await _context.Bookings
+      .Include(b => b.CourtSlot)
+      .Include(b => b.CourtSlot.Court)
+      .Include(b => b.Payments)
+      .Include(b => b.Person)
+      .FirstOrDefaultAsync(b => b.Id == payment.BookingId);
+
+      if (booking == null)
+        throw new Exception("Booking not found");
+
+      // Console.WriteLine(JsonSerializer.Serialize(booking, new JsonSerializerOptions
+      // {
+      //   WriteIndented = true // Enables pretty-printing
+      // }));
+      return new PaymentSummaryDto
+      {
+        TotalAmount = booking.CourtSlot.Court.BookingPrice,
+        TotalPaid = booking.Payments.Sum(p => p.Amount),
+        Booking = new BookingDto
+        {
+          Id = booking.Id,
+          CourtSlotId = booking.CourtSlotId,
+          PersonId = booking.PersonId,
+          Status = booking.Status,
+          DisplayStatus = booking.DisplayStatus
+        }
+      };
+    }
+  }
+
+  public class PaymentSummaryDto
+  {
+    public decimal TotalAmount { get; set; }
+    public decimal TotalPaid { get; set; }
+    public BookingDto Booking { get; set; }
   }
 
   public class CreatePaymentDto

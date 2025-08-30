@@ -13,12 +13,11 @@ namespace padelya_api.Models
     public int PersonId { get; set; }
     public Person Person { get; set; }
 
-
     // Pagos (seña, saldo, total, etc.)
     public List<Payment> Payments { get; set; } = [];
+    public string? PreferenceId { get; set; } // Mercadopago preference id
 
-    public BookingStatus Status { get; set; } = BookingStatus.ReservedDeposit;
-
+    public BookingStatus Status { get; set; } = BookingStatus.PendingPayment;
 
     public DateTime? CancelledAt { get; set; }
     public string? CancelledBy { get; set; }
@@ -32,6 +31,7 @@ namespace padelya_api.Models
 
     public string DisplayStatus => Status switch
     {
+      BookingStatus.PendingPayment => "Pendiente de pago",
       BookingStatus.ReservedPaid => "Pagada",
       BookingStatus.ReservedDeposit => "Señada",
       BookingStatus.CancelledByClient => "Cancelada por cliente",

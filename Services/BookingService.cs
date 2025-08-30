@@ -9,17 +9,28 @@ using System.Linq;
 using System;
 using padelya_api.DTOs.Complex;
 using padelya_api.Constants;
+using MercadoPago.Resource.Preference;
+using MercadoPago.Client.Preference;
+using MercadoPago.Config;
 
 namespace padelya_api.Services
 {
+
+  public class ReservationInitPointDto
+  {
+    public string init_point { get; set; }
+  }
+
   public class BookingService : IBookingService
   {
     private readonly PadelYaDbContext _context;
     private readonly ICourtSlotService _courtSlotService;
+    private readonly IConfiguration _configuration;
 
-    public BookingService(PadelYaDbContext context, ICourtSlotService courtSlotService)
+    public BookingService(PadelYaDbContext context, ICourtSlotService courtSlotService, IConfiguration configuration)
     {
       _context = context;
+      _configuration = configuration;
       _courtSlotService = courtSlotService;
     }
 
@@ -212,102 +223,158 @@ namespace padelya_api.Services
       return true;
     }
 
-    public async Task<BookingResponseDto> CreateWithPaymentAsync(BookingCreateDto dto)
+    public async Task<ReservationInitPointDto> CreateWithPaymentAsync(BookingReserveWithPaymentDto dto)
     {
-      Console.WriteLine($"Iniciando creación de reserva: CourtId={dto.CourtId}, Date={dto.Date}, PersonId={dto.PersonId}");
+      Console.WriteLine($"Iniciando reserva con pago: CourtId={dto.CourtId}, Date={dto.Date}, PersonId={dto.PersonId}");
 
       var existsPerson = await _context.Set<Person>().AnyAsync(p => p.Id == dto.PersonId);
       if (!existsPerson)
-        throw new Exception("Person not found.");
+        throw new Exception("No se encontró el cliente.");
 
       var endTime = dto.StartTime.AddMinutes(90);
-      var slot = await _courtSlotService.CreateSlotIfAvailableAsync(dto.CourtId, dto.Date, dto.StartTime, endTime);
-      Console.WriteLine($"Slot creado: Id={slot.Id}");
 
       var court = await _context.Courts.FirstOrDefaultAsync(c => c.Id == dto.CourtId);
+
       if (court == null)
-        throw new Exception("Court not found.");
+        throw new Exception("No se encontró la cancha.");
 
-      decimal amount = 0;
-      PaymentType paymentType = dto.PaymentType;
-      if (paymentType == PaymentType.Deposit)
-        amount = court.BookingPrice * 0.5m;
-      else if (paymentType == PaymentType.Total)
-        amount = court.BookingPrice;
-      else
-        throw new Exception("Tipo de pago inválido. Use 'deposit' o 'total'.");
+      // Create slot with pending status (15 minutes to complete the payment)
+      var slot = await CreatePendingSlotAsync(dto.CourtId, dto.Date, dto.StartTime, endTime);
+      Console.WriteLine($"Slot creado: Id={slot.Id}");
 
-      Console.WriteLine($"Monto calculado: {amount}");
+      decimal amount = dto.PaymentType == PaymentType.Deposit
+          ? court.BookingPrice * 0.5m
+          : court.BookingPrice;
 
-      // Crear el Booking primero
+      Console.WriteLine($"Monto de reserva calculado: {amount}");
+
+      // Create booking with pending status
       var booking = new Booking
       {
         CourtSlotId = slot.Id,
         PersonId = dto.PersonId,
-        Status = paymentType == PaymentType.Deposit ? BookingStatus.ReservedDeposit : BookingStatus.ReservedPaid
+        Status = BookingStatus.PendingPayment,
+        PreferenceId = null
       };
 
       _context.Bookings.Add(booking);
       await _context.SaveChangesAsync();
+
       Console.WriteLine($"Booking creado: Id={booking.Id}");
 
-      // Crear el Payment y asociarlo al Booking
-      var payment = new Payment
-      {
-        Amount = amount,
-        PaymentMethod = "Simulado",
-        PaymentStatus = PaymentStatus.Approved,
-        CreatedAt = DateTime.UtcNow,
-        TransactionId = Guid.NewGuid().ToString(),
-        PersonId = dto.PersonId,
-        BookingId = booking.Id,  // Asociar el pago a la reserva
-        PaymentType = paymentType // <--- obligatorio
-      };
-      _context.Payments.Add(payment);
+      var preference = await CreateMercadoPagoPreference(booking, amount, dto.PaymentType);
+
+      if (preference == null)
+        throw new Exception("Preference not created");
+
+      booking.PreferenceId = preference.Id;
       await _context.SaveChangesAsync();
-      Console.WriteLine($"Payment creado: Id={payment.Id}");
 
-      // Mapear a DTOs
-      var bookingDto = new BookingDto
+      var response = new ReservationInitPointDto
       {
-        Id = booking.Id,
-        CourtSlotId = booking.CourtSlotId,
-        PersonId = booking.PersonId,
-        Payments = new List<PaymentDto> { new PaymentDto
-                {
-                    Id = payment.Id,
-                    Amount = payment.Amount,
-                    PaymentMethod = payment.PaymentMethod,
-                    PaymentStatus = payment.PaymentStatus,
-                    CreatedAt = payment.CreatedAt,
-                    TransactionId = payment.TransactionId,
-                    PersonId = payment.PersonId
-                }}
+        init_point = preference.InitPoint
       };
-
-      var paymentDto = new PaymentDto
-      {
-        Id = payment.Id,
-        Amount = payment.Amount,
-        PaymentMethod = payment.PaymentMethod,
-        PaymentStatus = payment.PaymentStatus,
-        CreatedAt = payment.CreatedAt,
-        TransactionId = payment.TransactionId,
-        PersonId = payment.PersonId
-      };
-
-      Console.WriteLine($"BookingDto: Id={bookingDto.Id}, CourtSlotId={bookingDto.CourtSlotId}, PersonId={bookingDto.PersonId}");
-      Console.WriteLine($"PaymentDto: Id={paymentDto.Id}, Amount={paymentDto.Amount}");
-
-      var response = new BookingResponseDto
-      {
-        Booking = bookingDto,
-        Payment = paymentDto
-      };
-
-      Console.WriteLine($"Response creado: BookingId={response.Booking.Id}, PaymentId={response.Payment.Id}");
 
       return response;
+    }
+
+
+    private async Task<Preference> CreateMercadoPagoPreference(Booking booking, decimal amount, PaymentType paymentType)
+    {
+      MercadoPagoConfig.AccessToken = _configuration["MercadoPago:AccessToken"];
+
+      Console.WriteLine($"Creando preferencia de pago para reserva {booking.Id} con monto {amount}");
+
+      var request = new PreferenceRequest
+      {
+        Items = new List<PreferenceItemRequest>
+            {
+                new PreferenceItemRequest
+                {
+                    Title = "Reserva de cancha turno de padel",
+                    Quantity = 1,
+                    CurrencyId = "ARS",
+                    UnitPrice = 1
+                }
+            },
+        ExternalReference = booking.Id.ToString(),
+        BackUrls = new PreferenceBackUrlsRequest
+        {
+          Success = "https://9pkvr4lt-3000.brs.devtunnels.ms/bookings/success",
+          Failure = "https://9pkvr4lt-3000.brs.devtunnels.ms/bookings/failure",
+          Pending = "https://9pkvr4lt-3000.brs.devtunnels.ms/bookings/pending"
+        },
+        Metadata = new Dictionary<string, object>
+        {
+          ["booking_id"] = booking.Id.ToString(),
+          ["person_id"] = booking.PersonId.ToString(),
+          ["court_id"] = booking.CourtSlot.CourtId.ToString(),
+          ["payment_type"] = paymentType.ToString(),
+          ["date"] = booking.CourtSlot.Date.ToString(),
+          ["start_time"] = booking.CourtSlot.StartTime.ToString(),
+          ["end_time"] = booking.CourtSlot.EndTime.ToString()
+        },
+        AutoReturn = "approved"
+      };
+
+      var client = new PreferenceClient();
+      Preference preference = await client.CreateAsync(request);
+
+      return preference;
+    }
+
+    private async Task<CourtSlot> CreatePendingSlotAsync(int courtId, DateTime date, TimeOnly start, TimeOnly end)
+    {
+
+      var existingSlot = await _context.CourtSlots
+        .FirstOrDefaultAsync(cs =>
+            cs.CourtId == courtId &&
+            cs.Date == date &&
+            cs.StartTime == start &&
+            cs.EndTime == end &&
+            (cs.Status == CourtSlotStatus.Active ||
+             (cs.Status == CourtSlotStatus.Pending && cs.ExpiresAt > DateTime.UtcNow)));
+
+      if (existingSlot != null)
+        throw new Exception("Ese turno ya está ocupado.");
+
+      await CleanExpiredPendingSlotsAsync();
+
+      var slot = new CourtSlot
+      {
+        CourtId = courtId,
+        Date = date,
+        StartTime = start,
+        EndTime = end,
+        Status = CourtSlotStatus.Pending,
+        ExpiresAt = DateTime.UtcNow.AddMinutes(15) // 15 minutes to complete the payment
+      };
+
+
+      _context.CourtSlots.Add(slot);
+      await _context.SaveChangesAsync();
+      return slot;
+    }
+
+    private async Task CleanExpiredPendingSlotsAsync()
+    {
+      var expiredSlots = await _context.CourtSlots
+        .Include(cs => cs.Booking)
+        .Where(cs => cs.Status == CourtSlotStatus.Pending &&
+                     cs.ExpiresAt < DateTime.UtcNow)
+        .ToListAsync();
+
+
+      foreach (var slot in expiredSlots)
+      {
+        if (slot.Booking != null)
+        {
+          slot.Booking.Status = BookingStatus.CancelledBySystem;
+        }
+        slot.Status = CourtSlotStatus.Cancelled;
+      }
+
+      await _context.SaveChangesAsync();
     }
 
     public async Task<IEnumerable<CourtAvailabilityDto>> GetDailyAvailabilityAsync(DateTime date)
@@ -317,7 +384,8 @@ namespace padelya_api.Services
         .ToListAsync();
 
       var occupiedSlots = await _context.CourtSlots
-          .Where(cs => cs.Date.Date == date.Date && cs.Status == CourtSlotStatus.Active)
+          .Where(cs => cs.Date.Date == date.Date &&
+            (cs.Status == CourtSlotStatus.Active || cs.Status == CourtSlotStatus.Pending))
           .Select(cs => new { cs.CourtId, cs.StartTime, cs.EndTime })
           .ToListAsync();
 

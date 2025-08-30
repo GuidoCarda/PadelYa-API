@@ -453,12 +453,16 @@ namespace padelya_api.Services
         var conflictingSlots = await _context.CourtSlots
             .Where(cs => cs.CourtId == courtId &&
                         cs.Date.Date == date.Date &&
-                        cs.Status == CourtSlotStatus.Active &&
-                        ((cs.StartTime < endTime && cs.EndTime > startTime)))
+                        cs.StartTime == startTime &&
+                        cs.EndTime == endTime &&
+                        (cs.Status == CourtSlotStatus.Active ||
+                        cs.Status == CourtSlotStatus.Pending))
             .Include(cs => cs.Lesson)
             .Include(cs => cs.Booking)
             .Include(cs => cs.TournamentMatch)
             .ToListAsync();
+
+
 
         if (excludeLessonId.HasValue)
         {

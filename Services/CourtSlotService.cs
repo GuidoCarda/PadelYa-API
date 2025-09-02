@@ -55,7 +55,7 @@ namespace padelya_api.Services
               cs.Date == date &&
               cs.StartTime == start &&
               cs.EndTime == end &&
-              cs.Status == CourtSlotStatus.Active);
+              (cs.Status == CourtSlotStatus.Active || cs.Status == CourtSlotStatus.Pending));
 
       if (slot != null)
         throw new Exception("Ese turno ya está ocupado.");

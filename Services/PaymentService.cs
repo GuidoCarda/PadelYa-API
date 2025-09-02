@@ -223,10 +223,6 @@ namespace padelya_api.Services
       if (booking == null)
         throw new Exception("Booking not found");
 
-      // Console.WriteLine(JsonSerializer.Serialize(booking, new JsonSerializerOptions
-      // {
-      //   WriteIndented = true // Enables pretty-printing
-      // }));
       return new PaymentSummaryDto
       {
         TotalAmount = booking.CourtSlot.Court.BookingPrice,
@@ -235,8 +231,12 @@ namespace padelya_api.Services
         {
           Id = booking.Id,
           CourtSlotId = booking.CourtSlotId,
+          CourtName = booking.CourtSlot.Court.Name,
+          CourtType = booking.CourtSlot.Court.Type,
           PersonId = booking.PersonId,
           Status = booking.Status,
+          StartTime = booking.CourtSlot.StartTime,
+          Date = booking.CourtSlot.Date,
           DisplayStatus = booking.DisplayStatus
         }
       };

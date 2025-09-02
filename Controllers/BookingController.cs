@@ -49,39 +49,39 @@ namespace padelya_api.Controllers
       }
     }
 
-    // [HttpPost("admin")]
-    // public async Task<IActionResult> CreateWithPayment([FromBody] BookingCreateDto dto)
-    // {
-    //   if (!ModelState.IsValid)
-    //   {
-    //     var validationErrors = ModelState
-    //         .Where(x => x.Value.Errors.Count > 0)
-    //         .ToDictionary(
-    //             kvp => kvp.Key,
-    //             kvp => kvp.Value.Errors.Select(e => e.ErrorMessage).ToArray()
-    //         );
+    [HttpPost("admin")]
+    public async Task<IActionResult> CreateWithPayment([FromBody] BookingCreateDto dto)
+    {
+      if (!ModelState.IsValid)
+      {
+        var validationErrors = ModelState
+            .Where(x => x.Value.Errors.Count > 0)
+            .ToDictionary(
+                kvp => kvp.Key,
+                kvp => kvp.Value.Errors.Select(e => e.ErrorMessage).ToArray()
+            );
 
-    //     return BadRequest(ResponseMessage<BookingResponseDto>.ValidationError("Validation failed", validationErrors));
-    //   }
+        return BadRequest(ResponseMessage<BookingResponseDto>.ValidationError("Validation failed", validationErrors));
+      }
 
-    //   try
-    //   {
-    //     Console.WriteLine($"Controlador: Recibiendo request para crear reserva");
-    //     var result = await _bookingService.CreateWithPaymentAsync(dto);
+      try
+      {
+        Console.WriteLine($"Controlador: Recibiendo request para crear reserva");
+        var result = await _bookingService.CreateAdminBookingAsync(dto);
 
-    //     Console.WriteLine($"Controlador: Resultado recibido - BookingId: {result.Booking.Id}, PaymentId: {result.Payment.Id}");
-    //     return CreatedAtAction(
-    //         nameof(GetById),
-    //         new { id = result.Booking.Id },
-    //         ResponseMessage<BookingResponseDto>.SuccessResult(result, "Reserva creada correctamente")
-    //     );
-    //   }
-    //   catch (Exception ex)
-    //   {
-    //     Console.WriteLine($"Controlador: Error - {ex.Message}");
-    //     return BadRequest(ResponseMessage<BookingResponseDto>.Error($"Error al crear reserva: {ex.Message}"));
-    //   }
-    // }
+        Console.WriteLine($"Controlador: Resultado recibido - BookingId: {result.Booking.Id} | PaymentId: {result.Payment.Id}");
+        return CreatedAtAction(
+            nameof(GetById),
+            new { id = result.Booking.Id },
+            ResponseMessage<BookingResponseDto>.SuccessResult(result, "Reserva creada correctamente")
+        );
+      }
+      catch (Exception ex)
+      {
+        Console.WriteLine($"Controlador: Error - {ex.Message}");
+        return BadRequest(ResponseMessage<BookingResponseDto>.Error($"Error al crear reserva: {ex.Message}"));
+      }
+    }
 
 
     [HttpPost]
@@ -113,7 +113,7 @@ namespace padelya_api.Controllers
       catch (Exception ex)
       {
         Console.WriteLine($"Controlador: Error - {ex.Message}");
-        return BadRequest(ResponseMessage<BookingResponseDto>.Error($"Error al crear reserva: {ex.Message}"));
+        return BadRequest(ResponseMessage<BookingResponseDto>.Error($"Error al reservar turno: {ex.Message}"));
       }
     }
 

@@ -223,6 +223,74 @@ namespace padelya_api.Services
       return true;
     }
 
+    public async Task<BookingResponseDto> CreateAdminBookingAsync(BookingCreateDto dto)
+    {
+      Console.WriteLine($"Iniciando creacion de reserva de administrador: CourtId={dto.CourtId}, Date={dto.Date}, PersonId={dto.PersonId}");
+
+      var existsPerson = await _context.Set<Person>().AnyAsync(p => p.Id == dto.PersonId);
+
+      if (!existsPerson)
+        throw new Exception("No se encontró el cliente.");
+
+      var slot = await _courtSlotService.CreateSlotIfAvailableAsync(dto.CourtId, dto.Date, dto.StartTime, dto.StartTime.AddMinutes(90));
+
+      if (slot == null)
+        throw new Exception("El turno no está disponible.");
+
+      var booking = new Booking
+      {
+        CourtSlotId = slot.Id,
+        PersonId = dto.PersonId,
+        Status = dto.PaymentType == PaymentType.Deposit
+          ? BookingStatus.ReservedDeposit
+          : BookingStatus.ReservedPaid,
+      };
+
+      _context.Bookings.Add(booking);
+      await _context.SaveChangesAsync();
+
+      var payment = new Payment
+      {
+        Amount = dto.PaymentType == PaymentType.Deposit
+          ? booking.CourtSlot.Court.BookingPrice * 0.5m
+          : booking.CourtSlot.Court.BookingPrice,
+        PaymentMethod = dto.PaymentMethod,
+        PaymentStatus = PaymentStatus.Approved,
+        BookingId = booking.Id,
+        PaymentType = dto.PaymentType,
+        PersonId = booking.PersonId,
+        CreatedAt = DateTime.Now,
+        TransactionId = "simulado",
+      };
+
+
+      _context.Payments.Add(payment);
+      await _context.SaveChangesAsync();
+
+
+      return new BookingResponseDto
+      {
+        Payment = new PaymentDto
+        {
+          Id = payment.Id,
+          Amount = payment.Amount,
+          PaymentMethod = payment.PaymentMethod,
+          PaymentStatus = payment.PaymentStatus,
+          CreatedAt = payment.CreatedAt,
+          TransactionId = payment.TransactionId,
+          PersonId = payment.PersonId
+        },
+        Booking = new BookingDto
+        {
+          Id = booking.Id,
+          CourtSlotId = booking.CourtSlotId,
+          PersonId = booking.PersonId,
+          Status = booking.Status,
+        }
+      };
+    }
+
+
     public async Task<ReservationInitPointDto> CreateWithPaymentAsync(BookingReserveWithPaymentDto dto)
     {
       Console.WriteLine($"Iniciando reserva con pago: CourtId={dto.CourtId}, Date={dto.Date}, PersonId={dto.PersonId}");

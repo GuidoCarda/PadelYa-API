@@ -12,6 +12,8 @@ namespace padelya_api.Services
 
     Task<ReservationInitPointDto> CreateWithPaymentAsync(BookingReserveWithPaymentDto dto);
 
+    Task<BookingResponseDto> CreateAdminBookingAsync(BookingCreateDto dto);
+
     Task<BookingDto> UpdateAsync(int id, BookingUpdateDto dto);
     Task<bool> DeleteAsync(int id, string? cancelledBy);
 

@@ -9,5 +9,6 @@ namespace padelya_api.DTOs.Booking
     public TimeOnly StartTime { get; set; }
     public int PersonId { get; set; }
     public PaymentType PaymentType { get; set; } // deposit, total, balance
+    public string PaymentMethod { get; set; }
   }
 }

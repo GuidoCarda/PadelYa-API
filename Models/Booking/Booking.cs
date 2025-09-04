@@ -36,6 +36,7 @@ namespace padelya_api.Models
       BookingStatus.ReservedDeposit => "Señada",
       BookingStatus.CancelledByClient => "Cancelada por cliente",
       BookingStatus.CancelledByAdmin => "Cancelada por admin",
+      BookingStatus.CancelledBySystem => "Expirada",
       _ => "Desconocida"
     };
 

@@ -19,16 +19,21 @@ namespace padelya_api.Controllers
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAll([FromQuery] string? email, [FromQuery] string? status)
+    public async Task<IActionResult> GetAll(
+      [FromQuery] string? email,
+      [FromQuery] string? status,
+      [FromQuery] string? startDate,
+      [FromQuery] string? endDate
+      )
     {
       try
       {
-        var bookings = await _bookingService.GetAllAsync(email, status);
+        var bookings = await _bookingService.GetAllAsync(email, status, startDate, endDate);
         return Ok(ResponseMessage<IEnumerable<BookingDto>>.SuccessResult(bookings, "Reservas obtenidas correctamente"));
       }
       catch (Exception ex)
       {
-        return BadRequest(ResponseMessage<IEnumerable<BookingDto>>.Error($"Failed to retrieve bookings: {ex.Message}"));
+        return BadRequest(ResponseMessage<IEnumerable<BookingDto>>.Error($"Error al obtener reservas: {ex.Message}"));
       }
     }
 
@@ -45,7 +50,7 @@ namespace padelya_api.Controllers
       }
       catch (Exception ex)
       {
-        return BadRequest(ResponseMessage<BookingDto>.Error($"Failed to retrieve booking: {ex.Message}"));
+        return BadRequest(ResponseMessage<BookingDto>.Error($"Error al obtener reserva: {ex.Message}"));
       }
     }
 
@@ -61,7 +66,7 @@ namespace padelya_api.Controllers
                 kvp => kvp.Value.Errors.Select(e => e.ErrorMessage).ToArray()
             );
 
-        return BadRequest(ResponseMessage<BookingResponseDto>.ValidationError("Validation failed", validationErrors));
+        return BadRequest(ResponseMessage<BookingResponseDto>.ValidationError("Error al crear reserva", validationErrors));
       }
 
       try
@@ -96,7 +101,7 @@ namespace padelya_api.Controllers
                 kvp => kvp.Value.Errors.Select(e => e.ErrorMessage).ToArray()
             );
 
-        return BadRequest(ResponseMessage<BookingResponseDto>.ValidationError("Validation failed", validationErrors));
+        return BadRequest(ResponseMessage<BookingResponseDto>.ValidationError("Error al reservar turno", validationErrors));
       }
 
       try
@@ -136,7 +141,7 @@ namespace padelya_api.Controllers
       {
         var updated = await _bookingService.UpdateAsync(id, dto);
         if (updated == null)
-          return NotFound(ResponseMessage<BookingDto>.NotFound($"Booking with ID {id} not found"));
+          return NotFound(ResponseMessage<BookingDto>.NotFound($"Reserva con ID {id} no encontrada"));
 
         return Ok(ResponseMessage<BookingDto>.SuccessResult(updated, "Booking updated successfully"));
       }
@@ -153,9 +158,9 @@ namespace padelya_api.Controllers
       {
         var deleted = await _bookingService.DeleteAsync(id, cancelledBy);
         if (!deleted)
-          return NotFound(ResponseMessage.NotFound($"Booking with ID {id} not found"));
+          return NotFound(ResponseMessage.NotFound($"Reserva con ID {id} no encontrada"));
 
-        return Ok(ResponseMessage.SuccessMessage("Booking deleted successfully"));
+        return Ok(ResponseMessage.SuccessMessage("Reserva eliminada correctamente"));
       }
       catch (Exception ex)
       {
@@ -204,7 +209,7 @@ namespace padelya_api.Controllers
       }
       catch (Exception ex)
       {
-        return BadRequest(ResponseMessage<IEnumerable<BookingDto>>.Error($"Failed to retrieve user bookings: {ex.Message}"));
+        return BadRequest(ResponseMessage<IEnumerable<BookingDto>>.Error($"Error al obtener reservas del usuario: {ex.Message}"));
       }
     }
 
@@ -218,7 +223,7 @@ namespace padelya_api.Controllers
       }
       catch (Exception ex)
       {
-        return BadRequest(ResponseMessage<IEnumerable<BookingDto>>.Error($"Failed to retrieve person bookings: {ex.Message}"));
+        return BadRequest(ResponseMessage<IEnumerable<BookingDto>>.Error($"Error al obtener reservas por persona: {ex.Message}"));
       }
     }
   }

@@ -34,7 +34,11 @@ namespace padelya_api.Services
       _courtSlotService = courtSlotService;
     }
 
-    public async Task<IEnumerable<BookingDto>> GetAllAsync(string? email = null, string? status = null)
+    public async Task<IEnumerable<BookingDto>> GetAllAsync(
+      string? email = null,
+      string? status = null,
+      string? startDate = null,
+      string? endDate = null)
     {
 
       var query = _context.Bookings
@@ -55,6 +59,31 @@ namespace padelya_api.Services
         query = query.Where(b => userEmails.Contains(b.PersonId));
       }
 
+      if (!string.IsNullOrEmpty(startDate))
+      {
+        if (DateTime.TryParseExact(startDate, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var start))
+        {
+          query = query.Where(b => b.CourtSlot.Date.Date >= start.Date);
+        }
+        else
+        {
+          throw new ArgumentException("El formato de fecha debe ser YYYY-MM-DD");
+        }
+
+      }
+
+      if (!string.IsNullOrEmpty(endDate))
+      {
+        if (DateTime.TryParseExact(endDate, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var end))
+        {
+          query = query.Where(b => b.CourtSlot.Date.Date <= end.Date);
+        }
+        else
+        {
+          throw new ArgumentException("El formato de fecha debe ser YYYY-MM-DD");
+        }
+      }
+
       if (!string.IsNullOrEmpty(status))
       {
         if (Enum.TryParse<BookingStatus>(status, true, out var statusEnum))
@@ -63,7 +92,10 @@ namespace padelya_api.Services
         }
       }
 
-      var bookings = await query.OrderByDescending(bk => bk.Id).ToListAsync();
+      var bookings = await query
+        .OrderByDescending(bk => bk.CourtSlot.Date)
+        .ThenBy(bk => bk.CourtSlot.StartTime)
+        .ToListAsync();
 
       return bookings.Select(b => new BookingDto
       {

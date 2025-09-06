@@ -21,7 +21,7 @@ namespace padelya_api.Controllers
     [HttpGet]
     public async Task<IActionResult> GetAll(
       [FromQuery] string? email,
-      [FromQuery] string? status,
+            [FromQuery] string? status,
       [FromQuery] string? startDate,
       [FromQuery] string? endDate
       )
@@ -150,6 +150,24 @@ namespace padelya_api.Controllers
         return BadRequest(ResponseMessage<BookingDto>.Error($"Error al actualizar reserva con id {id}: {ex.Message}"));
       }
     }
+
+    [HttpPost("{id}/cancel-expired")]
+    public async Task<IActionResult> CancelExpired(int id)
+    {
+      try
+      {
+        var cancelled = await _bookingService.CancelExpiredAsync(id);
+        if (!cancelled)
+          return NotFound(ResponseMessage.NotFound($"Reserva pendiente de pago con ID {id} no encontrada"));
+
+        return Ok(ResponseMessage.SuccessMessage("Reserva pendiente de pago vencida cancelada correctamente"));
+      }
+      catch (Exception ex)
+      {
+        return BadRequest(ResponseMessage.Error($"Error al cancelar la reserva pendiente de pago vencida con id {id}: {ex.Message}"));
+      }
+    }
+
 
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id, string? cancelledBy = "admin")

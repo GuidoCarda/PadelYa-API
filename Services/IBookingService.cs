@@ -17,6 +17,9 @@ namespace padelya_api.Services
     Task<BookingDto> UpdateAsync(int id, BookingUpdateDto dto);
     Task<bool> DeleteAsync(int id, string? cancelledBy);
 
+    // Cancel pending of payment expired booking by id 
+    Task<bool> CancelExpiredAsync(int id);
+
     Task<IEnumerable<CourtAvailabilityDto>> GetDailyAvailabilityAsync(DateTime date);
 
 

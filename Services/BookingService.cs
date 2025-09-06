@@ -255,6 +255,25 @@ namespace padelya_api.Services
       return true;
     }
 
+    public async Task<bool> CancelExpiredAsync(int id)
+    {
+      var booking = await _context.Bookings
+        .Include(b => b.CourtSlot)
+        .FirstOrDefaultAsync(b => b.Id == id);
+
+      if (booking == null) return false;
+
+      booking.Status = BookingStatus.CancelledBySystem;
+      booking.CancellationReason = "No se concreto el pago en tiempo";
+      booking.CancelledBy = "system";
+      booking.CancelledAt = DateTime.Now;
+      booking.CourtSlot.Status = CourtSlotStatus.Cancelled;
+
+      await _context.SaveChangesAsync();
+
+      return true;
+    }
+
     public async Task<BookingResponseDto> CreateAdminBookingAsync(BookingCreateDto dto)
     {
       Console.WriteLine($"Iniciando creacion de reserva de administrador: CourtId={dto.CourtId}, Date={dto.Date}, PersonId={dto.PersonId}");
@@ -392,7 +411,7 @@ namespace padelya_api.Services
                 new PreferenceItemRequest
                 {
                     Title = "Reserva de cancha turno de padel",
-                    Quantity = 1,
+                    Quantity = 1000,
                     CurrencyId = "ARS",
                     UnitPrice = 1
                 }
@@ -414,7 +433,24 @@ namespace padelya_api.Services
           ["start_time"] = booking.CourtSlot.StartTime.ToString(),
           ["end_time"] = booking.CourtSlot.EndTime.ToString()
         },
-        AutoReturn = "approved"
+        AutoReturn = "approved",
+        ExpirationDateTo = DateTime.UtcNow.AddMinutes(10),
+        DateOfExpiration = DateTime.UtcNow.AddMinutes(10),
+        PaymentMethods = new()
+        {
+          Installments = 1,
+          ExcludedPaymentTypes = new List<PreferencePaymentTypeRequest>
+          {
+              new PreferencePaymentTypeRequest
+              {
+                  Id = "ticket",
+            },
+              new PreferencePaymentTypeRequest
+              {
+                  Id = "credit_card",
+              },
+          },
+        },
       };
 
       var client = new PreferenceClient();

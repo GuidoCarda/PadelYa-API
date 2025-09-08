@@ -27,6 +27,8 @@ namespace padelya_api.Services
     private readonly ICourtSlotService _courtSlotService;
     private readonly IConfiguration _configuration;
 
+    private static readonly TimeSpan BookingExpirationTime = TimeSpan.FromMinutes(3);
+
     public BookingService(PadelYaDbContext context, ICourtSlotService courtSlotService, IConfiguration configuration)
     {
       _context = context;
@@ -404,6 +406,8 @@ namespace padelya_api.Services
 
       Console.WriteLine($"Creando preferencia de pago para reserva {booking.Id} con monto {amount}");
 
+      var externalReference = $"booking_{booking.Id}";
+
       var request = new PreferenceRequest
       {
         Items = new List<PreferenceItemRequest>
@@ -416,7 +420,7 @@ namespace padelya_api.Services
                     UnitPrice = 1
                 }
             },
-        ExternalReference = booking.Id.ToString(),
+        ExternalReference = externalReference,
         BackUrls = new PreferenceBackUrlsRequest
         {
           Success = "https://9pkvr4lt-3000.brs.devtunnels.ms/bookings/success",
@@ -434,8 +438,10 @@ namespace padelya_api.Services
           ["end_time"] = booking.CourtSlot.EndTime.ToString()
         },
         AutoReturn = "approved",
-        ExpirationDateTo = DateTime.UtcNow.AddMinutes(10),
-        DateOfExpiration = DateTime.UtcNow.AddMinutes(10),
+        Expires = true,
+        ExpirationDateTo = DateTime.UtcNow.Add(BookingExpirationTime),
+        DateOfExpiration = DateTime.UtcNow.Add(BookingExpirationTime),
+
         PaymentMethods = new()
         {
           Installments = 1,
@@ -483,7 +489,7 @@ namespace padelya_api.Services
         StartTime = start,
         EndTime = end,
         Status = CourtSlotStatus.Pending,
-        ExpiresAt = DateTime.UtcNow.AddMinutes(15) // 15 minutes to complete the payment
+        ExpiresAt = DateTime.UtcNow.Add(BookingExpirationTime)
       };
 
 
@@ -521,7 +527,8 @@ namespace padelya_api.Services
 
       var occupiedSlots = await _context.CourtSlots
           .Where(cs => cs.Date.Date == date.Date &&
-            (cs.Status == CourtSlotStatus.Active || cs.Status == CourtSlotStatus.Pending))
+            (cs.Status == CourtSlotStatus.Active ||
+            (cs.Status == CourtSlotStatus.Pending && cs.ExpiresAt > DateTime.UtcNow)))
           .Select(cs => new { cs.CourtId, cs.StartTime, cs.EndTime })
           .ToListAsync();
 

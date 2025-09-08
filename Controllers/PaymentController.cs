@@ -27,6 +27,25 @@ public class PaymentsController : ControllerBase
 
     MercadoPagoConfig.AccessToken = _configuration["MercadoPago:AccessToken"];
 
+    // DOCS:  https://www.mercadopago.com.ar/developers/es/docs/vtex/payments-configuration/checkout-pro/exclude-payment-types-methods
+
+    var paymentMethods = new PreferencePaymentMethodsRequest
+    {
+      ExcludedPaymentTypes = new List<PreferencePaymentTypeRequest>
+      {
+        new PreferencePaymentTypeRequest
+        {
+          Id = "ticket",
+        },
+        new PreferencePaymentTypeRequest
+        {
+          Id = "credit_card",
+        }
+      },
+      Installments = 1,
+    };
+
+
     var request = new PreferenceRequest
     {
       Items = new List<PreferenceItemRequest>
@@ -49,24 +68,29 @@ public class PaymentsController : ControllerBase
         Failure = "https://9pkvr4lt-3000.brs.devtunnels.ms/bookings/failure",
         Pending = "https://9pkvr4lt-3000.brs.devtunnels.ms/bookings/pending"
       },
-      AutoReturn = "approved"
+      AutoReturn = "approved",
+      // set preference valid for 10 minutes 
     };
 
+    // ExpirationDateTo = DateTime.UtcNow.AddMinutes(10),
+    // PaymentMethods = paymentMethods,
     var client = new PreferenceClient();
     Preference preference = await client.CreateAsync(request);
 
-    return Ok(new { init_point = preference.InitPoint });
+    return Ok(new
+    {
+      init_point = preference.InitPoint
+    });
   }
 
   [HttpPost("webhook")]
   public async Task<IActionResult> MercadoPagoWebhook()
   {
+    Console.WriteLine("Webhook request received");
     try
     {
       using var reader = new StreamReader(Request.Body);
       var body = await reader.ReadToEndAsync();
-
-      Console.WriteLine($"Webhook recibido: {body}");
 
       var webhookData = JsonSerializer.Deserialize<MercadoPagoWebhookDto>(
           body,
@@ -78,11 +102,6 @@ public class PaymentsController : ControllerBase
       {
         Console.WriteLine("Webhook mal formado o faltan datos.");
         return BadRequest("Webhook mal formado o faltan datos.");
-      }
-
-      if (webhookData == null)
-      {
-        return BadRequest("Datos del webhook inválidos");
       }
 
       var paymentStatus = await _paymentService.ProcessMercadoPagoWebhookAsync(webhookData);

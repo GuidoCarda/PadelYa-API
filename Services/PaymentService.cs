@@ -9,6 +9,7 @@ using LocalPaymentStatus = padelya_api.Constants.PaymentStatus;
 using LocalPaymentType = padelya_api.Constants.PaymentType;
 using System.Text.Json;
 using padelya_api.DTOs.Booking;
+using MercadoPago.Resource.Payment;
 
 namespace padelya_api.Services
 {
@@ -20,6 +21,11 @@ namespace padelya_api.Services
     Task<LocalPaymentStatus> ProcessMercadoPagoWebhookAsync(MercadoPagoWebhookDto webhookData);
     Task<PaymentSummaryDto> GetSummaryAsync(string paymentId);
   }
+
+
+  //  Type: representsThe target entity type(e.g., "booking", "lesson", "tournament")</param>
+  //  <Id: represents the ID of that specific entity(e.g., bookingId 123)</param>
+  public record PaymentTarget(string Type, int Id);
 
   public class PaymentService : IPaymentService
   {
@@ -97,90 +103,36 @@ namespace padelya_api.Services
     public async Task<LocalPaymentStatus> ProcessMercadoPagoWebhookAsync(MercadoPagoWebhookDto webhookData)
     {
       MercadoPagoConfig.AccessToken = _configuration["MercadoPago:AccessToken"];
-      Console.WriteLine(JsonSerializer.Serialize(webhookData, new JsonSerializerOptions
-      {
-        WriteIndented = true // Enables pretty-printing
-      }));
 
       var paymentId = webhookData.Data.Id;
-
       var client = new PaymentClient();
       var payment = await client.GetAsync(long.Parse(paymentId));
+
+      Console.WriteLine($"payment.Id: {payment.Id} | status {payment.Status} \n\n\n  ");
 
       Console.WriteLine(JsonSerializer.Serialize(payment, new JsonSerializerOptions
       {
         WriteIndented = true // Enables pretty-printing
       }));
 
-      var localPayment = await _context.Payments
-          .FirstOrDefaultAsync(p => p.TransactionId == paymentId);
+      var (target, targetId) = ParseExternalReference(payment);
 
-      var newStatus = MapMercadoPagoStatus(payment.Status);
-
-      if (localPayment == null && newStatus == LocalPaymentStatus.Approved)
+      switch (target)
       {
-        int? bookingId = null;
-        if (!string.IsNullOrEmpty(payment.ExternalReference) && int.TryParse(payment.ExternalReference, out var parsedBookingId))
-        {
-          bookingId = parsedBookingId;
-        }
-
-        Console.WriteLine(JsonSerializer.Serialize(payment.Metadata, new JsonSerializerOptions
-        {
-          WriteIndented = true // Enables pretty-printing
-        }));
-
-        var personIdString = payment.Metadata?["person_id"] as string;
-        if (string.IsNullOrEmpty(personIdString) || !int.TryParse(personIdString, out int personId))
-          throw new Exception("PersonId not found or invalid");
-
-        Console.WriteLine($"Pago aprobado. BookingId: {bookingId}");
-
-        var newPayment = new LocalPayment
-        {
-          Amount = payment.TransactionAmount ?? 0,
-          PaymentMethod = payment.PaymentMethodId,
-          PaymentStatus = LocalPaymentStatus.Approved,
-          CreatedAt = payment.DateApproved ?? DateTime.UtcNow,
-          TransactionId = paymentId,
-          BookingId = bookingId,
-          PersonId = personId,
-          PaymentType = LocalPaymentType.Total // o Deposit, según corresponda
-        };
-        _context.Payments.Add(newPayment);
-        await _context.SaveChangesAsync();
-
-
-        var booking = await _context.Bookings
-          .FirstOrDefaultAsync(b => b.Id == bookingId);
-
-        if (booking == null)
-          throw new Exception("Booking not found");
-
-        booking.Status = BookingStatus.ReservedPaid;
-        await _context.SaveChangesAsync();
-
-        Console.WriteLine($"Booking updated to ReservedPaid. BookingId: {bookingId}");
-
-        var slot = await _context.CourtSlots
-          .FirstOrDefaultAsync(s => s.Id == booking.CourtSlotId);
-        if (slot == null)
-          throw new Exception("Court slot not found");
-        if (slot.Status == CourtSlotStatus.Pending)
-          slot.Status = CourtSlotStatus.Active;
-        await _context.SaveChangesAsync();
-
-        Console.WriteLine($"Court slot updated to ReservedPaid. CourtSlotId: {booking.CourtSlotId}");
-
-      }
-      // Si ya existe, solo actualizamos el estado
-      else if (localPayment != null)
-      {
-        localPayment.PaymentStatus = newStatus;
-        await _context.SaveChangesAsync();
+        case "booking":
+          await HandleBookingPayment(payment, targetId);
+          break;
+        case "lesson":
+          break;
+        case "tournament":
+          break;
+        default:
+          throw new ArgumentException($"Unknown target entity: {target}");
       }
 
-      return newStatus;
+      var status = MapMercadoPagoStatus(payment.Status);
+
+      return status;
     }
 
     private LocalPaymentStatus MapMercadoPagoStatus(string mercadoPagoStatus)
@@ -197,6 +149,29 @@ namespace padelya_api.Services
       };
     }
 
+    private static PaymentTarget ParseExternalReference(MercadoPago.Resource.Payment.Payment payment)
+    {
+      if (string.IsNullOrEmpty(payment.ExternalReference))
+      {
+        throw new ArgumentException("External reference is missing");
+      }
+
+      var parts = payment.ExternalReference.Split('_');
+
+      if (parts.Length != 2)
+      {
+        throw new ArgumentException($"Invalid format: {payment.ExternalReference}");
+      }
+
+      var (target, targetIdStr) = (parts[0], parts[1]);
+
+      if (!int.TryParse(targetIdStr, out var targetId))
+      {
+        throw new ArgumentException($"Invalid target ID: {targetIdStr}");
+      }
+
+      return new PaymentTarget(target, targetId);
+    }
 
     public async Task<PaymentSummaryDto> GetSummaryAsync(string paymentId)
     {
@@ -241,7 +216,106 @@ namespace padelya_api.Services
         }
       };
     }
+
+    private async Task HandleBookingPayment(
+      MercadoPago.Resource.Payment.Payment payment,
+      int bookingId
+    )
+    {
+      try
+      {
+        var booking = await _context.Bookings
+                .Include(b => b.CourtSlot)
+                .ThenInclude(cs => cs.Court)
+                .FirstOrDefaultAsync(b => b.Id == bookingId);
+
+        if (booking is null)
+        {
+          throw new Exception("Booking not found");
+        }
+
+        var bookingPrice = booking.CourtSlot.Court.BookingPrice;
+        var amountPaid = payment.TransactionAmount ?? 0;
+
+        var paymentType = GetPaymentType(bookingPrice, amountPaid);
+
+        if (payment.Status == MercadoPago.Resource.Payment.PaymentStatus.Approved)
+        {
+          var personIdString = payment.Metadata?["person_id"] as string;
+          if (string.IsNullOrEmpty(personIdString) || !int.TryParse(personIdString, out int personId))
+            throw new Exception("PersonId not found or invalid");
+
+          var newPayment = new LocalPayment
+          {
+            Amount = payment.TransactionAmount ?? 0,
+            PaymentMethod = payment.PaymentMethodId,
+            PaymentStatus = LocalPaymentStatus.Approved,
+            CreatedAt = payment.DateApproved ?? DateTime.UtcNow,
+            TransactionId = payment.Id.ToString()!,
+            BookingId = bookingId,
+            PersonId = personId,
+            PaymentType = paymentType
+          };
+          _context.Payments.Add(newPayment);
+
+          booking.Status = bookingPrice == amountPaid
+            ? BookingStatus.ReservedPaid
+            : BookingStatus.ReservedDeposit;
+          booking.CourtSlot.Status = CourtSlotStatus.Active;
+
+          await _context.SaveChangesAsync();
+        }
+
+        if (payment.Status == MercadoPago.Resource.Payment.PaymentStatus.Rejected)
+        {
+
+          var newPayment = new LocalPayment
+          {
+            Amount = payment.TransactionAmount ?? 0,
+            PaymentMethod = payment.PaymentMethodId,
+            PaymentStatus = LocalPaymentStatus.Rejected,
+            CreatedAt = payment.DateCreated ?? DateTime.UtcNow,
+            TransactionId = payment.Id.ToString()!,
+            BookingId = bookingId,
+            PersonId = booking.PersonId,
+            PaymentType = paymentType,
+          };
+          _context.Payments.Add(newPayment);
+
+          if (booking.CourtSlot.IsExpired)
+          {
+            booking.Status = BookingStatus.CancelledBySystem;
+            booking.CancellationReason = "El pago fue rechazado";
+            booking.CourtSlot.Status = CourtSlotStatus.Cancelled;
+          }
+
+          await _context.SaveChangesAsync();
+        }
+
+        //TODO: Handle pending status
+      }
+      catch (Exception ex)
+      {
+        Console.WriteLine(ex.Message);
+      }
+    }
+
+
+    private static LocalPaymentType GetPaymentType(decimal price, decimal amountPaid)
+    {
+      LocalPaymentType type;
+      if (Math.Abs(amountPaid - price) < 0.01m)
+        type = LocalPaymentType.Total;
+      else if (Math.Abs(amountPaid - (price * 0.5m)) < 0.01m)
+        type = LocalPaymentType.Deposit;
+      else
+        type = LocalPaymentType.Balance;
+
+      return type;
+    }
   }
+
+
 
   public class PaymentSummaryDto
   {

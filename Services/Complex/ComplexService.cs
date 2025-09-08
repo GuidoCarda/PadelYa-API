@@ -92,16 +92,18 @@ namespace padelya_api.Services
         return null;
       }
 
-      if (updateDto.CourtStatus.HasValue &&
-        updateDto.CourtStatus.Value == CourtStatus.Maintenance)
+      if ((updateDto.CourtStatus.HasValue &&
+        updateDto.CourtStatus.Value == CourtStatus.Maintenance) || updateDto.OpeningTime.HasValue || updateDto.ClosingTime.HasValue)
       {
         var activeSlots = await _context.CourtSlots
-         .CountAsync(cs => cs.Status == CourtSlotStatus.Active && cs.CourtId == id && cs.Date >= DateTime.Now.Date);
+         .CountAsync(cs => (cs.Status == CourtSlotStatus.Active
+         || cs.Status == CourtSlotStatus.Pending)
+         && cs.CourtId == id && cs.Date >= DateTime.Now.Date);
 
         if (activeSlots > 0)
         {
           throw new InvalidOperationException(
-               $"No se puede cambiar la cancha a mantenimiento. Tiene {activeSlots} slots activos.");
+               $"No se puede cambiar la cancha a mantenimiento o actualizar los horarios de apertura y cierre. Tiene {activeSlots} turnos activos.");
         }
       }
 
@@ -119,6 +121,7 @@ namespace padelya_api.Services
       {
         court.CourtStatus = updateDto.CourtStatus.Value;
       }
+
 
       if (updateDto.OpeningTime.HasValue)
       {
@@ -141,11 +144,20 @@ namespace padelya_api.Services
 
     public async Task<bool> DeleteCourtAsync(int id)
     {
+
       var court = await _context.Courts.FirstOrDefaultAsync(c => c.Id == id);
 
       if (court == null)
       {
         return false; // court not found
+      }
+
+      var activeCourtsCount = await _context.Courts
+        .CountAsync(c => c.CourtStatus != CourtStatus.Deleted);
+
+      if (activeCourtsCount <= 1)
+      {
+        return false; // cannot delete all courts, at least one has  to be available.
       }
 
       var activeCourtSlots = await _context.CourtSlots

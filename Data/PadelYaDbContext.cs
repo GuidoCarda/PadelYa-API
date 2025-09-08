@@ -546,9 +546,9 @@ namespace padelya_api.Data
           new Court
           {
             Id = 1,
-            Name = "Court 1 - Premium",
+            Name = "Cancha 1 - Premium",
             CourtStatus = CourtStatus.Available,
-            BookingPrice = 15000, // $15.00 in cents
+            BookingPrice = 20,
             OpeningTime = new TimeOnly(6, 0), // 6:00 AM
             ClosingTime = new TimeOnly(23, 0), // 11:00 PM
             ComplexId = 1,
@@ -557,46 +557,13 @@ namespace padelya_api.Data
           new Court
           {
             Id = 2,
-            Name = "Court 2 - Standard",
+            Name = "Cancha 2 - Standard",
             CourtStatus = CourtStatus.Available,
-            BookingPrice = 20000, // $20.00 in cents
+            BookingPrice = 10,
             OpeningTime = new TimeOnly(6, 0), // 6:00 AM
             ClosingTime = new TimeOnly(23, 0), // 11:00 PM
             ComplexId = 1,
             Type = "Césped"
-          },
-          new Court
-          {
-            Id = 3,
-            Name = "Court 3 - Standard",
-            CourtStatus = CourtStatus.Available,
-            BookingPrice = 12000, // $12.00 in cents
-            OpeningTime = new TimeOnly(6, 0), // 6:00 AM
-            ClosingTime = new TimeOnly(23, 0), // 11:00 PM
-            ComplexId = 1,
-            Type = "Cristal"
-          },
-          new Court
-          {
-            Id = 4,
-            Name = "Court 4 - Premium",
-            CourtStatus = CourtStatus.Maintenance,
-            BookingPrice = 25000, // $25.00 in cents
-            OpeningTime = new TimeOnly(6, 0), // 6:00 AM
-            ClosingTime = new TimeOnly(23, 0), // 11:00 PM
-            ComplexId = 1,
-            Type = "Césped"
-          },
-          new Court
-          {
-            Id = 5,
-            Name = "Court 5 - Indoor",
-            CourtStatus = CourtStatus.Available,
-            BookingPrice = 20000, // $20.00 in cents
-            OpeningTime = new TimeOnly(6, 0), // 6:00 AM
-            ClosingTime = new TimeOnly(23, 0), // 11:00 PM
-            ComplexId = 1,
-            Type = "Cristal"
           }
       );
 
@@ -679,7 +646,7 @@ namespace padelya_api.Data
           new CourtSlot { Id = 1, CourtId = 1, Date = new DateTime(2025, 7, 6), StartTime = new TimeOnly(9, 0), EndTime = new TimeOnly(10, 30) },
           new CourtSlot { Id = 2, CourtId = 1, Date = new DateTime(2025, 7, 6), StartTime = new TimeOnly(13, 30), EndTime = new TimeOnly(15, 0) },
           new CourtSlot { Id = 3, CourtId = 2, Date = new DateTime(2025, 7, 6), StartTime = new TimeOnly(10, 30), EndTime = new TimeOnly(12, 0) },
-          new CourtSlot { Id = 4, CourtId = 3, Date = new DateTime(2025, 7, 6), StartTime = new TimeOnly(18, 0), EndTime = new TimeOnly(19, 30) }
+          new CourtSlot { Id = 4, CourtId = 2, Date = new DateTime(2025, 7, 6), StartTime = new TimeOnly(18, 0), EndTime = new TimeOnly(19, 30) }
       );
       modelBuilder.Entity<Booking>().HasData(
           new Booking { Id = 1, CourtSlotId = 1, PersonId = 1, Status = BookingStatus.ReservedPaid },

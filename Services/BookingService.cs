@@ -415,9 +415,9 @@ namespace padelya_api.Services
                 new PreferenceItemRequest
                 {
                     Title = "Reserva de cancha turno de padel",
-                    Quantity = 1000,
+                    Quantity = 1,
                     CurrencyId = "ARS",
-                    UnitPrice = 1
+                    UnitPrice = amount
                 }
             },
         ExternalReference = externalReference,

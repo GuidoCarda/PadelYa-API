@@ -3,6 +3,7 @@ using padelya_api.DTOs.Tournament;
 using padelya_api.Services;
 using System;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 
 namespace padelya_api.Controllers
 {
@@ -85,6 +86,10 @@ namespace padelya_api.Controllers
 
                 return Ok(updatedTournament);
             }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
             catch (Exception ex)
             {
                 return StatusCode(500, $"Error interno del servidor: {ex.Message}");
@@ -104,6 +109,50 @@ namespace padelya_api.Controllers
                 }
 
                 return Ok(tournament);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error interno del servidor: {ex.Message}");
+            }
+        }
+
+        [HttpPatch("{id}/status")]
+        public async Task<IActionResult> UpdateTournamentStatus(int id, [FromBody] UpdateTournamentStatusDto updateStatusDto)
+        {
+            try
+            {
+                var updatedTournament = await _tournamentService.UpdateTournamentStatusAsync(id, updateStatusDto.NewStatus);
+                if (updatedTournament == null)
+                {
+                    return NotFound($"No se encontró el torneo con ID {id}.");
+                }
+                return Ok(updatedTournament);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error interno del servidor: {ex.Message}");
+            }
+        }
+
+        [Authorize]
+        [HttpPost("{id}/enroll")]
+        public async Task<IActionResult> EnrollInTournament(int id, [FromBody] TournamentEnrollmentDto enrollmentDto)
+        {
+            try
+            {
+                // El servicio se encargará de obtener el ID del usuario actual desde el token.
+                var enrollment = await _tournamentService.EnrollPlayerAsync(id, enrollmentDto);
+
+                if (enrollment == null)
+                {
+                    return BadRequest("No se pudo procesar la inscripción.");
+                }
+
+                return Ok(enrollment);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message); // Para errores de validación (ej: "cupos llenos")
             }
             catch (Exception ex)
             {

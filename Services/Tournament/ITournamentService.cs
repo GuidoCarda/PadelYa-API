@@ -1,3 +1,4 @@
+using padelya_api.Constants;
 using padelya_api.DTOs.Tournament;
 using padelya_api.Models.Tournament;
 using System.Collections.Generic;
@@ -12,5 +13,8 @@ namespace padelya_api.Services
         Task<bool> DeleteTournamentAsync(int id);
         Task<Tournament?> UpdateTournamentAsync(int id, UpdateTournamentDto updateTournamentDto);
         Task<Tournament?> GetTournamentByIdAsync(int id);
+        Task<Tournament?> UpdateTournamentStatusAsync(int id, TournamentStatus newStatus);
+        Task<TournamentEnrollment?> EnrollPlayerAsync(int tournamentId, TournamentEnrollmentDto enrollmentDto);
+
     }
 }

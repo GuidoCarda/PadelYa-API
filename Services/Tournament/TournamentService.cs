@@ -57,11 +57,17 @@ namespace padelya_api.Services
         }
         public async Task<bool> DeleteTournamentAsync(int id)
         {
-            var tournament = await _context.Tournaments.FindAsync(id);
+            var tournament = await _context.Tournaments.Include(t => t.Enrollments)
+                                                        .FirstOrDefaultAsync(t => t.Id == id);
 
             if (tournament == null)
             {
                 return false;
+            }
+
+            if (tournament.Enrollments.Any())
+            {
+                throw new ArgumentException("No se puede eliminar un torneo que ya tiene inscripciones.");
             }
 
             tournament.TournamentStatus = TournamentStatus.Deleted;
@@ -74,10 +80,15 @@ namespace padelya_api.Services
 
             if (tournament == null)
             {
-                return null; 
+                return null;
             }
 
             // Actualiza solo las propiedades que no son nulas en el DTO
+            if (tournament.TournamentStatus != TournamentStatus.AbiertoParaInscripcion)
+            {
+                throw new ArgumentException("Solo se pueden actualizar torneos que están abiertos para inscripción.");
+            }
+
             if (updateDto.Title != null)
                 tournament.Title = updateDto.Title;
 
@@ -111,5 +122,53 @@ namespace padelya_api.Services
             var tournament = await _context.Tournaments.FindAsync(id);
             return tournament;
         }
-    }
+
+        public async Task<Tournament?> UpdateTournamentStatusAsync(int id, TournamentStatus newStatus)
+        {
+            var tournament = await _context.Tournaments.FindAsync(id);
+            if (tournament == null)
+            {
+                return null;
+            }
+            tournament.TournamentStatus = newStatus;
+            await _context.SaveChangesAsync();
+            return tournament;
+
+        }
+
+        // revisar
+        public async Task<TournamentEnrollment?> EnrollPlayerAsync(int tournamentId, TournamentEnrollmentDto enrollmentDto)
+        {
+            var tournament = await _context.Tournaments
+                .Include(t => t.Enrollments)
+                .FirstOrDefaultAsync(t => t.Id == tournamentId);
+            if (tournament == null)
+            {
+                throw new ArgumentException("Torneo no encontrado.");
+            }
+            if (tournament.TournamentStatus != TournamentStatus.AbiertoParaInscripcion)
+            {
+                throw new ArgumentException("El torneo no está abierto para inscripciones.");
+            }
+            if (tournament.Enrollments.Count >= tournament.Quota)
+            {
+                throw new ArgumentException("El torneo ya ha alcanzado su cupo máximo de inscripciones.");
+            }
+            // Verificar que el jugador no esté ya inscrito
+            var existingEnrollment = tournament.Enrollments
+                .FirstOrDefault(e => e.PlayerId == enrollmentDto.PartnerId);
+            if (existingEnrollment != null)
+            {
+                throw new ArgumentException("El jugador ya está inscrito en este torneo.");
+            }
+            var enrollment = new TournamentEnrollment
+            {
+                TournamentId = tournamentId,
+                PlayerId = enrollmentDto.PartnerId,
+                EnrollmentDate = DateTime.UtcNow
+            };
+            _context.TournamentEnrollments.Add(enrollment);
+            await _context.SaveChangesAsync();
+            return enrollment;
+        }
 }

@@ -7,12 +7,16 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
+using System.Security.Claims;
+using padelya_api.Models; // Asegúrate de tener este using para Player y Couple
 
 namespace padelya_api.Services
 {
-    public class TournamentService(PadelYaDbContext context) : ITournamentService
+    public class TournamentService(PadelYaDbContext context, IHttpContextAccessor httpContextAccessor) : ITournamentService
     {
         private readonly PadelYaDbContext _context = context;
+        private readonly IHttpContextAccessor _httpContextAccessor = httpContextAccessor;
 
         public async Task<Tournament?> CreateTournamentAsync(CreateTournamentDto tournamentDto)
         {
@@ -58,7 +62,7 @@ namespace padelya_api.Services
         public async Task<bool> DeleteTournamentAsync(int id)
         {
             var tournament = await _context.Tournaments.Include(t => t.Enrollments)
-                                                        .FirstOrDefaultAsync(t => t.Id == id);
+                                                      .FirstOrDefaultAsync(t => t.Id == id);
 
             if (tournament == null)
             {
@@ -83,7 +87,6 @@ namespace padelya_api.Services
                 return null;
             }
 
-            // Actualiza solo las propiedades que no son nulas en el DTO
             if (tournament.TournamentStatus != TournamentStatus.AbiertoParaInscripcion)
             {
                 throw new ArgumentException("Solo se pueden actualizar torneos que están abiertos para inscripción.");
@@ -136,39 +139,101 @@ namespace padelya_api.Services
 
         }
 
-        // revisar
         public async Task<TournamentEnrollment?> EnrollPlayerAsync(int tournamentId, TournamentEnrollmentDto enrollmentDto)
         {
+            // 1. OBTENER EL ID DEL USUARIO LOGUEADO DESDE EL TOKEN JWT
+            var loggedInUserIdString = _httpContextAccessor.HttpContext?.User?.FindFirstValue("user_id");
+            if (string.IsNullOrEmpty(loggedInUserIdString))
+            {
+                throw new ArgumentException("No se pudo identificar al usuario. Inicie sesión nuevamente.");
+            }
+            var loggedInUserId = int.Parse(loggedInUserIdString);
+            var partnerId = enrollmentDto.PartnerId;
+
+            // 2. VALIDAR QUE EL JUGADOR NO SE INSCRIBA CONSIGO MISMO
+            if (loggedInUserId == partnerId)
+            {
+                throw new ArgumentException("No puedes inscribirte contigo mismo como compañero.");
+            }
+
+            // 3. BUSCAR EL TORNEO Y CARGAR LAS INSCRIPCIONES EXISTENTES
             var tournament = await _context.Tournaments
                 .Include(t => t.Enrollments)
                 .FirstOrDefaultAsync(t => t.Id == tournamentId);
+
             if (tournament == null)
             {
-                throw new ArgumentException("Torneo no encontrado.");
+                throw new ArgumentException("El torneo especificado no existe.");
             }
+
+            // 4. VALIDAR EL PERÍODO DE INSCRIPCIÓN (POR ESTADO Y FECHA)
             if (tournament.TournamentStatus != TournamentStatus.AbiertoParaInscripcion)
             {
                 throw new ArgumentException("El torneo no está abierto para inscripciones.");
             }
+            if (DateTime.UtcNow > tournament.EnrollmentEndDate)
+            {
+                throw new ArgumentException("El período de inscripción para este torneo ya ha finalizado.");
+            }
+
+            // 5. VALIDAR CUPOS DISPONIBLES
             if (tournament.Enrollments.Count >= tournament.Quota)
             {
-                throw new ArgumentException("El torneo ya ha alcanzado su cupo máximo de inscripciones.");
+                throw new ArgumentException("Los cupos para este torneo ya están llenos.");
             }
-            // Verificar que el jugador no esté ya inscrito
-            var existingEnrollment = tournament.Enrollments
-                .FirstOrDefault(e => e.PlayerId == enrollmentDto.PartnerId);
-            if (existingEnrollment != null)
+
+            // 6. VALIDAR QUE AMBOS USUARIOS (LOGUEADO Y COMPAÑERO) EXISTAN Y SEAN JUGADORES
+            var playersToEnroll = await _context.Users
+                .Where(u => u.Id == loggedInUserId || u.Id == partnerId)
+                .Include(u => u.Person)
+                .ToListAsync();
+
+            if (playersToEnroll.Count != 2)
             {
-                throw new ArgumentException("El jugador ya está inscrito en este torneo.");
+                throw new ArgumentException("Uno o ambos jugadores no existen en el sistema.");
             }
-            var enrollment = new TournamentEnrollment
+
+            var loggedInUser = playersToEnroll.First(u => u.Id == loggedInUserId);
+            var partnerUser = playersToEnroll.First(u => u.Id == partnerId);
+
+            if (loggedInUser.Person == null || partnerUser.Person == null)
             {
-                TournamentId = tournamentId,
-                PlayerId = enrollmentDto.PartnerId,
-                EnrollmentDate = DateTime.UtcNow
+                throw new ArgumentException("Ambos usuarios deben tener un perfil de jugador para inscribirse.");
+            }
+
+            // 7. VERIFICAR QUE NINGUNO DE LOS DOS JUGADORES YA ESTÉ INSCRITO EN ESTE TORNEO
+            var existingPlayerIdsInTournament = await _context.TournamentEnrollments
+                .Where(e => e.TournamentId == tournamentId)
+                .SelectMany(e => e.Couple.Players.Select(p => p.Id))
+                .ToListAsync();
+
+            if (existingPlayerIdsInTournament.Contains(loggedInUser.Person.Id) || existingPlayerIdsInTournament.Contains(partnerUser.Person.Id))
+            {
+                throw new ArgumentException("Uno de los jugadores ya se encuentra inscrito en este torneo.");
+            }
+
+            // 8. CREAR LA PAREJA (COUPLE)
+            var newCouple = new Couple
+            {
+                Name = $"{loggedInUser.Name} & {partnerUser.Name}",
+                Players = new List<Player> { (Player)loggedInUser.Person, (Player)partnerUser.Person }
             };
-            _context.TournamentEnrollments.Add(enrollment);
+            _context.Couples.Add(newCouple); // Añadir la pareja al contexto para que se guarde
+
+            // 9. CREAR LA INSCRIPCIÓN (ENROLLMENT)
+            var newEnrollment = new TournamentEnrollment
+            {
+                TournamentId = tournament.Id,
+                Couple = newCouple,
+                CreatedAt = DateTime.UtcNow,
+                EnrollmentDate = DateTime.UtcNow,
+            };
+            _context.TournamentEnrollments.Add(newEnrollment);
+
+            // 10. GUARDAR TODO EN LA BASE DE DATOS
             await _context.SaveChangesAsync();
-            return enrollment;
+
+            return newEnrollment;
         }
+    }
 }

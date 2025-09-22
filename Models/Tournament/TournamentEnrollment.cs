@@ -18,6 +18,10 @@ namespace padelya_api.Models.Tournament
         public int TournamentId { get; set; }
         public Tournament Tournament { get; set; }
 
+        public int PlayerId { get; set; }
+
+        public DateTime EnrollmentDate { get; set; }
+
 
         public Payment Payment { get; set; }
         // Add methods here as needed

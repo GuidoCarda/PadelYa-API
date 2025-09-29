@@ -24,6 +24,5 @@ namespace padelya_api.Models.Tournament
 
 
         public Payment Payment { get; set; }
-        // Add methods here as needed
     }
 }

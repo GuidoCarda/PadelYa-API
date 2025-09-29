@@ -30,6 +30,8 @@ builder.Services.AddControllers()
     options.JsonSerializerOptions.Converters.Add(
       new JsonStringEnumConverter(JsonNamingPolicy.CamelCase)
     );
+    options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+   
   });
 
 

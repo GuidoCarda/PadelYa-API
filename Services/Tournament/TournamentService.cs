@@ -122,7 +122,11 @@ namespace padelya_api.Services
 
         public async Task<Tournament?> GetTournamentByIdAsync(int id)
         {
-            var tournament = await _context.Tournaments.FindAsync(id);
+            var tournament = await _context.Tournaments
+            .Include(t => t.Enrollments)
+            .ThenInclude(e => e.Couple)
+            .ThenInclude(c => c.Players)
+            .FirstOrDefaultAsync(t => t.Id == id);
             return tournament;
         }
 
@@ -227,6 +231,7 @@ namespace padelya_api.Services
                 Couple = newCouple,
                 CreatedAt = DateTime.UtcNow,
                 EnrollmentDate = DateTime.UtcNow,
+                PlayerId = loggedInUserId,
             };
             _context.TournamentEnrollments.Add(newEnrollment);
 

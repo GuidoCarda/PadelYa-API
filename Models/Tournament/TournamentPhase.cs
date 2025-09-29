@@ -11,6 +11,5 @@ namespace padelya_api.Models.Tournament
         public List<TournamentBracket> Brackets { get; set; }
 
         public int TournamentId { get; set; }
-        // Add methods here as needed
     }
 }

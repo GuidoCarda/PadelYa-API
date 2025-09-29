@@ -22,6 +22,5 @@ namespace padelya_api.Models.Tournament
         // Navigation property for CourtSlot
         public int CourtSlotId { get; set; }
         public CourtSlot CourtSlot { get; set; }
-        // Add methods here as needed
     }
 }

@@ -10,6 +10,5 @@ namespace padelya_api.Models.Tournament
         public List<TournamentMatch> Matches { get; set; }
 
         public int PhaseId { get; set; }
-        // Add methods here as needed
     }
 }

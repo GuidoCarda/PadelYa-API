@@ -24,6 +24,5 @@ namespace padelya_api.Models.Tournament
         public List<TournamentEnrollment> Enrollments { get; set; }
         public List<TournamentPhase> TournamentPhases { get; set; }
 
-        // Add methods here as needed
     }
 }

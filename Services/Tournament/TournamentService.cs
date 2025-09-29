@@ -171,4 +171,5 @@ namespace padelya_api.Services
             await _context.SaveChangesAsync();
             return enrollment;
         }
+    }
 }

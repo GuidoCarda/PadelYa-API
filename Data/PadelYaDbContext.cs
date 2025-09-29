@@ -3,6 +3,9 @@ using padelya_api.Constants;
 using padelya_api.models;
 using padelya_api.Models;
 using padelya_api.Models.Class;
+using padelya_api.Models.Annual;
+using padelya_api.Models.Challenge;
+using padelya_api.Models.Notification;
 using padelya_api.Models.Tournament;
 
 namespace padelya_api.Data
@@ -47,6 +50,13 @@ namespace padelya_api.Data
 
     //Payments
     public DbSet<Payment> Payments { get; set; }
+
+    // Annual Ranking
+    public DbSet<AnnualTable> AnnualTables { get; set; }
+    public DbSet<RankingEntry> RankingEntries { get; set; }
+    public DbSet<ScoringRule> ScoringRules { get; set; }
+    public DbSet<Challenge> Challenges { get; set; }
+    public DbSet<Notification> Notifications { get; set; }
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -259,6 +269,18 @@ namespace padelya_api.Data
           .Property(t => t.TournamentStatus)
           .HasConversion<string>();
 
+      #endregion
+
+      #region Annual Ranking
+      modelBuilder.Entity<AnnualTable>()
+          .HasMany(a => a.Entries)
+          .WithOne(e => e.AnnualTable)
+          .HasForeignKey(e => e.AnnualTableId);
+
+      modelBuilder.Entity<AnnualTable>()
+          .HasMany(a => a.ScoringRules)
+          .WithOne(r => r.AnnualTable)
+          .HasForeignKey(r => r.AnnualTableId);
       #endregion
 
       #region Lessons

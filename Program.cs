@@ -6,6 +6,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using padelya_api.Data;
 using padelya_api.Services;
+using padelya_api.Services.Annual;
+using padelya_api.Services.Annual.Scoring;
+using padelya_api.Services.Notification;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -78,6 +81,15 @@ builder.Services.AddScoped<ICourtSlotService, CourtSlotService>();
 builder.Services.AddScoped<ILessonService, LessonService>();
 builder.Services.AddScoped<ITournamentService, TournamentService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
+builder.Services.AddScoped<IAnnualTableService, AnnualTableService>();
+builder.Services.AddScoped<IScoringService, ScoringService>();
+builder.Services.AddScoped<IScoringStrategy, ChallengeScoringStrategy>();
+builder.Services.AddScoped<IScoringStrategy, TournamentScoringStrategy>();
+builder.Services.AddScoped<IScoringStrategy, ClassScoringStrategy>();
+builder.Services.AddScoped<IScoringStrategy, MatchWinScoringStrategy>();
+builder.Services.AddScoped<IScoringStrategy, MatchLossScoringStrategy>();
+builder.Services.AddScoped<IChallengeService, ChallengeService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
 
 
 var app = builder.Build();
@@ -92,8 +104,8 @@ if (app.Environment.IsDevelopment())
 
 //app.UseHttpsRedirection();
 
-app.UseAuthentication();
-app.UseAuthorization();
+// app.UseAuthentication();
+// app.UseAuthorization();
 
 app.MapControllers();
 

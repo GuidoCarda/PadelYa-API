@@ -280,6 +280,7 @@ namespace padelya_api.Services
                 throw new ArgumentException("El torneo especificado no existe.");
             }
 
+            // Validar estado y período de inscripción
             if (tournament.TournamentStatus != TournamentStatus.AbiertoParaInscripcion)
             {
                 throw new ArgumentException("El torneo no está abierto para inscripciones.");
@@ -294,6 +295,7 @@ namespace padelya_api.Services
                 throw new ArgumentException("Los cupos para este torneo ya están llenos.");
             }
 
+            // Cargar ambos usuarios (el logueado y su compañero)
             var playersToEnroll = await _context.Users
                 .Where(u => u.Id == loggedInUserId || u.Id == partnerId)
                 .Include(u => u.Person)
@@ -312,6 +314,7 @@ namespace padelya_api.Services
                 throw new ArgumentException("Ambos usuarios deben tener un perfil de jugador para inscribirse.");
             }
 
+            // Verificar que ninguno de los dos ya esté inscrito
             var existingPlayerIdsInTournament = await _context.TournamentEnrollments
                 .Where(e => e.TournamentId == tournamentId)
                 .SelectMany(e => e.Couple.Players.Select(p => p.Id))
@@ -322,6 +325,7 @@ namespace padelya_api.Services
                 throw new ArgumentException("Uno de los jugadores ya se encuentra inscrito en este torneo.");
             }
 
+            // Crear pareja e inscripción
             var newCouple = new Couple
             {
                 Name = $"{loggedInUser.Name} & {partnerUser.Name}",
@@ -341,6 +345,7 @@ namespace padelya_api.Services
 
             await _context.SaveChangesAsync();
 
+            // Recargar con datos relacionados para la respuesta
             var enrollmentWithData = await _context.TournamentEnrollments
                 .Include(e => e.Couple)
                     .ThenInclude(c => c.Players)
@@ -377,6 +382,7 @@ namespace padelya_api.Services
                 return false;
             }
 
+            // Solo permitir cancelación si el torneo sigue abierto
             if (enrollment.Tournament.TournamentStatus != TournamentStatus.AbiertoParaInscripcion)
             {
                 throw new ArgumentException("No se puede cancelar la inscripción. El torneo ya no está abierto para cambios.");

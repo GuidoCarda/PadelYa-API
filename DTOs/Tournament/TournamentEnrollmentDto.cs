@@ -2,14 +2,11 @@ using padelya_api.Constants;
 
 namespace padelya_api.DTOs.Tournament
 {
-    // DTO para enviar al backend al inscribirse
     public class TournamentEnrollmentDto
     {
-        // El ID del jugador que el usuario logueado elige como su pareja.
         public int PartnerId { get; set; }
     }
 
-    // DTO para la respuesta de un jugador con sus datos completos
     public class PlayerResponseDto
     {
         public int Id { get; set; }
@@ -19,7 +16,6 @@ namespace padelya_api.DTOs.Tournament
         public string Category { get; set; } = string.Empty;
     }
 
-    // DTO para la respuesta de una pareja
     public class CoupleResponseDto
     {
         public int Id { get; set; }
@@ -27,7 +23,6 @@ namespace padelya_api.DTOs.Tournament
         public List<PlayerResponseDto> Players { get; set; } = new();
     }
 
-    // DTO para la respuesta de un enrollment
     public class TournamentEnrollmentResponseDto
     {
         public int Id { get; set; }
@@ -36,7 +31,6 @@ namespace padelya_api.DTOs.Tournament
         public CoupleResponseDto Couple { get; set; } = new();
     }
 
-    // DTO para la respuesta de un torneo completo con enrollments
     public class TournamentResponseDto
     {
         public int Id { get; set; }
@@ -54,7 +48,6 @@ namespace padelya_api.DTOs.Tournament
         public List<TournamentPhaseDto> TournamentPhases { get; set; } = new();
     }
 
-    // DTO para las fases del torneo
     public class TournamentPhaseDto
     {
         public int Id { get; set; }

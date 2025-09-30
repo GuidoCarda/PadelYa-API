@@ -9,7 +9,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using System.Security.Claims;
-using padelya_api.Models; // Asegúrate de tener este using para Player y Couple
+using padelya_api.Models;
 
 namespace padelya_api.Services
 {
@@ -17,6 +17,114 @@ namespace padelya_api.Services
     {
         private readonly PadelYaDbContext _context = context;
         private readonly IHttpContextAccessor _httpContextAccessor = httpContextAccessor;
+
+        /// <summary>
+        /// Mapea un TournamentEnrollment a TournamentEnrollmentResponseDto con datos completos de los jugadores
+        /// </summary>
+        private async Task<TournamentEnrollmentResponseDto> MapEnrollmentToDto(TournamentEnrollment enrollment)
+        {
+            // Obtener los IDs de los jugadores de la pareja
+            var playerIds = enrollment.Couple.Players.Select(p => p.Id).ToList();
+
+            // Buscar los Users que tienen estos Players
+            var users = await _context.Users
+                .Include(u => u.Person)
+                .Where(u => u.Person != null && playerIds.Contains(u.Person.Id))
+                .ToListAsync();
+
+            // Mapear los jugadores con sus datos completos
+            var playersDto = enrollment.Couple.Players.Select(player =>
+            {
+                var user = users.FirstOrDefault(u => u.Person?.Id == player.Id);
+                return new PlayerResponseDto
+                {
+                    Id = player.Id,
+                    Name = user?.Name ?? "",
+                    Surname = user?.Surname ?? "",
+                    Email = user?.Email ?? "",
+                    Category = player.Category ?? ""
+                };
+            }).ToList();
+
+            return new TournamentEnrollmentResponseDto
+            {
+                Id = enrollment.Id,
+                TournamentId = enrollment.TournamentId,
+                EnrollmentDate = enrollment.EnrollmentDate,
+                Couple = new CoupleResponseDto
+                {
+                    Id = enrollment.Couple.Id,
+                    Name = enrollment.Couple.Name,
+                    Players = playersDto
+                }
+            };
+        }
+
+        /// <summary>
+        /// Mapea un Tournament a TournamentResponseDto con enrollments y jugadores completos
+        /// </summary>
+        private async Task<TournamentResponseDto> MapTournamentToDto(Models.Tournament.Tournament tournament)
+        {
+            // Obtener todos los player IDs de todos los enrollments
+            var allPlayerIds = tournament.Enrollments?
+                .SelectMany(e => e.Couple.Players.Select(p => p.Id))
+                .Distinct()
+                .ToList() ?? new List<int>();
+
+            // Buscar todos los Users de una vez para optimizar
+            var allUsers = await _context.Users
+                .Include(u => u.Person)
+                .Where(u => u.Person != null && allPlayerIds.Contains(u.Person.Id))
+                .ToListAsync();
+
+            // Mapear enrollments
+            var enrollmentsDto = tournament.Enrollments?.Select(enrollment =>
+            {
+                var playersDto = enrollment.Couple.Players.Select(player =>
+                {
+                    var user = allUsers.FirstOrDefault(u => u.Person?.Id == player.Id);
+                    return new PlayerResponseDto
+                    {
+                        Id = player.Id,
+                        Name = user?.Name ?? "",
+                        Surname = user?.Surname ?? "",
+                        Email = user?.Email ?? "",
+                        Category = player.Category ?? ""
+                    };
+                }).ToList();
+
+                return new TournamentEnrollmentResponseDto
+                {
+                    Id = enrollment.Id,
+                    TournamentId = enrollment.TournamentId,
+                    EnrollmentDate = enrollment.EnrollmentDate,
+                    Couple = new CoupleResponseDto
+                    {
+                        Id = enrollment.Couple.Id,
+                        Name = enrollment.Couple.Name,
+                        Players = playersDto
+                    }
+                };
+            }).ToList() ?? new List<TournamentEnrollmentResponseDto>();
+
+
+            return new TournamentResponseDto
+            {
+                Id = tournament.Id,
+                CurrentPhase = tournament.CurrentPhase,
+                TournamentStatus = tournament.TournamentStatus,
+                Title = tournament.Title,
+                Category = tournament.Category,
+                Quota = tournament.Quota,
+                EnrollmentPrice = tournament.EnrollmentPrice,
+                EnrollmentStartDate = tournament.EnrollmentStartDate,
+                EnrollmentEndDate = tournament.EnrollmentEndDate,
+                TournamentStartDate = tournament.TournamentStartDate,
+                TournamentEndDate = tournament.TournamentEndDate,
+                Enrollments = enrollmentsDto,
+                TournamentPhases = new List<TournamentPhaseDto>() // Vacío por ahora
+            };
+        }
 
         public async Task<Tournament?> CreateTournamentAsync(CreateTournamentDto tournamentDto)
         {
@@ -50,14 +158,24 @@ namespace padelya_api.Services
             return tournament;
         }
 
-        public async Task<List<Tournament>> GetTournamentsAsync()
+        public async Task<List<TournamentResponseDto>> GetTournamentsAsync()
         {
             var tournaments = await _context.Tournaments
+                .Include(t => t.Enrollments)           
+                .ThenInclude(e => e.Couple)           
+                .ThenInclude(c => c.Players)
                 .Where(t => t.TournamentStatus != TournamentStatus.Deleted)
                 .OrderByDescending(t => t.TournamentStartDate)
                 .ToListAsync();
 
-            return tournaments;
+            // Mapear todos los torneos a DTOs
+            var tournamentsDto = new List<TournamentResponseDto>();
+            foreach (var tournament in tournaments)
+            {
+                tournamentsDto.Add(await MapTournamentToDto(tournament));
+            }
+
+            return tournamentsDto;
         }
         public async Task<bool> DeleteTournamentAsync(int id)
         {
@@ -120,14 +238,20 @@ namespace padelya_api.Services
             return tournament;
         }
 
-        public async Task<Tournament?> GetTournamentByIdAsync(int id)
+        public async Task<TournamentResponseDto?> GetTournamentByIdAsync(int id)
         {
             var tournament = await _context.Tournaments
-            .Include(t => t.Enrollments)
-            .ThenInclude(e => e.Couple)
-            .ThenInclude(c => c.Players)
-            .FirstOrDefaultAsync(t => t.Id == id);
-            return tournament;
+                .Include(t => t.Enrollments)
+                    .ThenInclude(e => e.Couple)
+                        .ThenInclude(c => c.Players)
+                .FirstOrDefaultAsync(t => t.Id == id);
+
+            if (tournament == null)
+            {
+                return null;
+            }
+            
+            return await MapTournamentToDto(tournament);
         }
 
         public async Task<Tournament?> UpdateTournamentStatusAsync(int id, TournamentStatus newStatus)
@@ -145,7 +269,7 @@ namespace padelya_api.Services
 
         public async Task<TournamentEnrollment?> EnrollPlayerAsync(int tournamentId, TournamentEnrollmentDto enrollmentDto)
         {
-            // 1. OBTENER EL ID DEL USUARIO LOGUEADO DESDE EL TOKEN JWT
+            //  OBTENER EL ID DEL USUARIO LOGUEADO DESDE EL TOKEN JWT
             var loggedInUserIdString = _httpContextAccessor.HttpContext?.User?.FindFirstValue("user_id");
             if (string.IsNullOrEmpty(loggedInUserIdString))
             {
@@ -154,13 +278,13 @@ namespace padelya_api.Services
             var loggedInUserId = int.Parse(loggedInUserIdString);
             var partnerId = enrollmentDto.PartnerId;
 
-            // 2. VALIDAR QUE EL JUGADOR NO SE INSCRIBA CONSIGO MISMO
+            //  VALIDAR QUE EL JUGADOR NO SE INSCRIBA CONSIGO MISMO
             if (loggedInUserId == partnerId)
             {
                 throw new ArgumentException("No puedes inscribirte contigo mismo como compañero.");
             }
 
-            // 3. BUSCAR EL TORNEO Y CARGAR LAS INSCRIPCIONES EXISTENTES
+            //  BUSCAR EL TORNEO Y CARGAR LAS INSCRIPCIONES EXISTENTES
             var tournament = await _context.Tournaments
                 .Include(t => t.Enrollments)
                 .FirstOrDefaultAsync(t => t.Id == tournamentId);
@@ -170,7 +294,7 @@ namespace padelya_api.Services
                 throw new ArgumentException("El torneo especificado no existe.");
             }
 
-            // 4. VALIDAR EL PERÍODO DE INSCRIPCIÓN (POR ESTADO Y FECHA)
+            //  VALIDAR EL PERÍODO DE INSCRIPCIÓN (POR ESTADO Y FECHA)
             if (tournament.TournamentStatus != TournamentStatus.AbiertoParaInscripcion)
             {
                 throw new ArgumentException("El torneo no está abierto para inscripciones.");
@@ -180,13 +304,13 @@ namespace padelya_api.Services
                 throw new ArgumentException("El período de inscripción para este torneo ya ha finalizado.");
             }
 
-            // 5. VALIDAR CUPOS DISPONIBLES
+            //  VALIDAR CUPOS DISPONIBLES
             if (tournament.Enrollments.Count >= tournament.Quota)
             {
                 throw new ArgumentException("Los cupos para este torneo ya están llenos.");
             }
 
-            // 6. VALIDAR QUE AMBOS USUARIOS (LOGUEADO Y COMPAÑERO) EXISTAN Y SEAN JUGADORES
+            //  VALIDAR QUE AMBOS USUARIOS (LOGUEADO Y COMPAÑERO) EXISTAN Y SEAN JUGADORES
             var playersToEnroll = await _context.Users
                 .Where(u => u.Id == loggedInUserId || u.Id == partnerId)
                 .Include(u => u.Person)
@@ -205,7 +329,7 @@ namespace padelya_api.Services
                 throw new ArgumentException("Ambos usuarios deben tener un perfil de jugador para inscribirse.");
             }
 
-            // 7. VERIFICAR QUE NINGUNO DE LOS DOS JUGADORES YA ESTÉ INSCRITO EN ESTE TORNEO
+            //  VERIFICAR QUE NINGUNO DE LOS DOS JUGADORES YA ESTÉ INSCRITO EN ESTE TORNEO
             var existingPlayerIdsInTournament = await _context.TournamentEnrollments
                 .Where(e => e.TournamentId == tournamentId)
                 .SelectMany(e => e.Couple.Players.Select(p => p.Id))
@@ -216,7 +340,7 @@ namespace padelya_api.Services
                 throw new ArgumentException("Uno de los jugadores ya se encuentra inscrito en este torneo.");
             }
 
-            // 8. CREAR LA PAREJA (COUPLE)
+            //  CREAR LA PAREJA (COUPLE)
             var newCouple = new Couple
             {
                 Name = $"{loggedInUser.Name} & {partnerUser.Name}",
@@ -224,7 +348,7 @@ namespace padelya_api.Services
             };
             _context.Couples.Add(newCouple); // Añadir la pareja al contexto para que se guarde
 
-            // 9. CREAR LA INSCRIPCIÓN (ENROLLMENT)
+            //  CREAR LA INSCRIPCIÓN (ENROLLMENT)
             var newEnrollment = new TournamentEnrollment
             {
                 TournamentId = tournament.Id,
@@ -235,10 +359,65 @@ namespace padelya_api.Services
             };
             _context.TournamentEnrollments.Add(newEnrollment);
 
-            // 10. GUARDAR TODO EN LA BASE DE DATOS
+            // GUARDAR TODO EN LA BASE DE DATOS
             await _context.SaveChangesAsync();
 
-            return newEnrollment;
+            // RECARGAR EL ENROLLMENT CON TODOS LOS DATOS RELACIONADOS
+            var enrollmentWithData = await _context.TournamentEnrollments
+                .Include(e => e.Couple)
+                    .ThenInclude(c => c.Players)
+                .FirstOrDefaultAsync(e => e.Id == newEnrollment.Id);
+
+            // Mapear a DTO con datos completos
+            if (enrollmentWithData == null)
+            {
+                return null;
+            }
+
+            return enrollmentWithData;
+        }
+
+        public async Task<bool> CancelEnrollmentAsync(int tournamentId, int userId)
+        {
+            // OBTENER EL USUARIO PARA ACCEDER A SU PERSON ID
+            var user = await _context.Users
+                .Include(u => u.Person)
+                .FirstOrDefaultAsync(u => u.Id == userId);
+
+            if (user?.Person == null)
+            {
+                throw new ArgumentException("Usuario no encontrado o no tiene perfil de jugador.");
+            }
+
+            // BUSCAR LA INSCRIPCIÓN DEL USUARIO EN EL TORNEO
+            var enrollment = await _context.TournamentEnrollments
+                .Include(e => e.Couple)
+                .ThenInclude(c => c.Players)
+                .Include(e => e.Tournament)
+                .FirstOrDefaultAsync(e => e.TournamentId == tournamentId && 
+                    e.Couple.Players.Any(p => p.Id == user.Person.Id));
+
+            if (enrollment == null)
+            {
+                return false; // No se encontró la inscripción
+            }
+
+            //  VALIDAR QUE EL TORNEO ESTÉ ABIERTO PARA INSCRIPCIONES
+            if (enrollment.Tournament.TournamentStatus != TournamentStatus.AbiertoParaInscripcion)
+            {
+                throw new ArgumentException("No se puede cancelar la inscripción. El torneo ya no está abierto para cambios.");
+            }
+
+            //  ELIMINAR LA INSCRIPCIÓN Y LA PAREJA ASOCIADA
+            var couple = enrollment.Couple;
+            
+            _context.TournamentEnrollments.Remove(enrollment);
+            _context.Couples.Remove(couple);
+
+            //  GUARDAR LOS CAMBIOS
+            await _context.SaveChangesAsync();
+
+            return true;
         }
     }
 }

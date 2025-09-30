@@ -4,6 +4,8 @@ using padelya_api.Services;
 using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
+using padelya_api.Attributes;
+using padelya_api.Constants;
 
 namespace padelya_api.Controllers
 {
@@ -54,6 +56,7 @@ namespace padelya_api.Controllers
             }
         }
         [HttpDelete("{id}")]
+        [RequirePermission(Permissions.Tournament.Delete)] 
         public async Task<IActionResult> DeleteTournament(int id)
         {
             try
@@ -135,6 +138,7 @@ namespace padelya_api.Controllers
         }
 
         [Authorize]
+        [RequirePermission(Permissions.Tournament.Join)]
         [HttpPost("{id}/enroll")]
         public async Task<IActionResult> EnrollInTournament(int id, [FromBody] TournamentEnrollmentDto enrollmentDto)
         {
@@ -153,6 +157,39 @@ namespace padelya_api.Controllers
             catch (ArgumentException ex)
             {
                 return BadRequest(ex.Message); // Para errores de validación (ej: "cupos llenos")
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error interno del servidor: {ex.Message}");
+            }
+        }
+
+        [Authorize]
+        [RequirePermission(Permissions.Tournament.Join)]
+        [HttpDelete("{tournamentId}/enrollment")]
+        public async Task<IActionResult> CancelEnrollment(int tournamentId)
+        {
+            try
+            {
+                // Obtener el ID del usuario desde el token JWT
+                var userIdClaim = User.FindFirst("user_id");
+                if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
+                {
+                    return Unauthorized("No se pudo identificar al usuario.");
+                }
+
+                var result = await _tournamentService.CancelEnrollmentAsync(tournamentId, userId);
+
+                if (!result)
+                {
+                    return NotFound("No se encontró la inscripción para cancelar.");
+                }
+
+                return Ok("Inscripción cancelada exitosamente.");
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
             }
             catch (Exception ex)
             {

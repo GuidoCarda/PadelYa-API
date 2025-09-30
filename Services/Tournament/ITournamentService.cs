@@ -9,12 +9,13 @@ namespace padelya_api.Services
     public interface ITournamentService
     {
         Task<Tournament?> CreateTournamentAsync(CreateTournamentDto tournamentDto);
-        Task<List<Tournament>> GetTournamentsAsync();
+        Task<List<TournamentResponseDto>> GetTournamentsAsync();
         Task<bool> DeleteTournamentAsync(int id);
         Task<Tournament?> UpdateTournamentAsync(int id, UpdateTournamentDto updateTournamentDto);
-        Task<Tournament?> GetTournamentByIdAsync(int id);
+        Task<TournamentResponseDto?> GetTournamentByIdAsync(int id);
         Task<Tournament?> UpdateTournamentStatusAsync(int id, TournamentStatus newStatus);
         Task<TournamentEnrollment?> EnrollPlayerAsync(int tournamentId, TournamentEnrollmentDto enrollmentDto);
+        Task<bool> CancelEnrollmentAsync(int tournamentId, int userId);
 
     }
 }

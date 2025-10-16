@@ -248,7 +248,7 @@ namespace padelya_api.Services
           var newPayment = new LocalPayment
           {
             Amount = payment.TransactionAmount ?? 0,
-            PaymentMethod = payment.PaymentMethodId,
+            PaymentMethod = payment.PaymentTypeId,
             PaymentStatus = LocalPaymentStatus.Approved,
             CreatedAt = payment.DateApproved ?? DateTime.UtcNow,
             TransactionId = payment.Id.ToString()!,

@@ -4,9 +4,13 @@ using padelya_api.Services;
 using padelya_api.Shared;
 using padelya_api.DTOs.Complex;
 using padelya_api.DTOs.Payment;
+using Microsoft.AspNetCore.Authorization;
+using padelya_api.Attributes;
+using padelya_api.Constants;
 
 namespace padelya_api.Controllers
 {
+  [Authorize]
   [ApiController]
   [Route("api/[controller]")]
   public class BookingController : ControllerBase
@@ -18,6 +22,8 @@ namespace padelya_api.Controllers
       _bookingService = bookingService;
     }
 
+
+    // [RequireModuleAccess("booking")]
     [HttpGet]
     public async Task<IActionResult> GetAll(
       [FromQuery] string? email,
@@ -187,6 +193,24 @@ namespace padelya_api.Controllers
     }
 
 
+    [HttpPatch("{id}/cancel")]
+    public async Task<IActionResult> CancelBooking(int id,
+    [FromBody] CancelBookingDto dto)
+    {
+      try
+      {
+        var deleted = await _bookingService.CancelAsync(id, dto);
+        if (!deleted)
+          return NotFound(ResponseMessage<BookingDto>.NotFound($"Reserva con id {id} no encontrada"));
+
+        return Ok(ResponseMessage.SuccessMessage("Reserva cancelada correctamente"));
+      }
+      catch (Exception ex)
+      {
+        return BadRequest(ResponseMessage.Error($"Error al cancelar reserva con id {id}: {ex.Message}"));
+      }
+    }
+
     [HttpPost("{id}/payment")]
     public async Task<IActionResult> RegisterPayment(int id, [FromBody] RegisterPaymentDto dto)
     {
@@ -216,7 +240,7 @@ namespace padelya_api.Controllers
     }
 
 
-
+    [RequirePermission(Permissions.Booking.ViewOwn)]
     [HttpGet("user/{userId}")]
     public async Task<IActionResult> GetUserBookings(int userId, [FromQuery] string? status)
     {

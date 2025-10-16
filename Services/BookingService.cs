@@ -257,6 +257,28 @@ namespace padelya_api.Services
       return true;
     }
 
+    public async Task<bool> CancelAsync(int id, CancelBookingDto dto)
+    {
+      var booking = await _context.Bookings
+        .Include(bk => bk.CourtSlot)
+        .FirstOrDefaultAsync(bk => bk.Id == id);
+
+      if (booking == null) return false;
+
+      booking.Status = dto.CancelledBy == "admin"
+        ? BookingStatus.CancelledByAdmin
+        : BookingStatus.CancelledByClient;
+
+      booking.CancelledBy = dto.CancelledBy;
+      booking.CancellationReason = dto.Reason;
+      booking.CancelledAt = DateTime.Now;
+
+      booking.CourtSlot.Status = CourtSlotStatus.Cancelled;
+
+      await _context.SaveChangesAsync();
+      return true;
+    }
+
     public async Task<bool> CancelExpiredAsync(int id)
     {
       var booking = await _context.Bookings
@@ -284,6 +306,9 @@ namespace padelya_api.Services
 
       if (!existsPerson)
         throw new Exception("No se encontró el cliente.");
+
+      // Clean expired pending slots for now manually, later on we could use a cron job to do this or another way to handle this.
+      await CleanExpiredPendingSlotsAsync();
 
       var slot = await _courtSlotService.CreateSlotIfAvailableAsync(dto.CourtId, dto.Date, dto.StartTime, dto.StartTime.AddMinutes(90));
 

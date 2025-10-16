@@ -536,8 +536,8 @@ namespace padelya_api.Data
             Id = 1,
             Name = "PadelYa Sports Complex",
             Address = "123 Sports Avenue, Downtown District, City Center",
-            OpeningTime = new DateTime(2024, 1, 1, 6, 0, 0), // 6:00 AM
-            ClosingTime = new DateTime(2024, 1, 1, 23, 0, 0)  // 11:00 PM
+            OpeningTime = new DateTime(2024, 1, 1, 7, 30, 0), // 7:30 AM
+            ClosingTime = new DateTime(2024, 1, 2, 0, 0, 0)  // 12:00 AM
           }
       );
 
@@ -549,8 +549,8 @@ namespace padelya_api.Data
             Name = "Cancha 1 - Premium",
             CourtStatus = CourtStatus.Available,
             BookingPrice = 20,
-            OpeningTime = new TimeOnly(6, 0), // 6:00 AM
-            ClosingTime = new TimeOnly(23, 0), // 11:00 PM
+            OpeningTime = new TimeOnly(7, 30), // 7:30 AM
+            ClosingTime = new TimeOnly(0, 0, 0), // 12:00 AM
             ComplexId = 1,
             Type = "Cristal"
           },
@@ -560,8 +560,8 @@ namespace padelya_api.Data
             Name = "Cancha 2 - Standard",
             CourtStatus = CourtStatus.Available,
             BookingPrice = 10,
-            OpeningTime = new TimeOnly(6, 0), // 6:00 AM
-            ClosingTime = new TimeOnly(23, 0), // 11:00 PM
+            OpeningTime = new TimeOnly(7, 30), // 7:30 AM
+            ClosingTime = new TimeOnly(0, 0, 0), // 12:00 AM
             ComplexId = 1,
             Type = "Césped"
           }

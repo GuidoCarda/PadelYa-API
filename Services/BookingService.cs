@@ -789,34 +789,46 @@ namespace padelya_api.Services
     {
       var slots = new List<(TimeOnly, TimeOnly)>();
 
-      // Validar que la cancha tenga horarios válidos
-      if (court.OpeningTime == TimeOnly.MinValue || court.ClosingTime == TimeOnly.MinValue)
+      // Validación y cálculo de rango soportando horarios nocturnos (cierre 00:00 del día siguiente)
+      if (court.OpeningTime == TimeOnly.MinValue)
       {
-        Console.WriteLine($"Court {court.Id} has invalid opening/closing times: {court.OpeningTime} / {court.ClosingTime}");
+        Console.WriteLine($"Court {court.Id} has invalid opening time (MinValue): {court.OpeningTime}");
         return slots;
       }
 
-      var start = court.OpeningTime;
-      var end = court.ClosingTime;
+      var open = court.OpeningTime;
+      var close = court.ClosingTime;
 
-      // Validar que apertura sea menor que cierre
-      if (start >= end)
+      var openTs = open.ToTimeSpan();
+      var closeTs = close.ToTimeSpan();
+
+      // Duración del negocio; si cierra al día siguiente (ej. 07:30 -> 00:00), envolver
+      var businessSpan = closeTs > openTs
+        ? closeTs - openTs
+        : (TimeSpan.FromDays(1) - openTs) + closeTs;
+
+      if (businessSpan <= TimeSpan.Zero || businessSpan > TimeSpan.FromDays(1))
       {
-        Console.WriteLine($"Court {court.Id} has invalid times: {start} >= {end}");
+        Console.WriteLine($"Court {court.Id} has invalid business span: {businessSpan}");
         return slots;
       }
 
-      // Calcular cuántos slots de 90 minutos caben
-      var totalMinutes = (end.ToTimeSpan() - start.ToTimeSpan()).TotalMinutes;
-      var maxSlots = (int)(totalMinutes / 90);
+      // Número de slots de 90 minutos que entran en el rango (fin exclusivo)
+      var slotLength = TimeSpan.FromMinutes(90);
+      var maxSlots = (int)(businessSpan.TotalMinutes / slotLength.TotalMinutes);
 
-      Console.WriteLine($"Court {court.Id}: {start} to {end}, total minutes: {totalMinutes}, max slots: {maxSlots}");
+      Console.WriteLine($"Court {court.Id}: {open} to {close} (span {businessSpan}), max slots: {maxSlots}");
 
-      // Generar exactamente el número de slots que caben
+      // Generación modular sobre 24h para soportar cruce de medianoche
       for (int i = 0; i < maxSlots; i++)
       {
-        var slotStart = start.AddMinutes(i * 90);
-        var slotEnd = slotStart.AddMinutes(90);
+        var slotStartTs = openTs + TimeSpan.FromMinutes(i * 90);
+        if (slotStartTs >= TimeSpan.FromDays(1)) slotStartTs -= TimeSpan.FromDays(1);
+        var slotEndTs = slotStartTs + slotLength;
+        if (slotEndTs >= TimeSpan.FromDays(1)) slotEndTs -= TimeSpan.FromDays(1);
+
+        var slotStart = TimeOnly.FromTimeSpan(slotStartTs);
+        var slotEnd = TimeOnly.FromTimeSpan(slotEndTs);
         slots.Add((slotStart, slotEnd));
       }
 

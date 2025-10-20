@@ -6,7 +6,6 @@ namespace padelya_api.Models.Repair.States
     {
       repair.State = new InRepairState();
       repair.Status = RepairStatus.InRepair;
-      // Update any relevant timestamps or properties
     }
     public void CancelRepair(Repair repair)
     {

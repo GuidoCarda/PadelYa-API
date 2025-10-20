@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using padelya_api.Data;
 
@@ -11,9 +12,11 @@ using padelya_api.Data;
 namespace padelya_api.Migrations
 {
     [DbContext(typeof(PadelYaDbContext))]
-    partial class PadelYaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251020131033_AddRepairEntities")]
+    partial class AddRepairEntities
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1143,9 +1146,6 @@ namespace padelya_api.Migrations
                     b.Property<int?>("PaymentId")
                         .HasColumnType("int");
 
-                    b.Property<int>("PersonId")
-                        .HasColumnType("int");
-
                     b.Property<decimal>("Price")
                         .HasColumnType("decimal(18,2)");
 
@@ -1165,8 +1165,6 @@ namespace padelya_api.Migrations
                     b.HasIndex("PaymentId")
                         .IsUnique()
                         .HasFilter("[PaymentId] IS NOT NULL");
-
-                    b.HasIndex("PersonId");
 
                     b.HasIndex("RacketId");
 
@@ -2231,12 +2229,6 @@ namespace padelya_api.Migrations
                         .WithOne()
                         .HasForeignKey("padelya_api.Models.Repair.Repair", "PaymentId");
 
-                    b.HasOne("padelya_api.Models.Person", "Person")
-                        .WithMany()
-                        .HasForeignKey("PersonId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.HasOne("padelya_api.Models.Repair.Racket", "Racket")
                         .WithMany()
                         .HasForeignKey("RacketId")
@@ -2244,8 +2236,6 @@ namespace padelya_api.Migrations
                         .IsRequired();
 
                     b.Navigation("Payment");
-
-                    b.Navigation("Person");
 
                     b.Navigation("Racket");
                 });

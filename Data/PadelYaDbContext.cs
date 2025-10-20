@@ -3,6 +3,7 @@ using padelya_api.Constants;
 using padelya_api.models;
 using padelya_api.Models;
 using padelya_api.Models.Class;
+using padelya_api.Models.Repair;
 using padelya_api.Models.Tournament;
 
 namespace padelya_api.Data
@@ -48,6 +49,9 @@ namespace padelya_api.Data
     //Payments
     public DbSet<Payment> Payments { get; set; }
 
+    //Repairs
+    public DbSet<Repair> Repairs { get; set; }
+    public DbSet<Racket> Rackets { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -322,6 +326,43 @@ namespace padelya_api.Data
                   .HasForeignKey("RoutineId")
                   .OnDelete(DeleteBehavior.Cascade)
           );
+
+
+      #endregion
+
+
+      #region Repairs
+
+      // Repair - Person (Many-to-One)
+      modelBuilder.Entity<Repair>()
+          .HasOne(r => r.Person)
+          .WithMany()
+          .HasForeignKey(r => r.PersonId)
+          .OnDelete(DeleteBehavior.Restrict);
+
+      // Repair - Racket (Many-to-One)
+      modelBuilder.Entity<Repair>()
+          .HasOne(r => r.Racket)
+          .WithMany()
+          .HasForeignKey(r => r.RacketId)
+          .OnDelete(DeleteBehavior.Restrict);
+
+      // Repair - Payment (1:1 optional)
+      modelBuilder.Entity<Repair>()
+          .HasOne(r => r.Payment)
+          .WithOne()
+          .HasForeignKey<Repair>(r => r.PaymentId)
+          .IsRequired(false);
+
+      // Store RepairStatus enum as string
+      modelBuilder.Entity<Repair>()
+          .Property(r => r.Status)
+          .HasConversion<string>();
+
+      // Set default for CreatedAt
+      modelBuilder.Entity<Repair>()
+          .Property(r => r.CreatedAt)
+          .HasDefaultValueSql("GETDATE()");
 
 
       #endregion

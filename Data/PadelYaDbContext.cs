@@ -12,8 +12,11 @@ namespace padelya_api.Data
   {
 
     public DbSet<User> Users { get; set; }
+
+    public DbSet<Person> Persons { get; set; }
     public DbSet<Player> Players { get; set; }
     public DbSet<Teacher> Teachers { get; set; }
+
     public DbSet<UserStatus> UserStatuses { get; set; }
     public DbSet<Module> Modules { get; set; }
     public DbSet<PermissionComponent> PermissionComponents { get; set; }
@@ -612,13 +615,54 @@ namespace padelya_api.Data
 
       // Seeding de Player y User para pruebas de Bookings
       modelBuilder.Entity<Player>().HasData(
-          new Player { Id = 1, Birthdate = new DateTime(1990, 1, 1), Category = "Primera", PreferredPosition = "Derecha" },
-          new Player { Id = 2, Birthdate = new DateTime(1992, 2, 2), Category = "Segunda", PreferredPosition = "Revés" },
-          new Player { Id = 3, Birthdate = new DateTime(1994, 3, 3), Category = "Tercera", PreferredPosition = "Derecha" }
-      );
+      new Player
+      {
+        Id = 1,
+        Name = "Juan",
+        Surname = "Pérez",
+        Email = "player1@padelya.com",
+        PhoneNumber = "+598 91 234 567",
+        Birthdate = new DateTime(1990, 1, 1),
+        Category = "Primera",
+        PreferredPosition = "Derecha"
+      },
+      new Player
+      {
+        Id = 2,
+        Name = "Ana",
+        Surname = "García",
+        Email = "player2@padelya.com",
+        PhoneNumber = "+598 92 345 678",
+        Birthdate = new DateTime(1992, 2, 2),
+        Category = "Segunda",
+        PreferredPosition = "Revés"
+      },
+      new Player
+      {
+        Id = 3,
+        Name = "Luis",
+        Surname = "Martínez",
+        Email = "player3@padelya.com",
+        PhoneNumber = "+598 93 456 789",
+        Birthdate = new DateTime(1994, 3, 3),
+        Category = "Tercera",
+        PreferredPosition = "Derecha"
+      }
+    );
 
       modelBuilder.Entity<Teacher>().HasData(
-          new Teacher { Id = 4, Birthdate = new DateTime(1985, 5, 15), Category = "Profesional", Institution = "PadelYa Academy", Title = "Profesor Certificado" }
+          new Teacher
+          {
+            Id = 4,
+            Name = "María",
+            Surname = "González",
+            Email = "teacher@padelya.com",
+            PhoneNumber = "+598 94 567 890",
+            Birthdate = new DateTime(1985, 5, 15),
+            Category = "Profesional",
+            Institution = "PadelYa Academy",
+            Title = "Profesor Certificado"
+          }
       );
 
       modelBuilder.Entity<User>().HasData(

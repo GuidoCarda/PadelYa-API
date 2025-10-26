@@ -42,7 +42,12 @@ namespace padelya_api.Services
       Console.WriteLine(end);
       Console.WriteLine(court.ClosingTime);
 
-      if (start < court.OpeningTime || end > court.ClosingTime)
+      // Special handling: 00:00 as closing time means end of day (24:00)
+      var effectiveClosingTime = court.ClosingTime == TimeOnly.MinValue
+          ? new TimeOnly(23, 59, 59)
+          : court.ClosingTime;
+
+      if (start < court.OpeningTime || end > effectiveClosingTime)
         throw new Exception("El turno está fuera del horario permitido para la cancha.");
 
       // Verifica si ya existe un CourtSlot ACTIVO para ese turno
@@ -81,7 +86,10 @@ namespace padelya_api.Services
       if (court == null) throw new Exception("Court not found.");
 
       var opening = court.OpeningTime;
-      var closing = court.ClosingTime;
+      // Special handling: 00:00 as closing time means end of day (24:00)
+      var closing = court.ClosingTime == TimeOnly.MinValue
+          ? new TimeOnly(23, 59, 59)
+          : court.ClosingTime;
       var slotDuration = SlotConfig.SlotDuration;
 
       var occupiedSlots = await _context.CourtSlots
@@ -146,7 +154,10 @@ namespace padelya_api.Services
       for (var date = startDate.Date; date <= endDate.Date; date = date.AddDays(1))
       {
         var opening = court.OpeningTime;
-        var closing = court.ClosingTime;
+        // Special handling: 00:00 as closing time means end of day (24:00)
+        var closing = court.ClosingTime == TimeOnly.MinValue
+            ? new TimeOnly(23, 59, 59)
+            : court.ClosingTime;
 
         var occupiedSlots = await _context.CourtSlots
             .Where(cs => cs.CourtId == courtId && cs.Date == date)

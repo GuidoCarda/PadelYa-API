@@ -381,7 +381,8 @@ namespace padelya_api.Data
           new Module { Id = 5, Name = "tournament", DisplayName = "Torneos" },
           new Module { Id = 6, Name = "lesson", DisplayName = "Clases" },
           new Module { Id = 7, Name = "routine", DisplayName = "Rutinas" },
-          new Module { Id = 8, Name = "feedback", DisplayName = "Comentarios" }
+          new Module { Id = 8, Name = "feedback", DisplayName = "Comentarios" },
+          new Module { Id = 9, Name = "repair", DisplayName = "Reparaciones" }
       );
 
       // 2. SimplePermissions
@@ -450,8 +451,15 @@ namespace padelya_api.Data
           new { Id = 46, Name = "feedback:create", ModuleId = 8, PermissionType = "Simple", DisplayName = "Crear comentario", Description = "Permite crear comentarios" },
           new { Id = 47, Name = "feedback:edit", ModuleId = 8, PermissionType = "Simple", DisplayName = "Editar comentario", Description = "Permite editar comentarios" },
           new { Id = 48, Name = "feedback:delete", ModuleId = 8, PermissionType = "Simple", DisplayName = "Eliminar comentario", Description = "Permite eliminar comentarios" },
-          new { Id = 49, Name = "feedback:view", ModuleId = 8, PermissionType = "Simple", DisplayName = "Ver comentarios", Description = "Permite ver comentarios" }
+          new { Id = 49, Name = "feedback:view", ModuleId = 8, PermissionType = "Simple", DisplayName = "Ver comentarios", Description = "Permite ver comentarios" },
 
+
+        // Repair permissions
+        new { Id = 50, Name = "repair:create", ModuleId = 9, PermissionType = "Simple", DisplayName = "Crear reparación", Description = "Permite crear nuevas reparaciones" },
+        new { Id = 51, Name = "repair:edit", ModuleId = 9, PermissionType = "Simple", DisplayName = "Editar reparación", Description = "Permite editar reparaciones" },
+        new { Id = 52, Name = "repair:cancel", ModuleId = 9, PermissionType = "Simple", DisplayName = "Cancelar reparación", Description = "Permite cancelar reparaciones" },
+        new { Id = 53, Name = "repair:view", ModuleId = 9, PermissionType = "Simple", DisplayName = "Ver reparaciones", Description = "Permite ver reparaciones" },
+        new { Id = 54, Name = "repair:view_own", ModuleId = 9, PermissionType = "Simple", DisplayName = "Ver reparación propia", Description = "Permite ver la reparación del usuario" }
       );
 
       // 3. Roles (RolComposite)
@@ -513,6 +521,11 @@ namespace padelya_api.Data
           new { RoleId = 100, PermissionComponentId = 47 },
           new { RoleId = 100, PermissionComponentId = 48 },
           new { RoleId = 100, PermissionComponentId = 49 },
+          new { RoleId = 100, PermissionComponentId = 50 },
+          new { RoleId = 100, PermissionComponentId = 51 },
+          new { RoleId = 100, PermissionComponentId = 52 },
+          new { RoleId = 100, PermissionComponentId = 53 },
+          new { RoleId = 100, PermissionComponentId = 54 },
 
           // Teacher: permisos específicos
           new { RoleId = 101, PermissionComponentId = 1 }, // booking:make

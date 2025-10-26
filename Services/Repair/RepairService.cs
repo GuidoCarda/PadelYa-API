@@ -112,7 +112,7 @@ namespace padelya_api.Services
     public async Task<Repair> CreateAsync(CreateRepairDto dto)
     {
       Person? person;
-
+      Console.WriteLine($"PersonId: {dto.PersonId}");
       if (dto.PersonId != null)
       {
         person = await _context.Persons.FindAsync(dto.PersonId.Value);

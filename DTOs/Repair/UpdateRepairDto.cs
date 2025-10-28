@@ -4,12 +4,26 @@ namespace padelya_api.DTOs.Repair
 {
   public class UpdateRepairDto
   {
-    public string? CustomerName { get; set; } = String.Empty;
-    public string? CustomerEmail { get; set; } = String.Empty;
-    public string? CustomerPhone { get; set; } = String.Empty;
+    // Customer fields - only for walk-in clients
+    public string? CustomerName { get; set; }
+    public string? CustomerEmail { get; set; }
+    public string? CustomerPhone { get; set; }
+
+    // Repair details
     public decimal? Price { get; set; }
-    public string? DamageDescription { get; set; } = String.Empty;
-    public string? RepairNotes { get; set; } = String.Empty;
-    public Racket? Racket { get; set; }
+    public string? DamageDescription { get; set; }
+    public string? RepairNotes { get; set; }
+    public DateTime? EstimatedCompletionTime { get; set; }
+    public string? Status { get; set; }
+
+    // Racket details
+    public UpdateRacketDto? Racket { get; set; }
+  }
+
+  public class UpdateRacketDto
+  {
+    public string? Brand { get; set; }
+    public string? Model { get; set; }
+    public string? SerialCode { get; set; }
   }
 }

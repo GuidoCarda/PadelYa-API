@@ -183,21 +183,105 @@ namespace padelya_api.Services
       if (repair == null)
         throw new KeyNotFoundException("Repair not found");
 
+      // Initialize state for validation
       repair.InitializeState();
 
-      // is this ok?
-      repair.CustomerName = dto.CustomerName ?? repair.CustomerName;
-      repair.CustomerEmail = dto.CustomerEmail ?? repair.CustomerEmail;
-      repair.CustomerPhone = dto.CustomerPhone ?? repair.CustomerPhone;
-      repair.Racket.Brand = dto.Racket?.Brand ?? repair.Racket.Brand;
-      repair.Racket.Model = dto.Racket?.Model ?? repair.Racket.Model;
-      repair.Racket.SerialCode = dto.Racket?.SerialCode ?? repair.Racket.SerialCode;
-      repair.Price = dto.Price ?? repair.Price;
-      repair.DamageDescription = dto.DamageDescription ?? repair.DamageDescription;
-      repair.RepairNotes = dto.RepairNotes ?? repair.RepairNotes;
+      // Only update fields that are provided (not null)
+      // Customer fields - only update if no linked person (walk-in client)
+      if (repair.Person == null || !_context.Users.Any(u => u.PersonId == repair.PersonId))
+      {
+        if (dto.CustomerName != null)
+          repair.CustomerName = dto.CustomerName;
+        if (dto.CustomerEmail != null)
+          repair.CustomerEmail = dto.CustomerEmail;
+        if (dto.CustomerPhone != null)
+          repair.CustomerPhone = dto.CustomerPhone;
+      }
+
+      // Racket details
+      if (dto.Racket != null)
+      {
+        if (dto.Racket.Brand != null)
+          repair.Racket.Brand = dto.Racket.Brand;
+        if (dto.Racket.Model != null)
+          repair.Racket.Model = dto.Racket.Model;
+        if (dto.Racket.SerialCode != null)
+          repair.Racket.SerialCode = dto.Racket.SerialCode;
+      }
+
+      // Repair details
+      if (dto.Price.HasValue)
+        repair.Price = dto.Price.Value;
+      if (dto.DamageDescription != null)
+        repair.DamageDescription = dto.DamageDescription;
+      if (dto.RepairNotes != null)
+        repair.RepairNotes = dto.RepairNotes;
+      if (dto.EstimatedCompletionTime.HasValue)
+        repair.EstimatedCompletionTime = dto.EstimatedCompletionTime.Value;
+
+      // Handle status transition with state pattern
+      if (dto.Status != null && !string.IsNullOrEmpty(dto.Status))
+      {
+        if (Enum.TryParse<RepairStatus>(dto.Status, true, out var newStatus))
+        {
+          // If changing to cancelled, use the CancelRepair method
+          if (newStatus == RepairStatus.Cancelled)
+          {
+            try
+            {
+              repair.CancelRepair();
+              repair.Status = RepairStatus.Cancelled;
+            }
+            catch (InvalidOperationException ex)
+            {
+              throw new InvalidOperationException(
+                $"Cannot cancel repair in {repair.GetCurrentStatus()} state", ex);
+            }
+          }
+          // For advancing through normal states
+          else if (newStatus != repair.Status)
+          {
+            // Validate it's a valid transition by attempting it
+            var validTransitions = GetValidStatusTransitions(repair.Status);
+            if (!validTransitions.Contains(newStatus))
+            {
+              throw new InvalidOperationException(
+                $"Invalid status transition from {repair.Status} to {newStatus}");
+            }
+
+            // Advance state and update status enum
+            repair.AdvanceRepairProcess();
+            repair.Status = newStatus;
+
+            // Set timestamps based on status
+            if (newStatus == RepairStatus.ReadyForPickup)
+              repair.FinishedAt = DateTime.UtcNow;
+            else if (newStatus == RepairStatus.Delivered)
+              repair.DeliveredAt = DateTime.UtcNow;
+          }
+        }
+        else
+        {
+          throw new ArgumentException($"Invalid status value: {dto.Status}");
+        }
+      }
 
       await _context.SaveChangesAsync();
       return repair;
+    }
+
+    // Helper method to get valid status transitions
+    private List<RepairStatus> GetValidStatusTransitions(RepairStatus currentStatus)
+    {
+      return currentStatus switch
+      {
+        RepairStatus.Received => new List<RepairStatus> { RepairStatus.InRepair, RepairStatus.Cancelled },
+        RepairStatus.InRepair => new List<RepairStatus> { RepairStatus.ReadyForPickup, RepairStatus.Cancelled },
+        RepairStatus.ReadyForPickup => new List<RepairStatus> { RepairStatus.Delivered },
+        RepairStatus.Delivered => new List<RepairStatus>(),
+        RepairStatus.Cancelled => new List<RepairStatus>(),
+        _ => new List<RepairStatus>()
+      };
     }
 
 

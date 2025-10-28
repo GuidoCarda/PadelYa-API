@@ -78,6 +78,7 @@ builder.Services.AddScoped<ICourtSlotService, CourtSlotService>();
 builder.Services.AddScoped<ILessonService, LessonService>();
 builder.Services.AddScoped<ITournamentService, TournamentService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
+builder.Services.AddScoped<IRepairService, RepairService>();
 
 
 var app = builder.Build();

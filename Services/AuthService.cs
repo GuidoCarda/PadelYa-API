@@ -153,6 +153,9 @@ namespace padelya_api.Services
           102,
           () => new Player
           {
+            Name = request.Name,
+            Surname = request.Surname,
+            Email = request.Email,
             Birthdate = request.Birthdate,
             Category = request.Category,
             PreferredPosition = request.PreferredPosition
@@ -170,6 +173,9 @@ namespace padelya_api.Services
           101,
           () => new Teacher
           {
+            Name = request.Name,
+            Surname = request.Surname,
+            Email = request.Email,
             Birthdate = request.Birthdate,
             Category = request.Category,
             Institution = request.Institution,

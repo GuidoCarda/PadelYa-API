@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using padelya_api.Data;
 
@@ -11,9 +12,11 @@ using padelya_api.Data;
 namespace padelya_api.Migrations
 {
     [DbContext(typeof(PadelYaDbContext))]
-    partial class PadelYaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251020153516_AddPersonData")]
+    partial class AddPersonData
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -410,31 +413,6 @@ namespace padelya_api.Migrations
                         new
                         {
                             PermissionComponentId = 49,
-                            RoleId = 100
-                        },
-                        new
-                        {
-                            PermissionComponentId = 50,
-                            RoleId = 100
-                        },
-                        new
-                        {
-                            PermissionComponentId = 51,
-                            RoleId = 100
-                        },
-                        new
-                        {
-                            PermissionComponentId = 52,
-                            RoleId = 100
-                        },
-                        new
-                        {
-                            PermissionComponentId = 53,
-                            RoleId = 100
-                        },
-                        new
-                        {
-                            PermissionComponentId = 54,
                             RoleId = 100
                         },
                         new
@@ -987,12 +965,6 @@ namespace padelya_api.Migrations
                             Id = 8,
                             DisplayName = "Comentarios",
                             Name = "feedback"
-                        },
-                        new
-                        {
-                            Id = 9,
-                            DisplayName = "Reparaciones",
-                            Name = "repair"
                         });
                 });
 
@@ -2050,51 +2022,6 @@ namespace padelya_api.Migrations
                             Description = "Permite ver comentarios",
                             DisplayName = "Ver comentarios",
                             ModuleId = 8
-                        },
-                        new
-                        {
-                            Id = 50,
-                            Name = "repair:create",
-                            PermissionType = "Simple",
-                            Description = "Permite crear nuevas reparaciones",
-                            DisplayName = "Crear reparación",
-                            ModuleId = 9
-                        },
-                        new
-                        {
-                            Id = 51,
-                            Name = "repair:edit",
-                            PermissionType = "Simple",
-                            Description = "Permite editar reparaciones",
-                            DisplayName = "Editar reparación",
-                            ModuleId = 9
-                        },
-                        new
-                        {
-                            Id = 52,
-                            Name = "repair:cancel",
-                            PermissionType = "Simple",
-                            Description = "Permite cancelar reparaciones",
-                            DisplayName = "Cancelar reparación",
-                            ModuleId = 9
-                        },
-                        new
-                        {
-                            Id = 53,
-                            Name = "repair:view",
-                            PermissionType = "Simple",
-                            Description = "Permite ver reparaciones",
-                            DisplayName = "Ver reparaciones",
-                            ModuleId = 9
-                        },
-                        new
-                        {
-                            Id = 54,
-                            Name = "repair:view_own",
-                            PermissionType = "Simple",
-                            Description = "Permite ver la reparación del usuario",
-                            DisplayName = "Ver reparación propia",
-                            ModuleId = 9
                         });
                 });
 
@@ -2114,10 +2041,10 @@ namespace padelya_api.Migrations
                             Id = 1,
                             Birthdate = new DateTime(1990, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Category = "Primera",
-                            Email = "player1@padelya.com",
-                            Name = "Juan",
-                            PhoneNumber = "+598 91 234 567",
-                            Surname = "Pérez",
+                            Email = "",
+                            Name = "",
+                            PhoneNumber = "",
+                            Surname = "",
                             PreferredPosition = "Derecha"
                         },
                         new
@@ -2125,10 +2052,10 @@ namespace padelya_api.Migrations
                             Id = 2,
                             Birthdate = new DateTime(1992, 2, 2, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Category = "Segunda",
-                            Email = "player2@padelya.com",
-                            Name = "Ana",
-                            PhoneNumber = "+598 92 345 678",
-                            Surname = "García",
+                            Email = "",
+                            Name = "",
+                            PhoneNumber = "",
+                            Surname = "",
                             PreferredPosition = "Revés"
                         },
                         new
@@ -2136,10 +2063,10 @@ namespace padelya_api.Migrations
                             Id = 3,
                             Birthdate = new DateTime(1994, 3, 3, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Category = "Tercera",
-                            Email = "player3@padelya.com",
-                            Name = "Luis",
-                            PhoneNumber = "+598 93 456 789",
-                            Surname = "Martínez",
+                            Email = "",
+                            Name = "",
+                            PhoneNumber = "",
+                            Surname = "",
                             PreferredPosition = "Derecha"
                         });
                 });
@@ -2164,10 +2091,10 @@ namespace padelya_api.Migrations
                             Id = 4,
                             Birthdate = new DateTime(1985, 5, 15, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Category = "Profesional",
-                            Email = "teacher@padelya.com",
-                            Name = "María",
-                            PhoneNumber = "+598 94 567 890",
-                            Surname = "González",
+                            Email = "",
+                            Name = "",
+                            PhoneNumber = "",
+                            Surname = "",
                             Institution = "PadelYa Academy",
                             Title = "Profesor Certificado"
                         });

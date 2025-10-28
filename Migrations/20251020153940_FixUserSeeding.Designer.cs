@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using padelya_api.Data;
 
@@ -11,9 +12,11 @@ using padelya_api.Data;
 namespace padelya_api.Migrations
 {
     [DbContext(typeof(PadelYaDbContext))]
-    partial class PadelYaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251020153940_FixUserSeeding")]
+    partial class FixUserSeeding
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -410,31 +413,6 @@ namespace padelya_api.Migrations
                         new
                         {
                             PermissionComponentId = 49,
-                            RoleId = 100
-                        },
-                        new
-                        {
-                            PermissionComponentId = 50,
-                            RoleId = 100
-                        },
-                        new
-                        {
-                            PermissionComponentId = 51,
-                            RoleId = 100
-                        },
-                        new
-                        {
-                            PermissionComponentId = 52,
-                            RoleId = 100
-                        },
-                        new
-                        {
-                            PermissionComponentId = 53,
-                            RoleId = 100
-                        },
-                        new
-                        {
-                            PermissionComponentId = 54,
                             RoleId = 100
                         },
                         new
@@ -987,12 +965,6 @@ namespace padelya_api.Migrations
                             Id = 8,
                             DisplayName = "Comentarios",
                             Name = "feedback"
-                        },
-                        new
-                        {
-                            Id = 9,
-                            DisplayName = "Reparaciones",
-                            Name = "repair"
                         });
                 });
 
@@ -2050,51 +2022,6 @@ namespace padelya_api.Migrations
                             Description = "Permite ver comentarios",
                             DisplayName = "Ver comentarios",
                             ModuleId = 8
-                        },
-                        new
-                        {
-                            Id = 50,
-                            Name = "repair:create",
-                            PermissionType = "Simple",
-                            Description = "Permite crear nuevas reparaciones",
-                            DisplayName = "Crear reparación",
-                            ModuleId = 9
-                        },
-                        new
-                        {
-                            Id = 51,
-                            Name = "repair:edit",
-                            PermissionType = "Simple",
-                            Description = "Permite editar reparaciones",
-                            DisplayName = "Editar reparación",
-                            ModuleId = 9
-                        },
-                        new
-                        {
-                            Id = 52,
-                            Name = "repair:cancel",
-                            PermissionType = "Simple",
-                            Description = "Permite cancelar reparaciones",
-                            DisplayName = "Cancelar reparación",
-                            ModuleId = 9
-                        },
-                        new
-                        {
-                            Id = 53,
-                            Name = "repair:view",
-                            PermissionType = "Simple",
-                            Description = "Permite ver reparaciones",
-                            DisplayName = "Ver reparaciones",
-                            ModuleId = 9
-                        },
-                        new
-                        {
-                            Id = 54,
-                            Name = "repair:view_own",
-                            PermissionType = "Simple",
-                            Description = "Permite ver la reparación del usuario",
-                            DisplayName = "Ver reparación propia",
-                            ModuleId = 9
                         });
                 });
 

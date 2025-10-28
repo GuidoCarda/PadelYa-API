@@ -111,7 +111,6 @@ namespace padelya_api.Controllers
       }
     }
 
-
     [HttpPatch("{id}/status")]
     public async Task<IActionResult> UpdateStatus(int id, [FromBody] UpdateStatusDto dto)
     {
@@ -133,5 +132,28 @@ namespace padelya_api.Controllers
         return BadRequest(ResponseMessage<Repair>.Error(ex.Message));
       }
     }
+
+    [HttpPost("{id}/payment")]
+    public async Task<IActionResult> RegisterPayment(int id, [FromBody] RegisterRepairPaymentDto dto)
+    {
+      try
+      {
+        var repair = await _repairService.RegisterPaymentAsync(id, dto);
+        return Ok(ResponseMessage<Repair>.SuccessResult(repair, "Pago registrado y reparación entregada"));
+      }
+      catch (KeyNotFoundException)
+      {
+        return NotFound(ResponseMessage<Repair>.NotFound($"Reparación {id} no encontrada"));
+      }
+      catch (InvalidOperationException ex)
+      {
+        return Conflict(ResponseMessage<Repair>.Error(ex.Message));
+      }
+      catch (ArgumentException ex)
+      {
+        return BadRequest(ResponseMessage<Repair>.Error(ex.Message));
+      }
+    }
+
   }
 }

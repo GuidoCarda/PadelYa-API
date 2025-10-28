@@ -112,7 +112,7 @@ namespace padelya_api.Services
     public async Task<Repair> CreateAsync(CreateRepairDto dto)
     {
       Person? person;
-      Console.WriteLine($"PersonId: {dto.PersonId}");
+
       if (dto.PersonId != null)
       {
         person = await _context.Persons.FindAsync(dto.PersonId.Value);
@@ -151,7 +151,6 @@ namespace padelya_api.Services
       _context.Rackets.Add(racket);
       await _context.SaveChangesAsync();
 
-      // Create repair
       var repair = new Repair
       {
         PersonId = person.Id,
@@ -169,7 +168,7 @@ namespace padelya_api.Services
       _context.Repairs.Add(repair);
       await _context.SaveChangesAsync();
 
-      repair.InitializeState(); // Initialize state pattern
+      repair.InitializeState();
       return repair;
     }
 
@@ -287,14 +286,15 @@ namespace padelya_api.Services
 
     public async Task<Repair> CancelAsync(int repairId)
     {
-      // 1. Get repair from DB
       var repair = await _context.Repairs
           .Include(r => r.Racket)
           .Include(r => r.Person)
           .FirstOrDefaultAsync(r => r.Id == repairId);
 
       if (repair == null)
+      {
         throw new KeyNotFoundException("Repair not found");
+      }
 
       // 2. Initialize state from DB status
       repair.InitializeState();
@@ -302,11 +302,8 @@ namespace padelya_api.Services
       try
       {
         repair.CancelRepair();
-
         repair.State.NotifyCustomer(repair.Racket);
-
         await _context.SaveChangesAsync();
-
         return repair;
       }
       catch (InvalidOperationException ex)
@@ -353,6 +350,56 @@ namespace padelya_api.Services
       }
 
       repair.AdvanceRepairProcess();
+      await _context.SaveChangesAsync();
+      return repair;
+    }
+
+
+    public async Task<Repair> RegisterPaymentAsync(int id, RegisterRepairPaymentDto dto)
+    {
+      var repair = await _context.Repairs
+        .Include(r => r.Racket)
+        .Include(r => r.Person)
+        .FirstOrDefaultAsync(r => r.Id == id);
+
+      if (repair is null)
+      {
+        throw new KeyNotFoundException("Repair not found");
+      }
+
+      if (repair.Status != RepairStatus.ReadyForPickup)
+      {
+        throw new InvalidOperationException("Repair is not ready for pickup");
+      }
+
+      if (repair.PaymentId.HasValue)
+        throw new InvalidOperationException("Payment already registered for this repair");
+
+      var method = (dto.PaymentMethod ?? "").Trim().ToLowerInvariant();
+      if (method != "cash" && method != "bank")
+        throw new ArgumentException("Invalid payment method. Allowed: cash, bank");
+
+      var payment = new Payment
+      {
+        Amount = repair.Price,
+        PaymentMethod = method,
+        PaymentStatus = Constants.PaymentStatus.Approved,
+        PaymentType = Constants.PaymentType.Total,
+        CreatedAt = DateTime.UtcNow,
+        TransactionId = Guid.NewGuid().ToString("N"),
+        PersonId = repair.PersonId
+      };
+
+      _context.Payments.Add(payment);
+      await _context.SaveChangesAsync();
+
+      repair.PaymentId = payment.Id;
+      repair.Payment = payment;
+
+      // Advance to Delivered as part of pickup
+      repair.InitializeState();
+      repair.AdvanceRepairProcess();
+
       await _context.SaveChangesAsync();
       return repair;
     }

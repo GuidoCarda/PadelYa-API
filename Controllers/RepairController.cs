@@ -111,5 +111,27 @@ namespace padelya_api.Controllers
       }
     }
 
+
+    [HttpPatch("{id}/status")]
+    public async Task<IActionResult> UpdateStatus(int id, [FromBody] UpdateStatusDto dto)
+    {
+      try
+      {
+        var repair = await _repairService.UpdateStatusAsync(id, dto);
+        return Ok(ResponseMessage<Repair>.SuccessResult(repair, "Estado actualizado correctamente"));
+      }
+      catch (InvalidOperationException ex)
+      {
+        return Conflict(ResponseMessage<Repair>.Error(ex.Message));
+      }
+      catch (KeyNotFoundException)
+      {
+        return NotFound(ResponseMessage<Repair>.NotFound($"Reparación {id} no encontrada"));
+      }
+      catch (ArgumentException ex)
+      {
+        return BadRequest(ResponseMessage<Repair>.Error(ex.Message));
+      }
+    }
   }
 }

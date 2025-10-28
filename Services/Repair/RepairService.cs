@@ -315,5 +315,46 @@ namespace padelya_api.Services
             $"Cannot cancel repair in {repair.GetCurrentStatus()} state", ex);
       }
     }
+
+    public async Task<Repair> UpdateStatusAsync(int id, UpdateStatusDto dto)
+    {
+      var repair = await _context.Repairs.FindAsync(id);
+
+      if (repair is null)
+      {
+        throw new KeyNotFoundException("Repair not found");
+      }
+
+      if (string.IsNullOrWhiteSpace(dto.Status))
+      {
+        throw new ArgumentException("Status is required");
+      }
+
+      if (!Enum.TryParse<RepairStatus>(dto.Status, true, out var newStatus))
+      {
+        throw new ArgumentException("Invalid status value");
+      }
+
+      repair.InitializeState();
+
+      if (newStatus == RepairStatus.Cancelled)
+      {
+        repair.CancelRepair();
+        await _context.SaveChangesAsync();
+      }
+
+      if (newStatus == repair.Status)
+        return repair; // idempotent operation
+
+      var validTransitions = GetValidStatusTransitions(repair.Status);
+      if (!validTransitions.Contains(newStatus))
+      {
+        throw new InvalidOperationException($"Invalid status transition from {repair.Status} to {newStatus}");
+      }
+
+      repair.AdvanceRepairProcess();
+      await _context.SaveChangesAsync();
+      return repair;
+    }
   }
 }

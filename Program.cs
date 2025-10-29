@@ -81,7 +81,11 @@ builder.Services.AddScoped<IBookingService, BookingService>();
 builder.Services.AddScoped<ICourtSlotService, CourtSlotService>();
 builder.Services.AddScoped<ILessonService, LessonService>();
 builder.Services.AddScoped<ITournamentService, TournamentService>();
+builder.Services.AddScoped<IBracketGenerationService, BracketGenerationService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
+
+// Servicio de background para actualizar estados de torneos automáticamente
+builder.Services.AddHostedService<padelya_api.Services.TournamentStatusUpdateService>();
 
 
 var app = builder.Build();

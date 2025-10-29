@@ -12,16 +12,16 @@ namespace padelya_api.Models.Tournament
         public string TournamentMatchState { get; set; } = string.Empty;
         public string Result { get; set; } = string.Empty;
 
-        // Foreign Keys
-        public int CoupleOneId { get; set; }
-        public int CoupleTwoId { get; set; }
+        // Foreign Keys (nullable para permitir partidos sin parejas o cancha asignadas)
+        public int? CoupleOneId { get; set; }
+        public int? CoupleTwoId { get; set; }
         public int BracketId { get; set; }
-        public int CourtSlotId { get; set; }
+        public int? CourtSlotId { get; set; }
 
         // Navigation properties (EF Core las inicializará)
-        public Couple CoupleOne { get; set; } = null!;
-        public Couple CoupleTwo { get; set; } = null!;
+        public Couple? CoupleOne { get; set; }
+        public Couple? CoupleTwo { get; set; }
         public TournamentBracket Bracket { get; set; } = null!;
-        public CourtSlot CourtSlot { get; set; } = null!;
+        public CourtSlot? CourtSlot { get; set; }
     }
 }

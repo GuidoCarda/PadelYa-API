@@ -11,9 +11,10 @@ namespace padelya_api.Controllers
 {
     [ApiController]
     [Route("api/Tournament")]
-    public class TournamentController(ITournamentService tournamentService) : ControllerBase
+    public class TournamentController(ITournamentService tournamentService, IBracketGenerationService bracketGenerationService) : ControllerBase
     {
         private readonly ITournamentService _tournamentService = tournamentService;
+        private readonly IBracketGenerationService _bracketGenerationService = bracketGenerationService;
 
         [HttpPost]
         public async Task<IActionResult> CreateTournament([FromBody] CreateTournamentDto createTournamentDto)
@@ -190,6 +191,50 @@ namespace padelya_api.Controllers
             catch (ArgumentException ex)
             {
                 return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error interno del servidor: {ex.Message}");
+            }
+        }
+
+        [HttpPost("{id}/generate-bracket")]
+        public async Task<IActionResult> GenerateTournamentBracket(int id)
+        {
+            try
+            {
+                var result = await _bracketGenerationService.GenerateTournamentBracketAsync(id);
+
+                if (result == null)
+                {
+                    return NotFound($"No se encontró el torneo con ID {id}.");
+                }
+
+                return Ok(result);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error interno del servidor: {ex.Message}");
+            }
+        }
+
+        [HttpGet("{id}/bracket")]
+        public async Task<IActionResult> GetTournamentBracket(int id)
+        {
+            try
+            {
+                var result = await _bracketGenerationService.GetTournamentBracketAsync(id);
+
+                if (result == null)
+                {
+                    return NotFound($"No se encontró el bracket para el torneo con ID {id}.");
+                }
+
+                return Ok(result);
             }
             catch (Exception ex)
             {

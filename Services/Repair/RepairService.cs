@@ -13,12 +13,19 @@ namespace padelya_api.Services
     private readonly PadelYaDbContext _context;
     private readonly ICourtSlotService _courtSlotService;
     private readonly IConfiguration _configuration;
+    private readonly IHttpContextAccessor _httpContextAccessor;
 
-    public RepairService(PadelYaDbContext context, ICourtSlotService courtSlotService, IConfiguration configuration)
+    public RepairService(
+        PadelYaDbContext context,
+        ICourtSlotService courtSlotService,
+        IConfiguration configuration,
+        IHttpContextAccessor httpContextAccessor
+    )
     {
       _context = context;
       _configuration = configuration;
       _courtSlotService = courtSlotService;
+      _httpContextAccessor = httpContextAccessor;
     }
 
     public async Task<IEnumerable<Repair>> GetAllAsync(
@@ -168,6 +175,10 @@ namespace padelya_api.Services
       _context.Repairs.Add(repair);
       await _context.SaveChangesAsync();
 
+      LogRepairAuditAsync(repair.Id, RepairAuditAction.Created);
+
+      await _context.SaveChangesAsync();
+
       repair.InitializeState();
       return repair;
     }
@@ -265,6 +276,13 @@ namespace padelya_api.Services
         }
       }
 
+      LogRepairAuditAsync(repair.Id, RepairAuditAction.Modified);
+
+      if (dto.Status != null && Enum.TryParse<RepairStatus>(dto.Status.ToString(), true, out var newStatusEnum))
+      {
+        LogRepairAuditAsync(repair.Id, RepairAuditAction.StatusAdvanced, repair.Status, newStatusEnum);
+      }
+
       await _context.SaveChangesAsync();
       return repair;
     }
@@ -303,6 +321,7 @@ namespace padelya_api.Services
       {
         repair.CancelRepair();
         repair.State.NotifyCustomer(repair.Racket);
+        LogRepairAuditAsync(repair.Id, RepairAuditAction.Cancelled);
         await _context.SaveChangesAsync();
         return repair;
       }
@@ -350,6 +369,7 @@ namespace padelya_api.Services
       }
 
       repair.AdvanceRepairProcess();
+      LogRepairAuditAsync(repair.Id, RepairAuditAction.StatusAdvanced, repair.Status, newStatus);
       await _context.SaveChangesAsync();
       return repair;
     }
@@ -402,6 +422,40 @@ namespace padelya_api.Services
 
       await _context.SaveChangesAsync();
       return repair;
+    }
+
+
+    private int GetCurrentUserId()
+    {
+      var userIdClaim = _httpContextAccessor.HttpContext?.User.FindFirst("user_id");
+
+      if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var userId))
+      {
+        throw new InvalidOperationException("User ID not found in claims");
+      }
+
+      return userId;
+    }
+
+    private void LogRepairAuditAsync(
+      int repairId,
+      RepairAuditAction action,
+      RepairStatus? oldStatus = null,
+      RepairStatus? newStatus = null
+    )
+    {
+
+      var userId = GetCurrentUserId();
+
+      _context.RepairAudits.Add(new RepairAudit
+      {
+        RepairId = repairId,
+        Action = action,
+        OldStatus = oldStatus,
+        NewStatus = newStatus,
+        Timestamp = DateTime.UtcNow,
+        UserId = userId,
+      });
     }
   }
 }

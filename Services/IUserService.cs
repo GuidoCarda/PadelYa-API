@@ -1,6 +1,7 @@
-﻿using padelya_api.DTOs.User;
+using padelya_api.DTOs.User;
 using padelya_api.Models;
-
+using System.Collections.Generic;
+using System.Threading.Tasks;
 namespace padelya_api.Services
 {
     public interface IUserService
@@ -13,6 +14,7 @@ namespace padelya_api.Services
         Task<RolComposite?> GetUserRoleAsync(int userId);
         Task<bool> DeleteUserAsync(int id);
         Task<bool> ChangePasswordAsync(int id, ChangePasswordDto changePasswordDto);
+        Task<IEnumerable<UserDto>> SearchPlayersByEmailAsync(string email);
         // Status Management
         //Task<bool> ActivateUserAsync(int id);
         //Task<bool> DeactivateUserAsync(int id);

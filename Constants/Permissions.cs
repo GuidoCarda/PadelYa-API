@@ -18,6 +18,7 @@ namespace padelya_api.Constants
         {
             public const string Create = "tournament:create";
             public const string Edit = "tournament:edit";
+            public const string Delete = "tournament:delete";
             public const string Cancel = "tournament:cancel";
             public const string View = "tournament:view";
             public const string Join = "tournament:join";

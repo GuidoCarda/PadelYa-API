@@ -1,16 +1,21 @@
-﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using padelya_api.Constants;
 using padelya_api.Data;
 using padelya_api.DTOs.User;
 using padelya_api.Models;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Http;
 
 namespace padelya_api.Services
 {
-    public class UserService(PadelYaDbContext context, IPasswordService passwordService, IConfiguration configuration) : IUserService
+    public class UserService(PadelYaDbContext context, IPasswordService passwordService, IConfiguration configuration, IHttpContextAccessor httpContextAccessor) : IUserService
     {
         private readonly PadelYaDbContext _context = context;
         private readonly IPasswordService _passwordService = passwordService;
+        private readonly IHttpContextAccessor _httpContextAccessor = httpContextAccessor;
+
 
         public async Task<IEnumerable<UserDto>> GetUsersAsync(string? search = null, int? statusId = null)
         {
@@ -297,6 +302,42 @@ namespace padelya_api.Services
 
             return user?.Role;
         }
+
+        public async Task<IEnumerable<UserDto>> SearchPlayersByEmailAsync(string email)
+        {
+            var loggedInUserIdString = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
+            var loggedInUserId = int.Parse(loggedInUserIdString ?? "0");
+
+            var playersQuery = _context.Users
+                .Include(u => u.Person) 
+                .Where(u => u.Email.ToLower().Contains(email.ToLower()))
+                .Where(u => u.Id != loggedInUserId)
+                .Where(u => u.PersonId != null);
+
+            return await playersQuery
+                .Select(u => new UserDto
+                {
+                    Id = u.Id,
+                    Name = u.Name,
+                    Surname = u.Surname,
+                    Email = u.Email,
+
+                    // Creamos el objeto PersonDto (o PlayerDto) anidado
+                    Person = u.Person != null ? new PlayerDto
+                    {
+                        Id = u.Person.Id,
+                        PersonType = "player", 
+                        Birthdate = u.Person.Birthdate,
+                        Category = u.Person.Category,
+                        // Hacemos un "cast" para acceder a las propiedades específicas de Player
+                        PreferredPosition = (u.Person as Player) != null ? (u.Person as Player).PreferredPosition : null
+                    } : null,
+
+                    Permissions = new List<string>()
+                })
+                .ToListAsync();
+        }
+
     }
 
 

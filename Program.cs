@@ -21,6 +21,8 @@ builder.Services.AddCors(options =>
       });
 });
 
+builder.Services.AddHttpContextAccessor();
+
 // Add services to the container.
 builder.Services.AddControllers()
   .AddJsonOptions(options =>
@@ -28,6 +30,8 @@ builder.Services.AddControllers()
     options.JsonSerializerOptions.Converters.Add(
       new JsonStringEnumConverter(JsonNamingPolicy.CamelCase)
     );
+    options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+   
   });
 
 
@@ -79,8 +83,12 @@ builder.Services.AddScoped<IBookingService, BookingService>();
 builder.Services.AddScoped<ICourtSlotService, CourtSlotService>();
 builder.Services.AddScoped<ILessonService, LessonService>();
 builder.Services.AddScoped<ITournamentService, TournamentService>();
+builder.Services.AddScoped<IBracketGenerationService, BracketGenerationService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<IRepairService, RepairService>();
+
+// Servicio de background para actualizar estados de torneos automáticamente
+builder.Services.AddHostedService<padelya_api.Services.TournamentStatusUpdateService>();
 
 
 var app = builder.Build();

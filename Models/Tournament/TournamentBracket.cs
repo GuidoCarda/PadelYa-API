@@ -5,11 +5,10 @@ namespace padelya_api.Models.Tournament
     public class TournamentBracket
     {
         public int Id { get; set; }
-
-        // Navigation property
-        public List<TournamentMatch> Matches { get; set; }
-
         public int PhaseId { get; set; }
-        // Add methods here as needed
+
+        // Navigation properties
+        public TournamentPhase Phase { get; set; } = null!;
+        public List<TournamentMatch> Matches { get; set; } = new();
     }
 }

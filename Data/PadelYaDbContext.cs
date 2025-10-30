@@ -54,6 +54,7 @@ namespace padelya_api.Data
 
     //Repairs
     public DbSet<Repair> Repairs { get; set; }
+    public DbSet<RepairAudit> RepairAudits { get; set; }
     public DbSet<Racket> Rackets { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -372,6 +373,24 @@ namespace padelya_api.Data
           .Property(r => r.CreatedAt)
           .HasDefaultValueSql("GETDATE()");
 
+      // RepairAudit - Repair (Many-to-One)
+      modelBuilder.Entity<RepairAudit>()
+          .HasOne(ra => ra.Repair)
+          .WithMany()
+          .HasForeignKey(ra => ra.RepairId)
+          .OnDelete(DeleteBehavior.Restrict);
+
+      // RepairAudit - User (Many-to-One)
+      modelBuilder.Entity<RepairAudit>()
+          .HasOne(ra => ra.User)
+          .WithMany()
+          .HasForeignKey(ra => ra.UserId)
+          .OnDelete(DeleteBehavior.Restrict);
+
+      // Store RepairAuditAction enum as string
+      modelBuilder.Entity<RepairAudit>()
+          .Property(ra => ra.Action)
+          .HasConversion<string>();
 
       #endregion
 

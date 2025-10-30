@@ -5,37 +5,19 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace padelya_api.Migrations
 {
+  /// <inheritdoc />
+  public partial class MissingChanges : Migration
+  {
     /// <inheritdoc />
-    public partial class MissingChanges : Migration
+    protected override void Up(MigrationBuilder migrationBuilder)
     {
-        /// <inheritdoc />
-        protected override void Up(MigrationBuilder migrationBuilder)
-        {
-            migrationBuilder.AddColumn<DateTime>(
-                name: "EnrollmentDate",
-                table: "TournamentEnrollments",
-                type: "datetime2",
-                nullable: false,
-                defaultValue: new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified));
-
-            migrationBuilder.AddColumn<int>(
-                name: "PlayerId",
-                table: "TournamentEnrollments",
-                type: "int",
-                nullable: false,
-                defaultValue: 0);
-        }
-
-        /// <inheritdoc />
-        protected override void Down(MigrationBuilder migrationBuilder)
-        {
-            migrationBuilder.DropColumn(
-                name: "EnrollmentDate",
-                table: "TournamentEnrollments");
-
-            migrationBuilder.DropColumn(
-                name: "PlayerId",
-                table: "TournamentEnrollments");
-        }
+      // Columns already added in TournamentDate migration
     }
+
+    /// <inheritdoc />
+    protected override void Down(MigrationBuilder migrationBuilder)
+    {
+      // No operations needed
+    }
+  }
 }

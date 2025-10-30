@@ -480,11 +480,11 @@ namespace padelya_api.Data
 
 
         // Repair permissions
-        new { Id = 50, Name = "repair:create", ModuleId = 9, PermissionType = "Simple", DisplayName = "Crear reparación", Description = "Permite crear nuevas reparaciones" },
-        new { Id = 51, Name = "repair:edit", ModuleId = 9, PermissionType = "Simple", DisplayName = "Editar reparación", Description = "Permite editar reparaciones" },
-        new { Id = 52, Name = "repair:cancel", ModuleId = 9, PermissionType = "Simple", DisplayName = "Cancelar reparación", Description = "Permite cancelar reparaciones" },
-        new { Id = 53, Name = "repair:view", ModuleId = 9, PermissionType = "Simple", DisplayName = "Ver reparaciones", Description = "Permite ver reparaciones" },
-        new { Id = 54, Name = "repair:view_own", ModuleId = 9, PermissionType = "Simple", DisplayName = "Ver reparación propia", Description = "Permite ver la reparación del usuario" }
+        new { Id = 55, Name = "repair:create", ModuleId = 9, PermissionType = "Simple", DisplayName = "Crear reparación", Description = "Permite crear nuevas reparaciones" },
+        new { Id = 56, Name = "repair:edit", ModuleId = 9, PermissionType = "Simple", DisplayName = "Editar reparación", Description = "Permite editar reparaciones" },
+        new { Id = 57, Name = "repair:cancel", ModuleId = 9, PermissionType = "Simple", DisplayName = "Cancelar reparación", Description = "Permite cancelar reparaciones" },
+        new { Id = 58, Name = "repair:view", ModuleId = 9, PermissionType = "Simple", DisplayName = "Ver reparaciones", Description = "Permite ver reparaciones" },
+        new { Id = 59, Name = "repair:view_own", ModuleId = 9, PermissionType = "Simple", DisplayName = "Ver reparación propia", Description = "Permite ver la reparación del usuario" }
       );
 
       // 3. Roles (RolComposite)
@@ -547,10 +547,11 @@ namespace padelya_api.Data
           new { RoleId = 100, PermissionComponentId = 48 },
           new { RoleId = 100, PermissionComponentId = 49 },
           new { RoleId = 100, PermissionComponentId = 50 },
-          new { RoleId = 100, PermissionComponentId = 51 },
-          new { RoleId = 100, PermissionComponentId = 52 },
-          new { RoleId = 100, PermissionComponentId = 53 },
-          new { RoleId = 100, PermissionComponentId = 54 },
+          new { RoleId = 100, PermissionComponentId = 55 },
+          new { RoleId = 100, PermissionComponentId = 56 },
+          new { RoleId = 100, PermissionComponentId = 57 },
+          new { RoleId = 100, PermissionComponentId = 58 },
+          new { RoleId = 100, PermissionComponentId = 59 },
 
           // Teacher: permisos específicos
           new { RoleId = 101, PermissionComponentId = 1 }, // booking:make

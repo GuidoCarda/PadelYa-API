@@ -3,6 +3,7 @@ using padelya_api.Constants;
 using padelya_api.models;
 using padelya_api.Models;
 using padelya_api.Models.Class;
+using padelya_api.Models.Repair;
 using padelya_api.Models.Tournament;
 
 namespace padelya_api.Data
@@ -11,8 +12,11 @@ namespace padelya_api.Data
   {
 
     public DbSet<User> Users { get; set; }
+
+    public DbSet<Person> Persons { get; set; }
     public DbSet<Player> Players { get; set; }
     public DbSet<Teacher> Teachers { get; set; }
+
     public DbSet<UserStatus> UserStatuses { get; set; }
     public DbSet<Module> Modules { get; set; }
     public DbSet<PermissionComponent> PermissionComponents { get; set; }
@@ -48,6 +52,9 @@ namespace padelya_api.Data
     //Payments
     public DbSet<Payment> Payments { get; set; }
 
+    //Repairs
+    public DbSet<Repair> Repairs { get; set; }
+    public DbSet<Racket> Rackets { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -331,6 +338,43 @@ namespace padelya_api.Data
 
       #endregion
 
+
+      #region Repairs
+
+      // Repair - Person (Many-to-One)
+      modelBuilder.Entity<Repair>()
+          .HasOne(r => r.Person)
+          .WithMany()
+          .HasForeignKey(r => r.PersonId)
+          .OnDelete(DeleteBehavior.Restrict);
+
+      // Repair - Racket (Many-to-One)
+      modelBuilder.Entity<Repair>()
+          .HasOne(r => r.Racket)
+          .WithMany()
+          .HasForeignKey(r => r.RacketId)
+          .OnDelete(DeleteBehavior.Restrict);
+
+      // Repair - Payment (1:1 optional)
+      modelBuilder.Entity<Repair>()
+          .HasOne(r => r.Payment)
+          .WithOne()
+          .HasForeignKey<Repair>(r => r.PaymentId)
+          .IsRequired(false);
+
+      // Store RepairStatus enum as string
+      modelBuilder.Entity<Repair>()
+          .Property(r => r.Status)
+          .HasConversion<string>();
+
+      // Set default for CreatedAt
+      modelBuilder.Entity<Repair>()
+          .Property(r => r.CreatedAt)
+          .HasDefaultValueSql("GETDATE()");
+
+
+      #endregion
+
       #region Seeding security module
       // db module/role/permissions seeding
       // 1. Modules
@@ -342,7 +386,8 @@ namespace padelya_api.Data
           new Module { Id = 5, Name = "tournament", DisplayName = "Torneos" },
           new Module { Id = 6, Name = "lesson", DisplayName = "Clases" },
           new Module { Id = 7, Name = "routine", DisplayName = "Rutinas" },
-          new Module { Id = 8, Name = "feedback", DisplayName = "Comentarios" }
+          new Module { Id = 8, Name = "feedback", DisplayName = "Comentarios" },
+          new Module { Id = 9, Name = "repair", DisplayName = "Reparaciones" }
       );
 
       // 2. SimplePermissions
@@ -412,8 +457,15 @@ namespace padelya_api.Data
           new { Id = 46, Name = "feedback:create", ModuleId = 8, PermissionType = "Simple", DisplayName = "Crear comentario", Description = "Permite crear comentarios" },
           new { Id = 47, Name = "feedback:edit", ModuleId = 8, PermissionType = "Simple", DisplayName = "Editar comentario", Description = "Permite editar comentarios" },
           new { Id = 48, Name = "feedback:delete", ModuleId = 8, PermissionType = "Simple", DisplayName = "Eliminar comentario", Description = "Permite eliminar comentarios" },
-          new { Id = 49, Name = "feedback:view", ModuleId = 8, PermissionType = "Simple", DisplayName = "Ver comentarios", Description = "Permite ver comentarios" }
+          new { Id = 49, Name = "feedback:view", ModuleId = 8, PermissionType = "Simple", DisplayName = "Ver comentarios", Description = "Permite ver comentarios" },
 
+
+        // Repair permissions
+        new { Id = 50, Name = "repair:create", ModuleId = 9, PermissionType = "Simple", DisplayName = "Crear reparación", Description = "Permite crear nuevas reparaciones" },
+        new { Id = 51, Name = "repair:edit", ModuleId = 9, PermissionType = "Simple", DisplayName = "Editar reparación", Description = "Permite editar reparaciones" },
+        new { Id = 52, Name = "repair:cancel", ModuleId = 9, PermissionType = "Simple", DisplayName = "Cancelar reparación", Description = "Permite cancelar reparaciones" },
+        new { Id = 53, Name = "repair:view", ModuleId = 9, PermissionType = "Simple", DisplayName = "Ver reparaciones", Description = "Permite ver reparaciones" },
+        new { Id = 54, Name = "repair:view_own", ModuleId = 9, PermissionType = "Simple", DisplayName = "Ver reparación propia", Description = "Permite ver la reparación del usuario" }
       );
 
       // 3. Roles (RolComposite)
@@ -475,6 +527,11 @@ namespace padelya_api.Data
           new { RoleId = 100, PermissionComponentId = 47 },
           new { RoleId = 100, PermissionComponentId = 48 },
           new { RoleId = 100, PermissionComponentId = 49 },
+          new { RoleId = 100, PermissionComponentId = 50 },
+          new { RoleId = 100, PermissionComponentId = 51 },
+          new { RoleId = 100, PermissionComponentId = 52 },
+          new { RoleId = 100, PermissionComponentId = 53 },
+          new { RoleId = 100, PermissionComponentId = 54 },
 
           // Teacher: permisos específicos
           new { RoleId = 101, PermissionComponentId = 1 }, // booking:make
@@ -542,8 +599,8 @@ namespace padelya_api.Data
             Id = 1,
             Name = "PadelYa Sports Complex",
             Address = "123 Sports Avenue, Downtown District, City Center",
-            OpeningTime = new DateTime(2024, 1, 1, 6, 0, 0), // 6:00 AM
-            ClosingTime = new DateTime(2024, 1, 1, 23, 0, 0)  // 11:00 PM
+            OpeningTime = new DateTime(2024, 1, 1, 7, 30, 0), // 7:30 AM
+            ClosingTime = new DateTime(2024, 1, 2, 0, 0, 0)  // 12:00 AM
           }
       );
 
@@ -555,8 +612,8 @@ namespace padelya_api.Data
             Name = "Cancha 1 - Premium",
             CourtStatus = CourtStatus.Available,
             BookingPrice = 20,
-            OpeningTime = new TimeOnly(6, 0), // 6:00 AM
-            ClosingTime = new TimeOnly(23, 0), // 11:00 PM
+            OpeningTime = new TimeOnly(7, 30), // 7:30 AM
+            ClosingTime = new TimeOnly(0, 0, 0), // 12:00 AM
             ComplexId = 1,
             Type = "Cristal"
           },
@@ -566,8 +623,8 @@ namespace padelya_api.Data
             Name = "Cancha 2 - Standard",
             CourtStatus = CourtStatus.Available,
             BookingPrice = 10,
-            OpeningTime = new TimeOnly(6, 0), // 6:00 AM
-            ClosingTime = new TimeOnly(23, 0), // 11:00 PM
+            OpeningTime = new TimeOnly(7, 30), // 7:30 AM
+            ClosingTime = new TimeOnly(0, 0, 0), // 12:00 AM
             ComplexId = 1,
             Type = "Césped"
           }
@@ -577,13 +634,54 @@ namespace padelya_api.Data
 
       // Seeding de Player y User para pruebas de Bookings
       modelBuilder.Entity<Player>().HasData(
-          new Player { Id = 1, Birthdate = new DateTime(1990, 1, 1), Category = "Primera", PreferredPosition = "Derecha" },
-          new Player { Id = 2, Birthdate = new DateTime(1992, 2, 2), Category = "Segunda", PreferredPosition = "Revés" },
-          new Player { Id = 3, Birthdate = new DateTime(1994, 3, 3), Category = "Tercera", PreferredPosition = "Derecha" }
-      );
+      new Player
+      {
+        Id = 1,
+        Name = "Juan",
+        Surname = "Pérez",
+        Email = "player1@padelya.com",
+        PhoneNumber = "+598 91 234 567",
+        Birthdate = new DateTime(1990, 1, 1),
+        Category = "Primera",
+        PreferredPosition = "Derecha"
+      },
+      new Player
+      {
+        Id = 2,
+        Name = "Ana",
+        Surname = "García",
+        Email = "player2@padelya.com",
+        PhoneNumber = "+598 92 345 678",
+        Birthdate = new DateTime(1992, 2, 2),
+        Category = "Segunda",
+        PreferredPosition = "Revés"
+      },
+      new Player
+      {
+        Id = 3,
+        Name = "Luis",
+        Surname = "Martínez",
+        Email = "player3@padelya.com",
+        PhoneNumber = "+598 93 456 789",
+        Birthdate = new DateTime(1994, 3, 3),
+        Category = "Tercera",
+        PreferredPosition = "Derecha"
+      }
+    );
 
       modelBuilder.Entity<Teacher>().HasData(
-          new Teacher { Id = 4, Birthdate = new DateTime(1985, 5, 15), Category = "Profesional", Institution = "PadelYa Academy", Title = "Profesor Certificado" }
+          new Teacher
+          {
+            Id = 4,
+            Name = "María",
+            Surname = "González",
+            Email = "teacher@padelya.com",
+            PhoneNumber = "+598 94 567 890",
+            Birthdate = new DateTime(1985, 5, 15),
+            Category = "Profesional",
+            Institution = "PadelYa Academy",
+            Title = "Profesor Certificado"
+          }
       );
 
       modelBuilder.Entity<User>().HasData(

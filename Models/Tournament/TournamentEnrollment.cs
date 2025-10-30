@@ -8,11 +8,15 @@ namespace padelya_api.Models.Tournament
         public int Id { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime EnrollmentDate { get; set; }
+      
+        // Foreign Keys
+        // Player who is being enrolled (used by service logic)
         public int PlayerId { get; set; }
 
-        // Foreign Keys
+        // Navigation property for the couple (should contain 2 players)
         public int CoupleId { get; set; }
         public int TournamentId { get; set; }
+        public Tournament Tournament { get; set; }
 
         // Navigation properties
         public Couple Couple { get; set; } = null!;

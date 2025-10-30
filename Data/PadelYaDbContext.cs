@@ -233,33 +233,38 @@ namespace padelya_api.Data
 
       // TournamentPhase - Tournament (n:1)
       modelBuilder.Entity<TournamentPhase>()
-          .HasOne<Tournament>()
+          .HasOne(p => p.Tournament)
           .WithMany(t => t.TournamentPhases)
-          .HasForeignKey(p => p.TournamentId);
+          .HasForeignKey(p => p.TournamentId)
+          .OnDelete(DeleteBehavior.Cascade);
 
       // Bracket - TournamentPhase (n:1)
       modelBuilder.Entity<TournamentBracket>()
-          .HasOne<TournamentPhase>()
+          .HasOne(b => b.Phase)
           .WithMany(p => p.Brackets)
-          .HasForeignKey(b => b.PhaseId);
+          .HasForeignKey(b => b.PhaseId)
+          .OnDelete(DeleteBehavior.NoAction);
 
       // TournamentEnrollment - Couple (n:1)
       modelBuilder.Entity<TournamentEnrollment>()
           .HasOne(e => e.Couple)
           .WithMany()
-          .HasForeignKey(e => e.CoupleId);
+          .HasForeignKey(e => e.CoupleId)
+          .OnDelete(DeleteBehavior.Restrict);
 
       // TournamentEnrollment - Tournament (n:1)
       modelBuilder.Entity<TournamentEnrollment>()
           .HasOne(e => e.Tournament)
           .WithMany(t => t.Enrollments)
-          .HasForeignKey(e => e.TournamentId);
+          .HasForeignKey(e => e.TournamentId)
+          .OnDelete(DeleteBehavior.Cascade);
 
       // Bracket - TournamentMatch (n:1)
       modelBuilder.Entity<TournamentMatch>()
-          .HasOne<TournamentBracket>()
+          .HasOne(m => m.Bracket)
           .WithMany(b => b.Matches)
-          .HasForeignKey(m => m.BracketId);
+          .HasForeignKey(m => m.BracketId)
+          .OnDelete(DeleteBehavior.NoAction);
 
       // Tournament Configuration
       modelBuilder.Entity<Tournament>()
@@ -400,6 +405,7 @@ namespace padelya_api.Data
           // Tournament permissions
           new { Id = 9, Name = "tournament:create", ModuleId = 5, PermissionType = "Simple", DisplayName = "Crear torneo", Description = "Permite crear nuevos torneos" },
           new { Id = 10, Name = "tournament:edit", ModuleId = 5, PermissionType = "Simple", DisplayName = "Editar torneo", Description = "Permite editar datos de torneos" },
+          new { Id = 50, Name = "tournament:delete", ModuleId = 5, PermissionType = "Simple", DisplayName = "Eliminar torneo", Description = "Permite eliminar torneos sin inscripciones" },
           new { Id = 11, Name = "tournament:cancel", ModuleId = 5, PermissionType = "Simple", DisplayName = "Cancelar torneo", Description = "Permite cancelar torneos" },
           new { Id = 12, Name = "tournament:view", ModuleId = 5, PermissionType = "Simple", DisplayName = "Ver torneos", Description = "Permite ver torneos" },
           new { Id = 13, Name = "tournament:join", ModuleId = 5, PermissionType = "Simple", DisplayName = "Inscribir en torneo", Description = "Permite inscribir participantes a un torneo" },

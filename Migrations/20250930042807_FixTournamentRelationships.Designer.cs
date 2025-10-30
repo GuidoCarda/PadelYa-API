@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using padelya_api.Data;
 
@@ -11,9 +12,11 @@ using padelya_api.Data;
 namespace padelya_api.Migrations
 {
     [DbContext(typeof(PadelYaDbContext))]
-    partial class PadelYaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250930042807_FixTournamentRelationships")]
+    partial class FixTournamentRelationships
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -393,31 +396,6 @@ namespace padelya_api.Migrations
                         new
                         {
                             PermissionComponentId = 49,
-                            RoleId = 100
-                        },
-                        new
-                        {
-                            PermissionComponentId = 50,
-                            RoleId = 100
-                        },
-                        new
-                        {
-                            PermissionComponentId = 51,
-                            RoleId = 100
-                        },
-                        new
-                        {
-                            PermissionComponentId = 52,
-                            RoleId = 100
-                        },
-                        new
-                        {
-                            PermissionComponentId = 53,
-                            RoleId = 100
-                        },
-                        new
-                        {
-                            PermissionComponentId = 54,
                             RoleId = 100
                         },
                         new
@@ -835,9 +813,9 @@ namespace padelya_api.Migrations
                         {
                             Id = 1,
                             Address = "123 Sports Avenue, Downtown District, City Center",
-                            ClosingTime = new DateTime(2024, 1, 2, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            ClosingTime = new DateTime(2024, 1, 1, 23, 0, 0, 0, DateTimeKind.Unspecified),
                             Name = "PadelYa Sports Complex",
-                            OpeningTime = new DateTime(2024, 1, 1, 7, 30, 0, 0, DateTimeKind.Unspecified)
+                            OpeningTime = new DateTime(2024, 1, 1, 6, 0, 0, 0, DateTimeKind.Unspecified)
                         });
                 });
 
@@ -883,22 +861,22 @@ namespace padelya_api.Migrations
                         {
                             Id = 1,
                             BookingPrice = 20,
-                            ClosingTime = new TimeOnly(0, 0, 0),
+                            ClosingTime = new TimeOnly(23, 0, 0),
                             ComplexId = 1,
                             CourtStatus = 1,
                             Name = "Cancha 1 - Premium",
-                            OpeningTime = new TimeOnly(7, 30, 0),
+                            OpeningTime = new TimeOnly(6, 0, 0),
                             Type = "Cristal"
                         },
                         new
                         {
                             Id = 2,
                             BookingPrice = 10,
-                            ClosingTime = new TimeOnly(0, 0, 0),
+                            ClosingTime = new TimeOnly(23, 0, 0),
                             ComplexId = 1,
                             CourtStatus = 1,
                             Name = "Cancha 2 - Standard",
-                            OpeningTime = new TimeOnly(7, 30, 0),
+                            OpeningTime = new TimeOnly(6, 0, 0),
                             Type = "Césped"
                         });
                 });
@@ -970,12 +948,6 @@ namespace padelya_api.Migrations
                             Id = 8,
                             DisplayName = "Comentarios",
                             Name = "feedback"
-                        },
-                        new
-                        {
-                            Id = 9,
-                            DisplayName = "Reparaciones",
-                            Name = "repair"
                         });
                 });
 
@@ -1077,37 +1049,21 @@ namespace padelya_api.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("Email")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("PersonType")
                         .IsRequired()
                         .HasMaxLength(8)
                         .HasColumnType("nvarchar(8)");
 
-                    b.Property<string>("PhoneNumber")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Surname")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
                     b.HasKey("Id");
 
-                    b.ToTable("Persons");
+                    b.ToTable("Person");
 
                     b.HasDiscriminator<string>("PersonType").HasValue("Person");
 
                     b.UseTphMappingStrategy();
-                })
-            
-            modelBuilder.Entity("padelya_api.Models.Repair.Racket", b =>
+                });
+
+            modelBuilder.Entity("padelya_api.Models.Tournament.Couple", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -1116,96 +1072,12 @@ namespace padelya_api.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Name")
-                    b.Property<string>("Brand")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Model")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("SerialCode")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 
-                    b.ToTable("Rackets");
-                });
-
-            modelBuilder.Entity("padelya_api.Models.Repair.Repair", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETDATE()");
-
-                    b.Property<string>("CustomerEmail")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("CustomerName")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("CustomerPhone")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("DamageDescription")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("DeliveredAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("EstimatedCompletionTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("FinishedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int?>("PaymentId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("PersonId")
-                        .HasColumnType("int");
-
-                    b.Property<decimal>("Price")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<int>("RacketId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("RepairNotes")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-                    
-                  });
-
-    modelBuilder.Entity("padelya_api.Models.Tournament.Couple", b =>
                     b.ToTable("Couples");
-                    b.HasIndex("PaymentId")
-                        .IsUnique()
-                        .HasFilter("[PaymentId] IS NOT NULL");
-
-                    b.HasIndex("PersonId");
-
-                    b.HasIndex("RacketId");
-
-                    b.ToTable("Repairs");
                 });
 
             modelBuilder.Entity("padelya_api.Models.Tournament.Tournament", b =>
@@ -1316,13 +1188,13 @@ namespace padelya_api.Migrations
                     b.Property<int>("BracketId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("CoupleOneId")
+                    b.Property<int>("CoupleOneId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("CoupleTwoId")
+                    b.Property<int>("CoupleTwoId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("CourtSlotId")
+                    b.Property<int>("CourtSlotId")
                         .HasColumnType("int");
 
                     b.Property<string>("Result")
@@ -1342,8 +1214,7 @@ namespace padelya_api.Migrations
                     b.HasIndex("CoupleTwoId");
 
                     b.HasIndex("CourtSlotId")
-                        .IsUnique()
-                        .HasFilter("[CourtSlotId] IS NOT NULL");
+                        .IsUnique();
 
                     b.ToTable("TournamentMatches");
                 });
@@ -2058,51 +1929,6 @@ namespace padelya_api.Migrations
                             Description = "Permite ver comentarios",
                             DisplayName = "Ver comentarios",
                             ModuleId = 8
-                        },
-                        new
-                        {
-                            Id = 50,
-                            Name = "repair:create",
-                            PermissionType = "Simple",
-                            Description = "Permite crear nuevas reparaciones",
-                            DisplayName = "Crear reparación",
-                            ModuleId = 9
-                        },
-                        new
-                        {
-                            Id = 51,
-                            Name = "repair:edit",
-                            PermissionType = "Simple",
-                            Description = "Permite editar reparaciones",
-                            DisplayName = "Editar reparación",
-                            ModuleId = 9
-                        },
-                        new
-                        {
-                            Id = 52,
-                            Name = "repair:cancel",
-                            PermissionType = "Simple",
-                            Description = "Permite cancelar reparaciones",
-                            DisplayName = "Cancelar reparación",
-                            ModuleId = 9
-                        },
-                        new
-                        {
-                            Id = 53,
-                            Name = "repair:view",
-                            PermissionType = "Simple",
-                            Description = "Permite ver reparaciones",
-                            DisplayName = "Ver reparaciones",
-                            ModuleId = 9
-                        },
-                        new
-                        {
-                            Id = 54,
-                            Name = "repair:view_own",
-                            PermissionType = "Simple",
-                            Description = "Permite ver la reparación del usuario",
-                            DisplayName = "Ver reparación propia",
-                            ModuleId = 9
                         });
                 });
 
@@ -2122,10 +1948,6 @@ namespace padelya_api.Migrations
                             Id = 1,
                             Birthdate = new DateTime(1990, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Category = "Primera",
-                            Email = "player1@padelya.com",
-                            Name = "Juan",
-                            PhoneNumber = "+598 91 234 567",
-                            Surname = "Pérez",
                             PreferredPosition = "Derecha"
                         },
                         new
@@ -2133,10 +1955,6 @@ namespace padelya_api.Migrations
                             Id = 2,
                             Birthdate = new DateTime(1992, 2, 2, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Category = "Segunda",
-                            Email = "player2@padelya.com",
-                            Name = "Ana",
-                            PhoneNumber = "+598 92 345 678",
-                            Surname = "García",
                             PreferredPosition = "Revés"
                         },
                         new
@@ -2144,10 +1962,6 @@ namespace padelya_api.Migrations
                             Id = 3,
                             Birthdate = new DateTime(1994, 3, 3, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Category = "Tercera",
-                            Email = "player3@padelya.com",
-                            Name = "Luis",
-                            PhoneNumber = "+598 93 456 789",
-                            Surname = "Martínez",
                             PreferredPosition = "Derecha"
                         });
                 });
@@ -2172,10 +1986,6 @@ namespace padelya_api.Migrations
                             Id = 4,
                             Birthdate = new DateTime(1985, 5, 15, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Category = "Profesional",
-                            Email = "teacher@padelya.com",
-                            Name = "María",
-                            PhoneNumber = "+598 94 567 890",
-                            Surname = "González",
                             Institution = "PadelYa Academy",
                             Title = "Profesor Certificado"
                         });
@@ -2341,31 +2151,6 @@ namespace padelya_api.Migrations
                         .HasForeignKey("padelya_api.Models.Payment", "TournamentEnrollmentId");
                 });
 
-            modelBuilder.Entity("padelya_api.Models.Repair.Repair", b =>
-                {
-                    b.HasOne("padelya_api.Models.Payment", "Payment")
-                        .WithOne()
-                        .HasForeignKey("padelya_api.Models.Repair.Repair", "PaymentId");
-
-                    b.HasOne("padelya_api.Models.Person", "Person")
-                        .WithMany()
-                        .HasForeignKey("PersonId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("padelya_api.Models.Repair.Racket", "Racket")
-                        .WithMany()
-                        .HasForeignKey("RacketId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Payment");
-
-                    b.Navigation("Person");
-
-                    b.Navigation("Racket");
-                });
-
             modelBuilder.Entity("padelya_api.Models.Tournament.TournamentBracket", b =>
                 {
                     b.HasOne("padelya_api.Models.Tournament.TournamentPhase", "Phase")
@@ -2407,16 +2192,20 @@ namespace padelya_api.Migrations
                     b.HasOne("padelya_api.Models.Tournament.Couple", "CoupleOne")
                         .WithMany()
                         .HasForeignKey("CoupleOneId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.HasOne("padelya_api.Models.Tournament.Couple", "CoupleTwo")
                         .WithMany()
                         .HasForeignKey("CoupleTwoId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.HasOne("CourtSlot", "CourtSlot")
                         .WithOne("TournamentMatch")
-                        .HasForeignKey("padelya_api.Models.Tournament.TournamentMatch", "CourtSlotId");
+                        .HasForeignKey("padelya_api.Models.Tournament.TournamentMatch", "CourtSlotId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Bracket");
 

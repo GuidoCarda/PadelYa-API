@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using padelya_api.Attributes;
 using padelya_api.Constants;
@@ -247,12 +248,28 @@ namespace padelya_api.Controllers
       }
     }
 
-    #region Simple Validation Methods
+        [Authorize]
+        [HttpGet("players")]
 
-    /// <summary>
-    /// Simple validation for creating a user
-    /// </summary>
-    private List<ValidationError> ValidateCreateUser(CreateUserDto userDto)
+        public async Task<ActionResult<IEnumerable<UserDto>>> SearchPlayersByEmail([FromQuery] string email)
+        {
+            try
+            {
+                var players = await userService.SearchPlayersByEmailAsync(email);
+                return Ok(players);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error al buscar jugadores: {ex.Message}");
+            }
+        }
+
+        #region Simple Validation Methods
+
+        /// <summary>
+        /// Simple validation for creating a user
+        /// </summary>
+        private List<ValidationError> ValidateCreateUser(CreateUserDto userDto)
     {
       var errors = new List<ValidationError>();
 

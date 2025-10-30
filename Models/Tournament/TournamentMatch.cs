@@ -1,27 +1,27 @@
 using System.Collections.Generic;
 using padelya_api.Models;
+using BookingModels = padelya_api.Models.Booking;
 
 namespace padelya_api.Models.Tournament
 {
     public class TournamentMatch
     {
         public int Id { get; set; }
+        
+        // Scalar properties
+        public string TournamentMatchState { get; set; } = string.Empty;
+        public string Result { get; set; } = string.Empty;
 
-        public string TournamentMatchState { get; set; }
-        public string Result { get; set; }
-
-        // Navigation properties for couples
-        public int CoupleOneId { get; set; } // Should contain 2 players
-        public Couple CoupleOne { get; set; } // Should contain 2 players
-        public int CoupleTwoId { get; set; } // Should contain 2 players
-        public Couple CoupleTwo { get; set; } // Should contain 2 players
-
-
+        // Foreign Keys (nullable para permitir partidos sin parejas o cancha asignadas)
+        public int? CoupleOneId { get; set; }
+        public int? CoupleTwoId { get; set; }
         public int BracketId { get; set; }
+        public int? CourtSlotId { get; set; }
 
-        // Navigation property for CourtSlot
-        public int CourtSlotId { get; set; }
-        public CourtSlot CourtSlot { get; set; }
-        // Add methods here as needed
+        // Navigation properties (EF Core las inicializará)
+        public Couple? CoupleOne { get; set; }
+        public Couple? CoupleTwo { get; set; }
+        public TournamentBracket Bracket { get; set; } = null!;
+        public CourtSlot? CourtSlot { get; set; }
     }
 }

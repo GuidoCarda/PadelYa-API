@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using padelya_api.DTOs.Auth;
 using padelya_api.DTOs.User;
 using padelya_api.Services;
@@ -58,6 +59,22 @@ namespace padelya_api.Controllers
             }
 
             return Ok(result);
+        }
+
+        [HttpPost("logout")]
+        [Authorize]
+        public async Task<IActionResult> Logout()
+        {
+            var userIdClaim = User.FindFirst("user_id")?.Value;
+
+            if (userIdClaim == null || !int.TryParse(userIdClaim, out int userId))
+            {
+                return Unauthorized("Invalid user");
+            }
+
+            await authService.LogoutAsync(userId);
+
+            return Ok(new { message = "Logout successful" });
         }
 
 

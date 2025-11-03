@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using padelya_api.Data;
 
@@ -11,9 +12,11 @@ using padelya_api.Data;
 namespace padelya_api.Migrations
 {
     [DbContext(typeof(PadelYaDbContext))]
-    partial class PadelYaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251103200155_Iteracion1_Clases_Tipos_Asistencia")]
+    partial class Iteracion1_Clases_Tipos_Asistencia
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1689,10 +1692,6 @@ namespace padelya_api.Migrations
 
                     b.Property<decimal>("Price")
                         .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("Status")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
 
                     b.Property<int>("TeacherId")
                         .HasColumnType("int");

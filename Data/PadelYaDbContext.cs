@@ -3,6 +3,7 @@ using padelya_api.Constants;
 using padelya_api.models;
 using padelya_api.Models;
 using padelya_api.Models.Class;
+using padelya_api.Models.Lesson;
 using padelya_api.Models.Annual;
 using padelya_api.Models.Challenge;
 using padelya_api.Models.Notification;
@@ -42,6 +43,8 @@ namespace padelya_api.Data
     //Lessons
     public DbSet<Lesson> Lessons { get; set; }
     public DbSet<LessonEnrollment> LessonEnrollments { get; set; }
+    public DbSet<padelya_api.Models.Lesson.ClassType> ClassTypes { get; set; }
+    public DbSet<padelya_api.Models.Lesson.LessonAttendance> LessonAttendances { get; set; }
     public DbSet<Stats> Stats { get; set; }
 
     //Routines
@@ -296,11 +299,44 @@ namespace padelya_api.Data
           .WithOne()
           .OnDelete(DeleteBehavior.Cascade);
 
+      // LESSON ATTENDANCE relationships
+      modelBuilder.Entity<LessonAttendance>()
+          .HasOne(a => a.Lesson)
+          .WithMany()
+          .HasForeignKey(a => a.LessonId)
+          .OnDelete(DeleteBehavior.Restrict);
+
+      modelBuilder.Entity<LessonAttendance>()
+          .HasOne(a => a.Person)
+          .WithMany()
+          .HasForeignKey(a => a.PersonId)
+          .OnDelete(DeleteBehavior.Restrict);
+
+      modelBuilder.Entity<LessonAttendance>()
+          .HasOne(a => a.RecordedByTeacher)
+          .WithMany()
+          .HasForeignKey(a => a.RecordedByTeacherId)
+          .OnDelete(DeleteBehavior.Restrict);
+
       // STATS - PLAYER (Many-to-One)
       modelBuilder.Entity<Stats>()
           .HasOne(s => s.Player)
           .WithMany()
           .HasForeignKey(s => s.PlayerId)
+          .OnDelete(DeleteBehavior.Restrict);
+
+      // STATS - LESSON (Many-to-One, optional)
+      modelBuilder.Entity<Stats>()
+          .HasOne(s => s.Lesson)
+          .WithMany(l => l.Reports)
+          .HasForeignKey(s => s.LessonId)
+          .OnDelete(DeleteBehavior.Cascade);
+
+      // STATS - TEACHER (Many-to-One, optional)
+      modelBuilder.Entity<Stats>()
+          .HasOne(s => s.RecordedByTeacher)
+          .WithMany()
+          .HasForeignKey(s => s.RecordedByTeacherId)
           .OnDelete(DeleteBehavior.Restrict);
 
       // ROUTINE - TEACHER (Many-to-One)

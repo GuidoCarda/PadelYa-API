@@ -28,6 +28,7 @@ builder.Services.AddCors(options =>
 builder.Services.AddControllers()
   .AddJsonOptions(options =>
   {
+    options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
     options.JsonSerializerOptions.Converters.Add(
       new JsonStringEnumConverter(JsonNamingPolicy.CamelCase)
     );
@@ -79,6 +80,11 @@ builder.Services.AddScoped<IComplexService, ComplexService>();
 builder.Services.AddScoped<IBookingService, BookingService>();
 builder.Services.AddScoped<ICourtSlotService, CourtSlotService>();
 builder.Services.AddScoped<ILessonService, LessonService>();
+builder.Services.AddScoped<IClassTypeService, ClassTypeService>();
+builder.Services.AddScoped<ILessonEnrollmentService, LessonEnrollmentService>();
+builder.Services.AddScoped<ILessonAttendanceService, LessonAttendanceService>();
+builder.Services.AddScoped<IStatsService, StatsService>();
+builder.Services.AddScoped<IRoutineService, RoutineService>();
 builder.Services.AddScoped<ITournamentService, TournamentService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<IAnnualTableService, AnnualTableService>();

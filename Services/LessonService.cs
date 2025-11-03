@@ -23,11 +23,26 @@ namespace padelya_api.Services
       try
       {
         // Validar que el profesor exista
-        var teacher = await _context.Teachers.FindAsync(createDto.TeacherId);
+        // Usar FirstOrDefaultAsync en lugar de FindAsync para mejor compatibilidad con herencia
+        var teacher = await _context.Teachers
+            .FirstOrDefaultAsync(t => t.Id == createDto.TeacherId);
+        
         if (teacher == null)
         {
-          return ResponseMessage<LessonResponseDto>.Error("El profesor especificado no existe");
+          // Log adicional para depuración
+          var totalTeachers = await _context.Teachers.CountAsync();
+          var allTeacherIds = await _context.Teachers.Select(t => t.Id).ToListAsync();
+          
+          Console.WriteLine($"⚠️ No se encontró profesor con ID {createDto.TeacherId}");
+          Console.WriteLine($"   Total de profesores en DB: {totalTeachers}");
+          Console.WriteLine($"   IDs de profesores disponibles: {string.Join(", ", allTeacherIds)}");
+          
+          return ResponseMessage<LessonResponseDto>.Error(
+              $"El profesor con ID {createDto.TeacherId} no existe. " +
+              $"Profesores disponibles: {string.Join(", ", allTeacherIds)}");
         }
+        
+        Console.WriteLine($"✅ Profesor encontrado: {teacher.Id}");
 
         // Validar que la cancha exista
         var court = await _context.Courts.FindAsync(createDto.CourtId);
@@ -563,9 +578,18 @@ namespace padelya_api.Services
 
     private LessonListDto MapToLessonListDto(Lesson lesson, User? user)
     {
-      var status = "Programada";
-      if (lesson.HasEnded) status = "Finalizada";
-      else if (lesson.HasStarted) status = "En Curso";
+      // Si hay un estado manual, usarlo. Si no, calcularlo automáticamente
+      string status;
+      if (!string.IsNullOrEmpty(lesson.Status))
+      {
+        status = lesson.Status;
+      }
+      else
+      {
+        status = "Programada";
+        if (lesson.HasEnded) status = "Finalizada";
+        else if (lesson.HasStarted) status = "En Curso";
+      }
 
       return new LessonListDto
       {
@@ -581,6 +605,47 @@ namespace padelya_api.Services
         TeacherName = user != null ? $"{user.Name} {user.Surname}" : "Profesor no encontrado",
         Status = status
       };
+    }
+
+    public async Task<ResponseMessage<bool>> UpdateLessonStatusAsync(int lessonId, string status)
+    {
+      try
+      {
+        var lesson = await _context.Lessons
+            .Include(l => l.CourtSlot)
+            .FirstOrDefaultAsync(l => l.Id == lessonId);
+
+        if (lesson == null)
+        {
+          return ResponseMessage<bool>.NotFound("Clase no encontrada");
+        }
+
+        // Guardar el estado manual en el modelo Lesson
+        lesson.Status = status;
+        lesson.UpdatedAt = DateTime.UtcNow;
+
+        // También actualizar CourtSlot.Status si es Cancelada
+        if (status.ToLower() == "cancelada")
+        {
+          lesson.CourtSlot.Status = CourtSlotStatus.Cancelled;
+          _context.CourtSlots.Update(lesson.CourtSlot);
+        }
+        else if (lesson.CourtSlot.Status == CourtSlotStatus.Cancelled && status.ToLower() != "cancelada")
+        {
+          // Si estaba cancelada y ahora no, reactivarla
+          lesson.CourtSlot.Status = CourtSlotStatus.Active;
+          _context.CourtSlots.Update(lesson.CourtSlot);
+        }
+
+        _context.Lessons.Update(lesson);
+        await _context.SaveChangesAsync();
+
+        return ResponseMessage<bool>.SuccessResult(true, "Estado de la clase actualizado exitosamente");
+      }
+      catch (Exception ex)
+      {
+        return ResponseMessage<bool>.Error($"Error al actualizar el estado de la clase: {ex.Message}");
+      }
     }
 
     #endregion

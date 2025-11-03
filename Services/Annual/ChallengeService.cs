@@ -5,6 +5,7 @@ using padelya_api.Models.Annual;
 using padelya_api.Models.Challenge;
 using padelya_api.Services.Notification;
 using padelya_api.Models.Notification;
+using padelya_api.Models;
 
 namespace padelya_api.Services.Annual
 {
@@ -110,9 +111,29 @@ namespace padelya_api.Services.Annual
             var points = rule != null ? (int)(rule.BasePoints * rule.Multiplier) : 0;
             challenge.PointsAwardedPerPlayer = points;
 
-            // Sumar puntos a ambos jugadores ganadores
-            await _annualService.ApplyPointsAsync(challenge.Year, dto.WinnerPlayerId, ScoringSource.Challenge, points, true);
-            await _annualService.ApplyPointsAsync(challenge.Year, dto.WinnerPartnerPlayerId, ScoringSource.Challenge, points, true);
+            // Sumar puntos a ambos jugadores ganadores con trazabilidad
+            await _annualService.ApplyPointsAsync(
+                challenge.Year, 
+                dto.WinnerPlayerId, 
+                ScoringSource.Challenge, 
+                points, 
+                true,
+                matchId: challenge.Id,
+                matchType: "Challenge",
+                scoringStrategy: "ChallengeScoringStrategy",
+                metadata: System.Text.Json.JsonSerializer.Serialize(new { sets = dto.Sets, challengeId = challenge.Id })
+            );
+            await _annualService.ApplyPointsAsync(
+                challenge.Year, 
+                dto.WinnerPartnerPlayerId, 
+                ScoringSource.Challenge, 
+                points, 
+                true,
+                matchId: challenge.Id,
+                matchType: "Challenge",
+                scoringStrategy: "ChallengeScoringStrategy",
+                metadata: System.Text.Json.JsonSerializer.Serialize(new { sets = dto.Sets, challengeId = challenge.Id })
+            );
 
             await _context.SaveChangesAsync();
 
@@ -130,7 +151,7 @@ namespace padelya_api.Services.Annual
             return await q.OrderByDescending(c => c.CreatedAt).ToListAsync();
         }
 
-        public async Task<Challenge> ValidateAsync(int id, RegisterChallengeResultDto dto)
+        public async Task<Challenge> ValidateAsync(int id, RegisterChallengeResultDto dto, int? adminUserId = null)
         {
             var challenge = await _context.Set<Challenge>().FindAsync(id)
                 ?? throw new KeyNotFoundException("Desafío no encontrado");
@@ -147,6 +168,10 @@ namespace padelya_api.Services.Annual
             challenge.WinnerPartnerPlayerId = dto.WinnerPartnerPlayerId;
             challenge.Status = ChallengeStatus.Played;
             challenge.ValidatedAt = DateTime.UtcNow;
+            if (adminUserId.HasValue)
+            {
+                challenge.ValidatedByAdminUserId = adminUserId.Value;
+            }
 
             var rule = await _context.ScoringRules
                 .Include(r => r.AnnualTable)
@@ -156,11 +181,164 @@ namespace padelya_api.Services.Annual
             var points = rule != null ? (int)(rule.BasePoints * rule.Multiplier) : 0;
             challenge.PointsAwardedPerPlayer = points;
 
-            await _annualService.ApplyPointsAsync(challenge.Year, dto.WinnerPlayerId, ScoringSource.Challenge, points, true);
-            await _annualService.ApplyPointsAsync(challenge.Year, dto.WinnerPartnerPlayerId, ScoringSource.Challenge, points, true);
+            // Aplicar puntos con trazabilidad (validación por admin)
+            await _annualService.ApplyPointsAsync(
+                challenge.Year, 
+                dto.WinnerPlayerId, 
+                ScoringSource.Challenge, 
+                points, 
+                true,
+                matchId: challenge.Id,
+                matchType: "Challenge",
+                scoringStrategy: "ChallengeScoringStrategy",
+                recordedByUserId: adminUserId,
+                metadata: System.Text.Json.JsonSerializer.Serialize(new { sets = dto.Sets, challengeId = challenge.Id, validatedBy = adminUserId })
+            );
+            await _annualService.ApplyPointsAsync(
+                challenge.Year, 
+                dto.WinnerPartnerPlayerId, 
+                ScoringSource.Challenge, 
+                points, 
+                true,
+                matchId: challenge.Id,
+                matchType: "Challenge",
+                scoringStrategy: "ChallengeScoringStrategy",
+                recordedByUserId: adminUserId,
+                metadata: System.Text.Json.JsonSerializer.Serialize(new { sets = dto.Sets, challengeId = challenge.Id, validatedBy = adminUserId })
+            );
 
             await _context.SaveChangesAsync();
             return challenge;
+        }
+
+        private async Task<ChallengeDto> MapChallengeToDtoAsync(Challenge challenge)
+        {
+            var playerIds = new List<int>
+            {
+                challenge.RequesterPlayerId,
+                challenge.RequesterPartnerPlayerId,
+                challenge.TargetPlayerId,
+                challenge.TargetPartnerPlayerId
+            };
+
+            if (challenge.WinnerPlayerId.HasValue)
+                playerIds.Add(challenge.WinnerPlayerId.Value);
+            if (challenge.WinnerPartnerPlayerId.HasValue)
+                playerIds.Add(challenge.WinnerPartnerPlayerId.Value);
+
+            var users = await _context.Users
+                .Where(u => u.PersonId.HasValue && playerIds.Contains(u.PersonId.Value))
+                .ToListAsync();
+
+            var requesterUser = users.FirstOrDefault(u => u.PersonId == challenge.RequesterPlayerId);
+            var requesterPartnerUser = users.FirstOrDefault(u => u.PersonId == challenge.RequesterPartnerPlayerId);
+            var targetUser = users.FirstOrDefault(u => u.PersonId == challenge.TargetPlayerId);
+            var targetPartnerUser = users.FirstOrDefault(u => u.PersonId == challenge.TargetPartnerPlayerId);
+            var winnerUser = challenge.WinnerPlayerId.HasValue 
+                ? users.FirstOrDefault(u => u.PersonId == challenge.WinnerPlayerId.Value) 
+                : null;
+            var winnerPartnerUser = challenge.WinnerPartnerPlayerId.HasValue 
+                ? users.FirstOrDefault(u => u.PersonId == challenge.WinnerPartnerPlayerId.Value) 
+                : null;
+
+            return new ChallengeDto
+            {
+                Id = challenge.Id,
+                Year = challenge.Year,
+                RequesterPlayerId = challenge.RequesterPlayerId,
+                RequesterPlayerName = requesterUser?.Name,
+                RequesterPlayerSurname = requesterUser?.Surname,
+                RequesterPartnerPlayerId = challenge.RequesterPartnerPlayerId,
+                RequesterPartnerName = requesterPartnerUser?.Name,
+                RequesterPartnerSurname = requesterPartnerUser?.Surname,
+                TargetPlayerId = challenge.TargetPlayerId,
+                TargetPlayerName = targetUser?.Name,
+                TargetPlayerSurname = targetUser?.Surname,
+                TargetPartnerPlayerId = challenge.TargetPartnerPlayerId,
+                TargetPartnerName = targetPartnerUser?.Name,
+                TargetPartnerSurname = targetPartnerUser?.Surname,
+                Status = challenge.Status,
+                CreatedAt = challenge.CreatedAt,
+                RespondedAt = challenge.RespondedAt,
+                PlayedAt = challenge.PlayedAt,
+                WinnerPlayerId = challenge.WinnerPlayerId,
+                WinnerPlayerName = winnerUser?.Name,
+                WinnerPartnerPlayerId = challenge.WinnerPartnerPlayerId,
+                WinnerPartnerName = winnerPartnerUser?.Name,
+                Sets = challenge.Sets,
+                RequesterPointsAtCreation = challenge.RequesterPointsAtCreation,
+                TargetPointsAtCreation = challenge.TargetPointsAtCreation,
+                PointsAwardedPerPlayer = challenge.PointsAwardedPerPlayer,
+                ValidatedByAdminUserId = challenge.ValidatedByAdminUserId,
+                ValidatedAt = challenge.ValidatedAt,
+                RequiresValidation = challenge.Status == ChallengeStatus.Played && !challenge.ValidatedAt.HasValue
+            };
+        }
+
+        public async Task<ChallengeDto> CreateWithDetailsAsync(int year, CreateChallengeDto dto)
+        {
+            var challenge = await CreateAsync(year, dto);
+            return await MapChallengeToDtoAsync(challenge);
+        }
+
+        public async Task<ChallengeDto> RespondWithDetailsAsync(int id, bool accept)
+        {
+            var challenge = await RespondAsync(id, accept);
+            return await MapChallengeToDtoAsync(challenge);
+        }
+
+        public async Task<ChallengeDto> RegisterResultWithDetailsAsync(int id, RegisterChallengeResultDto dto)
+        {
+            var challenge = await RegisterResultAsync(id, dto);
+            return await MapChallengeToDtoAsync(challenge);
+        }
+
+        public async Task<List<ChallengeDto>> GetHistoryWithDetailsAsync(int playerId, int? year = null)
+        {
+            var challenges = await GetHistoryAsync(playerId, year);
+            var result = new List<ChallengeDto>();
+            foreach (var challenge in challenges)
+            {
+                result.Add(await MapChallengeToDtoAsync(challenge));
+            }
+            return result;
+        }
+
+        public async Task<List<ChallengeDto>> GetPendingChallengesAsync(int playerId)
+        {
+            var challenges = await _context.Set<Challenge>()
+                .Where(c => (c.TargetPlayerId == playerId || c.TargetPartnerPlayerId == playerId) 
+                    && c.Status == ChallengeStatus.Pending)
+                .OrderByDescending(c => c.CreatedAt)
+                .ToListAsync();
+
+            var result = new List<ChallengeDto>();
+            foreach (var challenge in challenges)
+            {
+                result.Add(await MapChallengeToDtoAsync(challenge));
+            }
+            return result;
+        }
+
+        public async Task<ChallengeDto> ValidateWithDetailsAsync(int id, RegisterChallengeResultDto dto, int? adminUserId = null)
+        {
+            var challenge = await ValidateAsync(id, dto, adminUserId);
+            return await MapChallengeToDtoAsync(challenge);
+        }
+
+        public async Task<List<ChallengeDto>> GetChallengesRequiringValidationAsync()
+        {
+            var challenges = await _context.Set<Challenge>()
+                .Where(c => c.Status == ChallengeStatus.Played && !c.ValidatedAt.HasValue)
+                .OrderByDescending(c => c.PlayedAt)
+                .ToListAsync();
+
+            var result = new List<ChallengeDto>();
+            foreach (var challenge in challenges)
+            {
+                result.Add(await MapChallengeToDtoAsync(challenge));
+            }
+            return result;
         }
     }
 }

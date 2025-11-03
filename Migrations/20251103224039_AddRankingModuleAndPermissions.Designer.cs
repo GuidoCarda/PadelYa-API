@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using padelya_api.Data;
 
@@ -11,9 +12,11 @@ using padelya_api.Data;
 namespace padelya_api.Migrations
 {
     [DbContext(typeof(PadelYaDbContext))]
-    partial class PadelYaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251103224039_AddRankingModuleAndPermissions")]
+    partial class AddRankingModuleAndPermissions
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -739,61 +742,6 @@ namespace padelya_api.Migrations
                     b.HasIndex("AnnualTableId");
 
                     b.ToTable("RankingEntries");
-                });
-
-            modelBuilder.Entity("padelya_api.Models.Annual.RankingTrace", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("AnnualTableId")
-                        .HasColumnType("int");
-
-                    b.Property<bool>("IsWin")
-                        .HasColumnType("bit");
-
-                    b.Property<int?>("MatchId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("MatchType")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Metadata")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("PlayerId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Points")
-                        .HasColumnType("int");
-
-                    b.Property<int>("RankingEntryId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("RecordedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int?>("RecordedByUserId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("ScoringStrategy")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("Source")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AnnualTableId");
-
-                    b.HasIndex("RankingEntryId");
-
-                    b.ToTable("RankingTraces");
                 });
 
             modelBuilder.Entity("padelya_api.Models.Annual.ScoringRule", b =>
@@ -2486,25 +2434,6 @@ namespace padelya_api.Migrations
                         .IsRequired();
 
                     b.Navigation("AnnualTable");
-                });
-
-            modelBuilder.Entity("padelya_api.Models.Annual.RankingTrace", b =>
-                {
-                    b.HasOne("padelya_api.Models.Annual.AnnualTable", "AnnualTable")
-                        .WithMany()
-                        .HasForeignKey("AnnualTableId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("padelya_api.Models.Annual.RankingEntry", "RankingEntry")
-                        .WithMany()
-                        .HasForeignKey("RankingEntryId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("AnnualTable");
-
-                    b.Navigation("RankingEntry");
                 });
 
             modelBuilder.Entity("padelya_api.Models.Annual.ScoringRule", b =>

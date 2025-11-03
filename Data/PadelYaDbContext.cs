@@ -60,6 +60,7 @@ namespace padelya_api.Data
     public DbSet<ScoringRule> ScoringRules { get; set; }
     public DbSet<Challenge> Challenges { get; set; }
     public DbSet<Notification> Notifications { get; set; }
+    public DbSet<RankingTrace> RankingTraces { get; set; }
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -284,6 +285,20 @@ namespace padelya_api.Data
           .HasMany(a => a.ScoringRules)
           .WithOne(r => r.AnnualTable)
           .HasForeignKey(r => r.AnnualTableId);
+
+      // RankingTrace - AnnualTable (Many-to-One)
+      modelBuilder.Entity<RankingTrace>()
+          .HasOne(t => t.AnnualTable)
+          .WithMany()
+          .HasForeignKey(t => t.AnnualTableId)
+          .OnDelete(DeleteBehavior.Restrict);
+
+      // RankingTrace - RankingEntry (Many-to-One)
+      modelBuilder.Entity<RankingTrace>()
+          .HasOne(t => t.RankingEntry)
+          .WithMany()
+          .HasForeignKey(t => t.RankingEntryId)
+          .OnDelete(DeleteBehavior.Restrict);
       #endregion
 
       #region Lessons
@@ -395,7 +410,8 @@ namespace padelya_api.Data
           new Module { Id = 5, Name = "tournament", DisplayName = "Torneos" },
           new Module { Id = 6, Name = "lesson", DisplayName = "Clases" },
           new Module { Id = 7, Name = "routine", DisplayName = "Rutinas" },
-          new Module { Id = 8, Name = "feedback", DisplayName = "Comentarios" }
+          new Module { Id = 8, Name = "feedback", DisplayName = "Comentarios" },
+          new Module { Id = 9, Name = "ranking", DisplayName = "Ranking" }
       );
 
       // 2. SimplePermissions
@@ -464,7 +480,12 @@ namespace padelya_api.Data
           new { Id = 46, Name = "feedback:create", ModuleId = 8, PermissionType = "Simple", DisplayName = "Crear comentario", Description = "Permite crear comentarios" },
           new { Id = 47, Name = "feedback:edit", ModuleId = 8, PermissionType = "Simple", DisplayName = "Editar comentario", Description = "Permite editar comentarios" },
           new { Id = 48, Name = "feedback:delete", ModuleId = 8, PermissionType = "Simple", DisplayName = "Eliminar comentario", Description = "Permite eliminar comentarios" },
-          new { Id = 49, Name = "feedback:view", ModuleId = 8, PermissionType = "Simple", DisplayName = "Ver comentarios", Description = "Permite ver comentarios" }
+          new { Id = 49, Name = "feedback:view", ModuleId = 8, PermissionType = "Simple", DisplayName = "Ver comentarios", Description = "Permite ver comentarios" },
+
+          // Ranking permissions
+          new { Id = 50, Name = "ranking:view_own", ModuleId = 9, PermissionType = "Simple", DisplayName = "Ver ranking propio", Description = "Permite ver el ranking propio y crear desafíos" },
+          new { Id = 51, Name = "ranking:view", ModuleId = 9, PermissionType = "Simple", DisplayName = "Ver ranking", Description = "Permite ver el ranking completo" },
+          new { Id = 52, Name = "ranking:manage", ModuleId = 9, PermissionType = "Simple", DisplayName = "Gestionar ranking", Description = "Permite gestionar la tabla anual y validar desafíos" }
 
       );
 
@@ -527,6 +548,9 @@ namespace padelya_api.Data
           new { RoleId = 100, PermissionComponentId = 47 },
           new { RoleId = 100, PermissionComponentId = 48 },
           new { RoleId = 100, PermissionComponentId = 49 },
+          new { RoleId = 100, PermissionComponentId = 50 }, // ranking:view_own
+          new { RoleId = 100, PermissionComponentId = 51 }, // ranking:view
+          new { RoleId = 100, PermissionComponentId = 52 }, // ranking:manage
 
           // Teacher: permisos específicos
           new { RoleId = 101, PermissionComponentId = 1 }, // booking:make
@@ -576,7 +600,8 @@ namespace padelya_api.Data
           new { RoleId = 102, PermissionComponentId = 31 }, // user:edit_self
           new { RoleId = 102, PermissionComponentId = 33 }, // user:view_own
           new { RoleId = 102, PermissionComponentId = 37 }, // routine:view
-          new { RoleId = 102, PermissionComponentId = 42 }  // feedback:view
+          new { RoleId = 102, PermissionComponentId = 42 }, // feedback:view
+          new { RoleId = 102, PermissionComponentId = 50 }  // ranking:view_own
       );
 
       modelBuilder.Entity<UserStatus>().HasData(

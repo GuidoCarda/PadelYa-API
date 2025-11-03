@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using padelya_api.Data;
+using padelya_api.DTOs.Annual;
+using padelya_api.Models;
 using padelya_api.Models.Annual;
 
 namespace padelya_api.Services.Annual
@@ -35,20 +37,24 @@ namespace padelya_api.Services.Annual
                 };
                 await _context.ScoringRules.AddRangeAsync(defaultRules);
 
-                // Seed sample ranking entries for existing players (if available)
+                // Crear entries vacías solo para jugadores que realmente existen en el sistema
                 var playerIds = await _context.Players.Select(p => p.Id).ToListAsync();
-                var demoPoints = new int[] { 120, 90, 60, 40, 20 };
-                int i = 0;
                 foreach (var pid in playerIds)
                 {
                     var entry = new RankingEntry
                     {
                         AnnualTableId = table.Id,
                         PlayerId = pid,
-                        PointsTotal = i < demoPoints.Length ? demoPoints[i] : 0,
-                        PointsFromChallenges = i < demoPoints.Length ? demoPoints[i] : 0
+                        PointsTotal = 0,
+                        PointsFromChallenges = 0,
+                        PointsFromTournaments = 0,
+                        PointsFromClasses = 0,
+                        PointsFromMatchWins = 0,
+                        PointsFromMatchLosses = 0,
+                        Wins = 0,
+                        Losses = 0,
+                        Draws = 0
                     };
-                    i++;
                     _context.RankingEntries.Add(entry);
                 }
 
@@ -61,9 +67,11 @@ namespace padelya_api.Services.Annual
         {
             await GetOrCreateForYearAsync(year);
 
+            // Obtener solo jugadores que realmente existen en el sistema
+            var validPlayerIds = await _context.Players.Select(p => p.Id).ToListAsync();
+
             var query = _context.RankingEntries
-                .Where(e => e.AnnualTable.Year == year)
-                .Include(e => e.AnnualTable)
+                .Where(e => e.AnnualTable.Year == year && validPlayerIds.Contains(e.PlayerId))
                 .AsQueryable();
 
             if (playerId.HasValue)
@@ -76,6 +84,73 @@ namespace padelya_api.Services.Annual
             return await query
                 .OrderByDescending(e => e.PointsTotal)
                 .ToListAsync();
+        }
+
+        public async Task<List<RankingEntryDto>> GetRankingWithNamesAsync(int year, int? playerId = null, string? from = null, string? to = null)
+        {
+            var entries = await GetRankingAsync(year, playerId, from, to);
+            var playerIds = entries.Select(e => e.PlayerId).Distinct().ToList();
+            
+            var users = await _context.Users
+                .Where(u => u.PersonId.HasValue && playerIds.Contains(u.PersonId.Value))
+                .ToListAsync();
+
+            var result = new List<RankingEntryDto>();
+            int position = 1;
+            
+            foreach (var entry in entries)
+            {
+                var user = users.FirstOrDefault(u => u.PersonId == entry.PlayerId);
+                result.Add(new RankingEntryDto
+                {
+                    Id = entry.Id,
+                    PlayerId = entry.PlayerId,
+                    PlayerName = user?.Name,
+                    PlayerSurname = user?.Surname,
+                    Position = position++,
+                    PointsTotal = entry.PointsTotal,
+                    Wins = entry.Wins,
+                    Losses = entry.Losses,
+                    Draws = entry.Draws,
+                    PointsFromTournaments = entry.PointsFromTournaments,
+                    PointsFromChallenges = entry.PointsFromChallenges,
+                    PointsFromClasses = entry.PointsFromClasses,
+                    PointsFromMatchWins = entry.PointsFromMatchWins,
+                    PointsFromMatchLosses = entry.PointsFromMatchLosses,
+                    LastUpdatedAt = entry.LastUpdatedAt
+                });
+            }
+
+            return result;
+        }
+
+        public async Task<AnnualTableStatisticsDto> GetStatisticsAsync(int year)
+        {
+            var table = await GetOrCreateForYearAsync(year);
+            var ranking = await GetRankingAsync(year);
+
+            var challenges = await _context.Set<Models.Challenge.Challenge>()
+                .Where(c => c.Year == year)
+                .ToListAsync();
+
+            var statistics = new AnnualTableStatisticsDto
+            {
+                TotalPlayers = ranking.Count,
+                ActivePlayers = ranking.Count(r => r.PointsTotal > 0),
+                TotalChallenges = challenges.Count,
+                PendingChallenges = challenges.Count(c => c.Status == Models.Challenge.ChallengeStatus.Pending),
+                TotalPointsAwarded = ranking.Sum(r => r.PointsTotal),
+                PointsBySource = new Dictionary<string, int>
+                {
+                    { "Tournaments", ranking.Sum(r => r.PointsFromTournaments) },
+                    { "Challenges", ranking.Sum(r => r.PointsFromChallenges) },
+                    { "Classes", ranking.Sum(r => r.PointsFromClasses) },
+                    { "MatchWins", ranking.Sum(r => r.PointsFromMatchWins) },
+                    { "MatchLosses", ranking.Sum(r => r.PointsFromMatchLosses) }
+                }
+            };
+
+            return statistics;
         }
 
         public async Task<AnnualTable> UpdateStatusAsync(int year, AnnualTableStatus status)
@@ -98,15 +173,28 @@ namespace padelya_api.Services.Annual
             return table;
         }
 
-        public async Task<List<ScoringRule>> GetScoringRulesAsync(int year)
+        public async Task<List<ScoringRuleDto>> GetScoringRulesAsync(int year)
         {
             var table = await GetOrCreateForYearAsync(year);
-            return await _context.ScoringRules
+            var rules = await _context.ScoringRules
                 .Where(r => r.AnnualTableId == table.Id)
+                .Select(r => new ScoringRuleDto
+                {
+                    Id = r.Id,
+                    AnnualTableId = r.AnnualTableId,
+                    Source = r.Source,
+                    BasePoints = r.BasePoints,
+                    Multiplier = r.Multiplier,
+                    MaxPoints = r.MaxPoints,
+                    IsActive = r.IsActive,
+                    CreatedAt = r.CreatedAt,
+                    DeactivatedAt = r.DeactivatedAt
+                })
                 .ToListAsync();
+            return rules;
         }
 
-        public async Task<List<ScoringRule>> UpsertScoringRulesAsync(int year, List<ScoringRule> rules)
+        public async Task<List<ScoringRuleDto>> UpsertScoringRulesAsync(int year, List<ScoringRuleDto> rules)
         {
             var table = await GetOrCreateForYearAsync(year);
 
@@ -115,17 +203,44 @@ namespace padelya_api.Services.Annual
                 .ToListAsync();
 
             _context.ScoringRules.RemoveRange(existing);
-            foreach (var r in rules)
+            
+            var newRules = rules.Select(r => new ScoringRule
             {
-                r.Id = 0;
-                r.AnnualTableId = table.Id;
-            }
-            await _context.ScoringRules.AddRangeAsync(rules);
+                Id = 0,
+                AnnualTableId = table.Id,
+                Source = r.Source,
+                BasePoints = r.BasePoints,
+                Multiplier = r.Multiplier,
+                MaxPoints = r.MaxPoints,
+                IsActive = r.IsActive,
+                CreatedAt = r.CreatedAt,
+                DeactivatedAt = r.DeactivatedAt
+            }).ToList();
+            
+            await _context.ScoringRules.AddRangeAsync(newRules);
             await _context.SaveChangesAsync();
-            return rules;
+            
+            // Recargar las reglas guardadas para obtener los IDs correctos
+            var savedRules = await _context.ScoringRules
+                .Where(nr => nr.AnnualTableId == table.Id)
+                .OrderBy(nr => nr.Id)
+                .ToListAsync();
+
+            return savedRules.Select(r => new ScoringRuleDto
+            {
+                Id = r.Id,
+                AnnualTableId = r.AnnualTableId,
+                Source = r.Source,
+                BasePoints = r.BasePoints,
+                Multiplier = r.Multiplier,
+                MaxPoints = r.MaxPoints,
+                IsActive = r.IsActive,
+                CreatedAt = r.CreatedAt,
+                DeactivatedAt = r.DeactivatedAt
+            }).ToList();
         }
 
-        public async Task ApplyPointsAsync(int year, int playerId, ScoringSource source, int points, bool isWin)
+        public async Task ApplyPointsAsync(int year, int playerId, ScoringSource source, int points, bool isWin, int? matchId = null, string? matchType = null, string? scoringStrategy = null, int? recordedByUserId = null, string? metadata = null)
         {
             var table = await GetOrCreateForYearAsync(year);
 
@@ -140,6 +255,7 @@ namespace padelya_api.Services.Annual
                     PlayerId = playerId
                 };
                 _context.RankingEntries.Add(entry);
+                await _context.SaveChangesAsync(); // Guardar para obtener el ID
             }
 
             entry.PointsTotal += points;
@@ -167,7 +283,38 @@ namespace padelya_api.Services.Annual
                     break;
             }
 
+            // Registrar trazabilidad
+            var trace = new RankingTrace
+            {
+                MatchId = matchId,
+                MatchType = matchType ?? source.ToString(),
+                Points = points,
+                AnnualTableId = table.Id,
+                RankingEntryId = entry.Id,
+                PlayerId = playerId,
+                Source = source,
+                ScoringStrategy = scoringStrategy ?? GetStrategyName(source),
+                IsWin = isWin,
+                RecordedAt = DateTime.UtcNow,
+                RecordedByUserId = recordedByUserId,
+                Metadata = metadata
+            };
+
+            _context.RankingTraces.Add(trace);
             await _context.SaveChangesAsync();
+        }
+
+        private string GetStrategyName(ScoringSource source)
+        {
+            return source switch
+            {
+                ScoringSource.Challenge => "ChallengeScoringStrategy",
+                ScoringSource.Tournament => "TournamentScoringStrategy",
+                ScoringSource.Class => "ClassScoringStrategy",
+                ScoringSource.MatchWin => "MatchWinScoringStrategy",
+                ScoringSource.MatchLoss => "MatchLossScoringStrategy",
+                _ => "UnknownStrategy"
+            };
         }
     }
 }

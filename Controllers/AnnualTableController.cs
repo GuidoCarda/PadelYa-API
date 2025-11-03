@@ -17,18 +17,21 @@ namespace padelya_api.Controllers
         }
 
         [HttpGet("export")]
+        [Microsoft.AspNetCore.Authorization.Authorize]
+        [padelya_api.Attributes.RequirePermission("ranking:view")]
         public async Task<IActionResult> Export([FromQuery] int year)
         {
-            var ranking = await _service.GetRankingAsync(year);
+            var ranking = await _service.GetRankingWithNamesAsync(year);
             var sb = new StringBuilder();
-            sb.AppendLine("Position,PlayerId,PointsTotal,Wins,Losses,Draws,FromTournaments,FromChallenges,FromClasses");
-            int pos = 1;
+            sb.AppendLine("Position,PlayerId,PlayerName,PlayerSurname,PointsTotal,Wins,Losses,Draws,FromTournaments,FromChallenges,FromClasses,FromMatchWins,FromMatchLosses");
             foreach (var r in ranking)
             {
                 sb.AppendLine(string.Join(',', new object[]
                 {
-                    pos++, r.PlayerId, r.PointsTotal, r.Wins, r.Losses, r.Draws,
-                    r.PointsFromTournaments, r.PointsFromChallenges, r.PointsFromClasses
+                    r.Position, r.PlayerId, r.PlayerName ?? "", r.PlayerSurname ?? "", 
+                    r.PointsTotal, r.Wins, r.Losses, r.Draws,
+                    r.PointsFromTournaments, r.PointsFromChallenges, r.PointsFromClasses,
+                    r.PointsFromMatchWins, r.PointsFromMatchLosses
                 }));
             }
             var bytes = Encoding.UTF8.GetBytes(sb.ToString());
@@ -36,10 +39,22 @@ namespace padelya_api.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetRanking([FromQuery] int year, [FromQuery] int? playerId = null, [FromQuery] string? from = null, [FromQuery] string? to = null)
+        public async Task<IActionResult> GetRanking([FromQuery] int year, [FromQuery] int? playerId = null, [FromQuery] string? from = null, [FromQuery] string? to = null, [FromQuery] bool includeNames = false)
         {
-            var ranking = await _service.GetRankingAsync(year, playerId, from, to);
-            return Ok(ranking);
+            if (includeNames)
+            {
+                var ranking = await _service.GetRankingWithNamesAsync(year, playerId, from, to);
+                return Ok(ranking);
+            }
+            var rankingBasic = await _service.GetRankingAsync(year, playerId, from, to);
+            return Ok(rankingBasic);
+        }
+
+        [HttpGet("statistics")]
+        public async Task<IActionResult> GetStatistics([FromQuery] int year)
+        {
+            var statistics = await _service.GetStatisticsAsync(year);
+            return Ok(statistics);
         }
 
         [HttpPatch("status")]
@@ -57,7 +72,9 @@ namespace padelya_api.Controllers
         }
 
         [HttpPut("rules")]
-        public async Task<IActionResult> UpsertRules([FromQuery] int year, [FromBody] List<ScoringRule> rules)
+        [Microsoft.AspNetCore.Authorization.Authorize]
+        [padelya_api.Attributes.RequirePermission("ranking:manage")]
+        public async Task<IActionResult> UpsertRules([FromQuery] int year, [FromBody] List<padelya_api.DTOs.Annual.ScoringRuleDto> rules)
         {
             var saved = await _service.UpsertScoringRulesAsync(year, rules);
             return Ok(saved);

@@ -29,6 +29,7 @@ builder.Services.AddControllers()
   .AddJsonOptions(options =>
   {
     options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+    options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
     options.JsonSerializerOptions.Converters.Add(
       new JsonStringEnumConverter(JsonNamingPolicy.CamelCase)
     );
@@ -96,6 +97,7 @@ builder.Services.AddScoped<IScoringStrategy, MatchWinScoringStrategy>();
 builder.Services.AddScoped<IScoringStrategy, MatchLossScoringStrategy>();
 builder.Services.AddScoped<IChallengeService, ChallengeService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IRankingTraceService, RankingTraceService>();
 
 
 var app = builder.Build();

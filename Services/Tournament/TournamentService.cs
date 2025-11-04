@@ -250,6 +250,13 @@ namespace padelya_api.Services
             {
                 return null;
             }
+
+        
+            if (tournament.TournamentStatus == TournamentStatus.Finalizado)
+            {
+                throw new ArgumentException("No se puede cambiar el estado de un torneo que ya está finalizado.");
+            }
+
             tournament.TournamentStatus = newStatus;
             await _context.SaveChangesAsync();
             return tournament;

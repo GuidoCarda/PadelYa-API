@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using padelya_api.Data;
 
@@ -11,9 +12,11 @@ using padelya_api.Data;
 namespace padelya_api.Migrations
 {
     [DbContext(typeof(PadelYaDbContext))]
-    partial class PadelYaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251103210018_AddEcomerceModule")]
+    partial class AddEcomerceModule
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1059,9 +1062,7 @@ namespace padelya_api.Migrations
                         .HasColumnType("int");
 
                     b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETUTCDATE()");
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("Description")
                         .IsRequired()
@@ -1099,7 +1100,7 @@ namespace padelya_api.Migrations
                         {
                             Id = 1,
                             CategoryId = 1,
-                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTime(2025, 11, 3, 21, 0, 17, 969, DateTimeKind.Utc).AddTicks(2746),
                             Description = "Paleta profesional de control",
                             ImageUrl = "https://via.placeholder.com/300x300?text=Paleta+Head",
                             IsActive = true,
@@ -1111,7 +1112,7 @@ namespace padelya_api.Migrations
                         {
                             Id = 2,
                             CategoryId = 1,
-                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTime(2025, 11, 3, 21, 0, 17, 969, DateTimeKind.Utc).AddTicks(4602),
                             Description = "Paleta de potencia y control",
                             ImageUrl = "https://via.placeholder.com/300x300?text=Paleta+Bullpadel",
                             IsActive = true,
@@ -1123,7 +1124,7 @@ namespace padelya_api.Migrations
                         {
                             Id = 3,
                             CategoryId = 1,
-                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTime(2025, 11, 3, 21, 0, 17, 969, DateTimeKind.Utc).AddTicks(4605),
                             Description = "Paleta gama alta",
                             ImageUrl = "https://via.placeholder.com/300x300?text=Paleta+Nox",
                             IsActive = true,
@@ -1135,7 +1136,7 @@ namespace padelya_api.Migrations
                         {
                             Id = 4,
                             CategoryId = 2,
-                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTime(2025, 11, 3, 21, 0, 17, 969, DateTimeKind.Utc).AddTicks(4606),
                             Description = "Tubo de 3 pelotas profesionales",
                             ImageUrl = "https://via.placeholder.com/300x300?text=Pelotas+Head",
                             IsActive = true,
@@ -1147,7 +1148,7 @@ namespace padelya_api.Migrations
                         {
                             Id = 5,
                             CategoryId = 2,
-                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTime(2025, 11, 3, 21, 0, 17, 969, DateTimeKind.Utc).AddTicks(4608),
                             Description = "Pelotas de competición",
                             ImageUrl = "https://via.placeholder.com/300x300?text=Pelotas+Wilson",
                             IsActive = true,
@@ -1159,7 +1160,7 @@ namespace padelya_api.Migrations
                         {
                             Id = 6,
                             CategoryId = 3,
-                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTime(2025, 11, 3, 21, 0, 17, 969, DateTimeKind.Utc).AddTicks(4609),
                             Description = "Remera deportiva con tecnología dry-fit",
                             ImageUrl = "https://via.placeholder.com/300x300?text=Remera+Adidas",
                             IsActive = true,
@@ -1171,7 +1172,7 @@ namespace padelya_api.Migrations
                         {
                             Id = 7,
                             CategoryId = 3,
-                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTime(2025, 11, 3, 21, 0, 17, 969, DateTimeKind.Utc).AddTicks(4614),
                             Description = "Short con bolsillos especiales para pelotas",
                             ImageUrl = "https://via.placeholder.com/300x300?text=Short+Nike",
                             IsActive = true,
@@ -1183,7 +1184,7 @@ namespace padelya_api.Migrations
                         {
                             Id = 8,
                             CategoryId = 4,
-                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTime(2025, 11, 3, 21, 0, 17, 969, DateTimeKind.Utc).AddTicks(4616),
                             Description = "Zapatillas especializadas con suela clay",
                             ImageUrl = "https://via.placeholder.com/300x300?text=Zapatillas+Asics",
                             IsActive = true,
@@ -1195,7 +1196,7 @@ namespace padelya_api.Migrations
                         {
                             Id = 9,
                             CategoryId = 5,
-                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTime(2025, 11, 3, 21, 0, 17, 969, DateTimeKind.Utc).AddTicks(4617),
                             Description = "Bolso paletero para 3 paletas",
                             ImageUrl = "https://via.placeholder.com/300x300?text=Bolso+Head",
                             IsActive = true,
@@ -1207,7 +1208,7 @@ namespace padelya_api.Migrations
                         {
                             Id = 10,
                             CategoryId = 5,
-                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTime(2025, 11, 3, 21, 0, 17, 969, DateTimeKind.Utc).AddTicks(4619),
                             Description = "Grip premium antideslizante",
                             ImageUrl = "https://via.placeholder.com/300x300?text=Grip+Wilson",
                             IsActive = true,

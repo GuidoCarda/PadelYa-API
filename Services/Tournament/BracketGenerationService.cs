@@ -37,10 +37,11 @@ namespace padelya_api.Services
             }
 
             var enrolledCouples = tournament.Enrollments.Select(e => e.Couple).ToList();
+            var totalPlayers = enrolledCouples.Sum(c => c.Players.Count);
 
-            if (enrolledCouples.Count < 2)
+            if (enrolledCouples.Count < 2 || totalPlayers < 4)
             {
-                throw new ArgumentException("Se necesitan al menos 2 parejas inscritas para generar el bracket.");
+                throw new ArgumentException("Se necesitan al menos 4 jugadores (2 parejas) para generar el cuadro. Un torneo de pádel requiere mínimo una final con 2 parejas.");
             }
 
             // Eliminar brackets existentes si los hay
@@ -288,6 +289,23 @@ namespace padelya_api.Services
                 CourtSlotId = match.CourtSlotId,
                 MatchNumber = matchNumber
             };
+
+            // Cargar información de programación si existe
+            if (match.CourtSlotId.HasValue)
+            {
+                var courtSlot = await _context.CourtSlots
+                    .Include(cs => cs.Court)
+                    .FirstOrDefaultAsync(cs => cs.Id == match.CourtSlotId.Value);
+
+                if (courtSlot != null)
+                {
+                    matchDto.ScheduledDate = courtSlot.Date;
+                    matchDto.ScheduledStartTime = courtSlot.StartTime.ToTimeSpan();
+                    matchDto.ScheduledEndTime = courtSlot.EndTime.ToTimeSpan();
+                    matchDto.CourtId = courtSlot.CourtId;
+                    matchDto.CourtName = courtSlot.Court?.Name ?? "";
+                }
+            }
 
             if (match.CoupleOneId.HasValue && match.CoupleOne != null)
             {

@@ -12,6 +12,13 @@ namespace padelya_api.DTOs.Tournament
         public int? CourtSlotId { get; set; }
         public int MatchNumber { get; set; }
         public int? WinnerCoupleId { get; set; }
+        
+        // programacion del partido
+        public DateTime? ScheduledDate { get; set; }
+        public TimeSpan? ScheduledStartTime { get; set; }
+        public TimeSpan? ScheduledEndTime { get; set; }
+        public int? CourtId { get; set; }
+        public string? CourtName { get; set; }
     }
 
     public class TournamentBracketDto

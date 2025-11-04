@@ -5,6 +5,7 @@ using padelya_api.Models;
 using padelya_api.Models.Class;
 using padelya_api.Models.Repair;
 using padelya_api.Models.Tournament;
+using padelya_api.Models.Ecommerce;
 
 namespace padelya_api.Data
 {
@@ -59,6 +60,12 @@ namespace padelya_api.Data
 
         //LoginAudit
         public DbSet<LoginAudit> LoginAudits { get; set; }
+
+        //Ecommerce
+        public DbSet<Category> Categories { get; set; }
+        public DbSet<Product> Products { get; set; }
+        public DbSet<Order> Orders { get; set; }
+        public DbSet<OrderItem> OrderItems { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -625,7 +632,9 @@ namespace padelya_api.Data
                 new { RoleId = 102, PermissionComponentId = 31 }, // user:edit_self
                 new { RoleId = 102, PermissionComponentId = 33 }, // user:view_own
                 new { RoleId = 102, PermissionComponentId = 37 }, // routine:view
-                new { RoleId = 102, PermissionComponentId = 42 }  // feedback:view
+                new { RoleId = 102, PermissionComponentId = 42 }, // feedback:view
+                new { RoleId = 102, PermissionComponentId = 13 }, // tournament:view
+                new { RoleId = 102, PermissionComponentId = 14 }  // tournament:join
             );
 
             modelBuilder.Entity<UserStatus>().HasData(
@@ -802,6 +811,125 @@ namespace padelya_api.Data
                 new Booking { Id = 3, CourtSlotId = 3, PersonId = 1, Status = BookingStatus.ReservedPaid },
                 new Booking { Id = 4, CourtSlotId = 4, PersonId = 3, Status = BookingStatus.ReservedPaid }
             );
+
+            #region Ecommerce Configuration
+
+            // Category Configuration
+            modelBuilder.Entity<Category>()
+                .HasKey(c => c.Id);
+
+            modelBuilder.Entity<Category>()
+                .Property(c => c.Name)
+                .IsRequired()
+                .HasMaxLength(100);
+
+            // Product Configuration
+            modelBuilder.Entity<Product>()
+                .HasKey(p => p.Id);
+
+            modelBuilder.Entity<Product>()
+                .Property(p => p.Name)
+                .IsRequired()
+                .HasMaxLength(200);
+
+            modelBuilder.Entity<Product>()
+                .Property(p => p.Price)
+                .HasPrecision(18, 2);
+
+            modelBuilder.Entity<Product>()
+                .Property(p => p.CreatedAt)
+                .HasDefaultValueSql("GETUTCDATE()");
+
+            // Product - Category relationship
+            modelBuilder.Entity<Product>()
+                .HasOne(p => p.Category)
+                .WithMany(c => c.Products)
+                .HasForeignKey(p => p.CategoryId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Order Configuration
+            modelBuilder.Entity<Order>()
+                .HasKey(o => o.Id);
+
+            modelBuilder.Entity<Order>()
+                .Property(o => o.TotalAmount)
+                .HasPrecision(18, 2);
+
+            // Order - User relationship
+            modelBuilder.Entity<Order>()
+                .HasOne(o => o.User)
+                .WithMany()
+                .HasForeignKey(o => o.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Order - Payment relationship
+            modelBuilder.Entity<Order>()
+                .HasOne(o => o.Payment)
+                .WithMany()
+                .HasForeignKey(o => o.PaymentId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .IsRequired(false);
+
+            // OrderItem Configuration
+            modelBuilder.Entity<OrderItem>()
+                .HasKey(oi => oi.Id);
+
+            modelBuilder.Entity<OrderItem>()
+                .Property(oi => oi.UnitPrice)
+                .HasPrecision(18, 2);
+
+            modelBuilder.Entity<OrderItem>()
+                .Property(oi => oi.Subtotal)
+                .HasPrecision(18, 2);
+
+            // OrderItem - Order relationship
+            modelBuilder.Entity<OrderItem>()
+                .HasOne(oi => oi.Order)
+                .WithMany(o => o.OrderItems)
+                .HasForeignKey(oi => oi.OrderId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // OrderItem - Product relationship
+            modelBuilder.Entity<OrderItem>()
+                .HasOne(oi => oi.Product)
+                .WithMany()
+                .HasForeignKey(oi => oi.ProductId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Seeding Categories
+            modelBuilder.Entity<Category>().HasData(
+                new Category { Id = 1, Name = "Paletas", Description = "Paletas de pádel profesionales y amateur", IsActive = true },
+                new Category { Id = 2, Name = "Pelotas", Description = "Pelotas de pádel de diferentes marcas", IsActive = true },
+                new Category { Id = 3, Name = "Indumentaria", Description = "Ropa y accesorios para pádel", IsActive = true },
+                new Category { Id = 4, Name = "Calzado", Description = "Zapatillas especializadas para pádel", IsActive = true },
+                new Category { Id = 5, Name = "Accesorios", Description = "Bolsos, grips, antivibradores y más", IsActive = true }
+            );
+
+            // Seeding Products
+            var seedDate = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+            modelBuilder.Entity<Product>().HasData(
+                // Paletas
+                new Product { Id = 1, Name = "Paleta Head Delta Pro", Description = "Paleta profesional de control", Price = 89990, Stock = 15, CategoryId = 1, IsActive = true, ImageUrl = "https://via.placeholder.com/300x300?text=Paleta+Head", CreatedAt = seedDate },
+                new Product { Id = 2, Name = "Paleta Bullpadel Vertex", Description = "Paleta de potencia y control", Price = 94990, Stock = 10, CategoryId = 1, IsActive = true, ImageUrl = "https://via.placeholder.com/300x300?text=Paleta+Bullpadel", CreatedAt = seedDate },
+                new Product { Id = 3, Name = "Paleta Nox AT10", Description = "Paleta gama alta", Price = 79990, Stock = 8, CategoryId = 1, IsActive = true, ImageUrl = "https://via.placeholder.com/300x300?text=Paleta+Nox", CreatedAt = seedDate },
+                
+                // Pelotas
+                new Product { Id = 4, Name = "Pelotas Head Pro (x3)", Description = "Tubo de 3 pelotas profesionales", Price = 4990, Stock = 50, CategoryId = 2, IsActive = true, ImageUrl = "https://via.placeholder.com/300x300?text=Pelotas+Head", CreatedAt = seedDate },
+                new Product { Id = 5, Name = "Pelotas Wilson Tour (x3)", Description = "Pelotas de competición", Price = 4590, Stock = 45, CategoryId = 2, IsActive = true, ImageUrl = "https://via.placeholder.com/300x300?text=Pelotas+Wilson", CreatedAt = seedDate },
+                
+                // Indumentaria
+                new Product { Id = 6, Name = "Remera técnica Adidas", Description = "Remera deportiva con tecnología dry-fit", Price = 12990, Stock = 30, CategoryId = 3, IsActive = true, ImageUrl = "https://via.placeholder.com/300x300?text=Remera+Adidas", CreatedAt = seedDate },
+                new Product { Id = 7, Name = "Short Nike Padel", Description = "Short con bolsillos especiales para pelotas", Price = 15990, Stock = 25, CategoryId = 3, IsActive = true, ImageUrl = "https://via.placeholder.com/300x300?text=Short+Nike", CreatedAt = seedDate },
+                
+                // Calzado
+                new Product { Id = 8, Name = "Zapatillas Asics Gel Padel", Description = "Zapatillas especializadas con suela clay", Price = 45990, Stock = 12, CategoryId = 4, IsActive = true, ImageUrl = "https://via.placeholder.com/300x300?text=Zapatillas+Asics", CreatedAt = seedDate },
+                
+                // Accesorios
+                new Product { Id = 9, Name = "Bolso Head Tour Team", Description = "Bolso paletero para 3 paletas", Price = 24990, Stock = 18, CategoryId = 5, IsActive = true, ImageUrl = "https://via.placeholder.com/300x300?text=Bolso+Head", CreatedAt = seedDate },
+                new Product { Id = 10, Name = "Grip Wilson Pro", Description = "Grip premium antideslizante", Price = 1990, Stock = 100, CategoryId = 5, IsActive = true, ImageUrl = "https://via.placeholder.com/300x300?text=Grip+Wilson", CreatedAt = seedDate }
+            );
+
+            #endregion
         }
     }
 }

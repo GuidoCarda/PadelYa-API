@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using padelya_api.Data;
 
@@ -11,9 +12,11 @@ using padelya_api.Data;
 namespace padelya_api.Migrations
 {
     [DbContext(typeof(PadelYaDbContext))]
-    partial class PadelYaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251102195810_AddTournamentPermissionsToPlayer")]
+    partial class AddTournamentPermissionsToPlayer
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -915,305 +918,6 @@ namespace padelya_api.Migrations
                             Name = "Cancha 2 - Standard",
                             OpeningTime = new TimeOnly(7, 30, 0),
                             Type = "Césped"
-                        });
-                });
-
-            modelBuilder.Entity("padelya_api.Models.Ecommerce.Category", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Categories");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            Description = "Paletas de pádel profesionales y amateur",
-                            IsActive = true,
-                            Name = "Paletas"
-                        },
-                        new
-                        {
-                            Id = 2,
-                            Description = "Pelotas de pádel de diferentes marcas",
-                            IsActive = true,
-                            Name = "Pelotas"
-                        },
-                        new
-                        {
-                            Id = 3,
-                            Description = "Ropa y accesorios para pádel",
-                            IsActive = true,
-                            Name = "Indumentaria"
-                        },
-                        new
-                        {
-                            Id = 4,
-                            Description = "Zapatillas especializadas para pádel",
-                            IsActive = true,
-                            Name = "Calzado"
-                        },
-                        new
-                        {
-                            Id = 5,
-                            Description = "Bolsos, grips, antivibradores y más",
-                            IsActive = true,
-                            Name = "Accesorios"
-                        });
-                });
-
-            modelBuilder.Entity("padelya_api.Models.Ecommerce.Order", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("OrderDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int?>("PaymentId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
-
-                    b.Property<decimal>("TotalAmount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PaymentId");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("Orders");
-                });
-
-            modelBuilder.Entity("padelya_api.Models.Ecommerce.OrderItem", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("OrderId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("ProductId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Quantity")
-                        .HasColumnType("int");
-
-                    b.Property<decimal>("Subtotal")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("UnitPrice")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("OrderId");
-
-                    b.HasIndex("ProductId");
-
-                    b.ToTable("OrderItems");
-                });
-
-            modelBuilder.Entity("padelya_api.Models.Ecommerce.Product", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("CategoryId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETUTCDATE()");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ImageUrl")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<decimal>("Price")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<int>("Stock")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CategoryId");
-
-                    b.ToTable("Products");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            CategoryId = 1,
-                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Paleta profesional de control",
-                            ImageUrl = "https://via.placeholder.com/300x300?text=Paleta+Head",
-                            IsActive = true,
-                            Name = "Paleta Head Delta Pro",
-                            Price = 89990m,
-                            Stock = 15
-                        },
-                        new
-                        {
-                            Id = 2,
-                            CategoryId = 1,
-                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Paleta de potencia y control",
-                            ImageUrl = "https://via.placeholder.com/300x300?text=Paleta+Bullpadel",
-                            IsActive = true,
-                            Name = "Paleta Bullpadel Vertex",
-                            Price = 94990m,
-                            Stock = 10
-                        },
-                        new
-                        {
-                            Id = 3,
-                            CategoryId = 1,
-                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Paleta gama alta",
-                            ImageUrl = "https://via.placeholder.com/300x300?text=Paleta+Nox",
-                            IsActive = true,
-                            Name = "Paleta Nox AT10",
-                            Price = 79990m,
-                            Stock = 8
-                        },
-                        new
-                        {
-                            Id = 4,
-                            CategoryId = 2,
-                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Tubo de 3 pelotas profesionales",
-                            ImageUrl = "https://via.placeholder.com/300x300?text=Pelotas+Head",
-                            IsActive = true,
-                            Name = "Pelotas Head Pro (x3)",
-                            Price = 4990m,
-                            Stock = 50
-                        },
-                        new
-                        {
-                            Id = 5,
-                            CategoryId = 2,
-                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Pelotas de competición",
-                            ImageUrl = "https://via.placeholder.com/300x300?text=Pelotas+Wilson",
-                            IsActive = true,
-                            Name = "Pelotas Wilson Tour (x3)",
-                            Price = 4590m,
-                            Stock = 45
-                        },
-                        new
-                        {
-                            Id = 6,
-                            CategoryId = 3,
-                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Remera deportiva con tecnología dry-fit",
-                            ImageUrl = "https://via.placeholder.com/300x300?text=Remera+Adidas",
-                            IsActive = true,
-                            Name = "Remera técnica Adidas",
-                            Price = 12990m,
-                            Stock = 30
-                        },
-                        new
-                        {
-                            Id = 7,
-                            CategoryId = 3,
-                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Short con bolsillos especiales para pelotas",
-                            ImageUrl = "https://via.placeholder.com/300x300?text=Short+Nike",
-                            IsActive = true,
-                            Name = "Short Nike Padel",
-                            Price = 15990m,
-                            Stock = 25
-                        },
-                        new
-                        {
-                            Id = 8,
-                            CategoryId = 4,
-                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Zapatillas especializadas con suela clay",
-                            ImageUrl = "https://via.placeholder.com/300x300?text=Zapatillas+Asics",
-                            IsActive = true,
-                            Name = "Zapatillas Asics Gel Padel",
-                            Price = 45990m,
-                            Stock = 12
-                        },
-                        new
-                        {
-                            Id = 9,
-                            CategoryId = 5,
-                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Bolso paletero para 3 paletas",
-                            ImageUrl = "https://via.placeholder.com/300x300?text=Bolso+Head",
-                            IsActive = true,
-                            Name = "Bolso Head Tour Team",
-                            Price = 24990m,
-                            Stock = 18
-                        },
-                        new
-                        {
-                            Id = 10,
-                            CategoryId = 5,
-                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Grip premium antideslizante",
-                            ImageUrl = "https://via.placeholder.com/300x300?text=Grip+Wilson",
-                            IsActive = true,
-                            Name = "Grip Wilson Pro",
-                            Price = 1990m,
-                            Stock = 100
                         });
                 });
 
@@ -2730,54 +2434,6 @@ namespace padelya_api.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("padelya_api.Models.Ecommerce.Order", b =>
-                {
-                    b.HasOne("padelya_api.Models.Payment", "Payment")
-                        .WithMany()
-                        .HasForeignKey("PaymentId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("padelya_api.Models.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Payment");
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("padelya_api.Models.Ecommerce.OrderItem", b =>
-                {
-                    b.HasOne("padelya_api.Models.Ecommerce.Order", "Order")
-                        .WithMany("OrderItems")
-                        .HasForeignKey("OrderId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("padelya_api.Models.Ecommerce.Product", "Product")
-                        .WithMany()
-                        .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Order");
-
-                    b.Navigation("Product");
-                });
-
-            modelBuilder.Entity("padelya_api.Models.Ecommerce.Product", b =>
-                {
-                    b.HasOne("padelya_api.Models.Ecommerce.Category", "Category")
-                        .WithMany("Products")
-                        .HasForeignKey("CategoryId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Category");
-                });
-
             modelBuilder.Entity("padelya_api.Models.LoginAudit", b =>
                 {
                     b.HasOne("padelya_api.Models.User", "User")
@@ -3001,16 +2657,6 @@ namespace padelya_api.Migrations
             modelBuilder.Entity("padelya_api.Models.Complex", b =>
                 {
                     b.Navigation("Courts");
-                });
-
-            modelBuilder.Entity("padelya_api.Models.Ecommerce.Category", b =>
-                {
-                    b.Navigation("Products");
-                });
-
-            modelBuilder.Entity("padelya_api.Models.Ecommerce.Order", b =>
-                {
-                    b.Navigation("OrderItems");
                 });
 
             modelBuilder.Entity("padelya_api.Models.Module", b =>

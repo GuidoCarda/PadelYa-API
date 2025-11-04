@@ -11,10 +11,14 @@ namespace padelya_api.Controllers
 {
     [ApiController]
     [Route("api/Tournament")]
-    public class TournamentController(ITournamentService tournamentService, IBracketGenerationService bracketGenerationService) : ControllerBase
+    public class TournamentController(
+        ITournamentService tournamentService, 
+        IBracketGenerationService bracketGenerationService,
+        IMatchSchedulingService matchSchedulingService) : ControllerBase
     {
         private readonly ITournamentService _tournamentService = tournamentService;
         private readonly IBracketGenerationService _bracketGenerationService = bracketGenerationService;
+        private readonly IMatchSchedulingService _matchSchedulingService = matchSchedulingService;
 
         [HttpPost]
         public async Task<IActionResult> CreateTournament([FromBody] CreateTournamentDto createTournamentDto)
@@ -235,6 +239,49 @@ namespace padelya_api.Controllers
                 }
 
                 return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error interno del servidor: {ex.Message}");
+            }
+        }
+
+        [HttpPost("match/{matchId}/schedule")]
+        [RequirePermission(Permissions.Tournament.AssignUser)]
+        public async Task<IActionResult> AssignMatchSchedule(int matchId, [FromBody] AssignMatchScheduleDto scheduleDto)
+        {
+            try
+            {
+                // Asegurar que el matchId del parámetro de ruta coincida con el del body
+                scheduleDto.MatchId = matchId;
+
+                var result = await _matchSchedulingService.AssignMatchScheduleAsync(scheduleDto);
+                return Ok(result);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error interno del servidor: {ex.Message}");
+            }
+        }
+
+        [HttpDelete("match/{matchId}/schedule")]
+        [RequirePermission(Permissions.Tournament.AssignUser)]
+        public async Task<IActionResult> UnassignMatchSchedule(int matchId)
+        {
+            try
+            {
+                var result = await _matchSchedulingService.UnassignMatchScheduleAsync(matchId);
+
+                if (!result)
+                {
+                    return NotFound($"No se encontró el partido con ID {matchId} o no tiene horario asignado.");
+                }
+
+                return Ok("Horario del partido eliminado exitosamente.");
             }
             catch (Exception ex)
             {

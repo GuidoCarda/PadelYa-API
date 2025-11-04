@@ -16,11 +16,13 @@ namespace padelya_api.Services
   public class AuthService(
     PadelYaDbContext context,
     IPasswordService passwordService,
-    IConfiguration configuration
+    IConfiguration configuration,
+    IHttpContextAccessor httpContextAccessor
     ) : IAuthService
   {
     private readonly PadelYaDbContext _context = context;
     private readonly IPasswordService _passwordService = passwordService;
+    private readonly IHttpContextAccessor _httpContextAccessor = httpContextAccessor;
 
     public async Task<TokenResponseDto?> LoginAsync(UserLoginDto request)
     {
@@ -46,6 +48,12 @@ namespace padelya_api.Services
       {
         return null;
       }
+
+      // Verificar si hay una sesión abierta previa (login sin logout)
+      await CloseOpenSessionsAsync(user.Id);
+
+      // Registrar login exitoso
+      await RegisterLoginAuditAsync(user.Id, LoginAuditAction.Login);
 
       var tokenResponse = await CreateTokenResponse(user);
       tokenResponse.Person = user.Person;
@@ -78,6 +86,9 @@ namespace padelya_api.Services
       {
         return null;
       }
+
+      // Registrar refresh token
+      await RegisterLoginAuditAsync(user.Id, LoginAuditAction.RefreshToken);
 
       return await CreateTokenResponse(user);
     }
@@ -153,6 +164,9 @@ namespace padelya_api.Services
           102,
           () => new Player
           {
+            Name = request.Name,
+            Surname = request.Surname,
+            Email = request.Email,
             Birthdate = request.Birthdate,
             Category = request.Category,
             PreferredPosition = request.PreferredPosition
@@ -170,6 +184,9 @@ namespace padelya_api.Services
           101,
           () => new Teacher
           {
+            Name = request.Name,
+            Surname = request.Surname,
+            Email = request.Email,
             Birthdate = request.Birthdate,
             Category = request.Category,
             Institution = request.Institution,
@@ -280,6 +297,53 @@ namespace padelya_api.Services
 
       Console.WriteLine($"Recovery email sent to {email}");
       return true;
+    }
+
+    public async Task LogoutAsync(int userId)
+    {
+      // Registrar el logout
+      await RegisterLoginAuditAsync(userId, LoginAuditAction.Logout);
+    }
+
+    private async Task RegisterLoginAuditAsync(int userId, LoginAuditAction action, string? notes = null)
+    {
+      var httpContext = _httpContextAccessor.HttpContext;
+
+      var audit = new LoginAudit
+      {
+        UserId = userId,
+        Action = action,
+        Timestamp = DateTime.UtcNow,
+        IpAddress = httpContext?.Connection.RemoteIpAddress?.ToString(),
+        UserAgent = httpContext?.Request.Headers["User-Agent"].ToString(),
+        Notes = notes
+      };
+
+      _context.LoginAudits.Add(audit);
+      await _context.SaveChangesAsync();
+    }
+
+    private async Task CloseOpenSessionsAsync(int userId)
+    {
+      // Obtener el último registro de auditoría para este usuario
+      var lastAudit = await _context.LoginAudits
+          .Where(a => a.UserId == userId)
+          .OrderByDescending(a => a.Timestamp)
+          .FirstOrDefaultAsync();
+
+      // Si el último registro fue un Login (sin logout posterior), cerrar esa sesión
+      if (lastAudit != null && lastAudit.Action == LoginAuditAction.Login)
+      {
+        var httpContext = _httpContextAccessor.HttpContext;
+        var currentIp = httpContext?.Connection.RemoteIpAddress?.ToString();
+        var currentUserAgent = httpContext?.Request.Headers["User-Agent"].ToString();
+
+        await RegisterLoginAuditAsync(
+            userId,
+            LoginAuditAction.Logout,
+            $"Sesión cerrada automáticamente por nuevo login desde {currentIp}"
+        );
+      }
     }
 
   }

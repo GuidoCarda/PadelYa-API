@@ -1,10 +1,13 @@
 using padelya_api.Models;
+using System.Collections.Generic;
 
-public class Couple
+namespace padelya_api.Models.Tournament
 {
-    public int Id { get; set; }
-    public string Name { get; set; } = string.Empty;
+    public class Couple
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
 
-    //Navigation property
-    public List<Player> Players { get; set; } // Always 2
+        public List<Player> Players { get; set; } = new();
+    }
 }

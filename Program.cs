@@ -24,6 +24,8 @@ builder.Services.AddCors(options =>
       });
 });
 
+builder.Services.AddHttpContextAccessor();
+
 // Add services to the container.
 builder.Services.AddControllers()
   .AddJsonOptions(options =>
@@ -33,6 +35,8 @@ builder.Services.AddControllers()
     options.JsonSerializerOptions.Converters.Add(
       new JsonStringEnumConverter(JsonNamingPolicy.CamelCase)
     );
+    options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+   
   });
 
 
@@ -46,6 +50,8 @@ builder.Services.AddOpenApi();
 builder.Services.AddDbContext<PadelYaDbContext>(
     options => options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))
 );
+
+builder.Services.AddHttpContextAccessor();
 
 // Add JWT Authentication
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -87,6 +93,7 @@ builder.Services.AddScoped<ILessonAttendanceService, LessonAttendanceService>();
 builder.Services.AddScoped<IStatsService, StatsService>();
 builder.Services.AddScoped<IRoutineService, RoutineService>();
 builder.Services.AddScoped<ITournamentService, TournamentService>();
+builder.Services.AddScoped<IBracketGenerationService, BracketGenerationService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<IAnnualTableService, AnnualTableService>();
 builder.Services.AddScoped<IScoringService, ScoringService>();
@@ -98,6 +105,10 @@ builder.Services.AddScoped<IScoringStrategy, MatchLossScoringStrategy>();
 builder.Services.AddScoped<IChallengeService, ChallengeService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IRankingTraceService, RankingTraceService>();
+builder.Services.AddScoped<IRepairService, RepairService>();
+
+// Servicio de background para actualizar estados de torneos automáticamente
+builder.Services.AddHostedService<padelya_api.Services.TournamentStatusUpdateService>();
 
 
 var app = builder.Build();

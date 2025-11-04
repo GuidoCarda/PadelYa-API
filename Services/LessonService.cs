@@ -52,10 +52,15 @@ namespace padelya_api.Services
         }
 
         // Validar horarios de la cancha
-        if (createDto.StartTime < court.OpeningTime || createDto.EndTime > court.ClosingTime)
+        // Special handling: 00:00 as closing time means end of day (24:00)
+        var effectiveClosingTime = court.ClosingTime == TimeOnly.MinValue
+            ? new TimeOnly(23, 59, 59)
+            : court.ClosingTime;
+
+        if (createDto.StartTime < court.OpeningTime || createDto.EndTime > effectiveClosingTime)
         {
           return ResponseMessage<LessonResponseDto>.Error(
-              $"El horario debe estar dentro del horario de la cancha ({court.OpeningTime} - {court.ClosingTime})");
+              $"El horario debe estar dentro del horario de la cancha ({court.OpeningTime} - {effectiveClosingTime})");
         }
 
         // Validar que la hora de inicio sea antes que la de fin

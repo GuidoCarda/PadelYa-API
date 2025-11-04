@@ -10,6 +10,7 @@ namespace padelya_api.Services
         Task<TokenResponseDto?> LoginAsync(UserLoginDto request);
         Task<TokenResponseDto?> RefreshTokensAsync(RefreshTokenRequestDto request);
         Task<bool> RecoverPasswordAsync(string email);
+        Task LogoutAsync(int userId);
 
     }
 }

@@ -72,5 +72,12 @@ namespace padelya_api.Constants
             public const string PermissionAssign = "role:permission:assign";
             public const string View = "role:view";
         }
+
+        public static class Ranking
+        {
+            public const string ViewOwn = "ranking:view_own";
+            public const string View = "ranking:view";
+            public const string Manage = "ranking:manage";
+        }
     }
 }

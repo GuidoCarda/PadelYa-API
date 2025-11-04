@@ -23,14 +23,35 @@ namespace padelya_api.Controllers
         /// Crear una nueva clase (único o recurrente)
         /// </summary>
         [HttpPost]
-        // [RequirePermission("class:create")]
+        [RequirePermission("lesson:create")]
         public async Task<IActionResult> CreateLesson([FromBody] LessonCreateDto createDto)
         {
+            // Log para depuración
+            Console.WriteLine($"📥 CreateLesson recibido:");
+            Console.WriteLine($"   TeacherId: {createDto?.TeacherId}");
+            Console.WriteLine($"   CourtId: {createDto?.CourtId}");
+            Console.WriteLine($"   Date: {createDto?.Date}");
+            Console.WriteLine($"   StartTime: {createDto?.StartTime}");
+            Console.WriteLine($"   EndTime: {createDto?.EndTime}");
+            Console.WriteLine($"   Price: {createDto?.Price}");
+            Console.WriteLine($"   MaxCapacity: {createDto?.MaxCapacity}");
+            Console.WriteLine($"   IsRecurrent: {createDto?.IsRecurrent}");
+
             if (!ModelState.IsValid)
             {
+                var errors = ModelState.ToDictionary(
+                    x => x.Key, 
+                    x => x.Value?.Errors.Select(e => e.ErrorMessage).ToArray() ?? Array.Empty<string>());
+                
+                Console.WriteLine($"❌ Errores de validación:");
+                foreach (var error in errors)
+                {
+                    Console.WriteLine($"   {error.Key}: {string.Join(", ", error.Value)}");
+                }
+                
                 return BadRequest(ResponseMessage<object>.ValidationError(
                     "Datos de entrada inválidos", 
-                    ModelState.ToDictionary(x => x.Key, x => x.Value?.Errors.Select(e => e.ErrorMessage).ToArray() ?? Array.Empty<string>())));
+                    errors));
             }
 
             if (createDto.IsRecurrent)
@@ -157,6 +178,28 @@ namespace padelya_api.Controllers
         public async Task<IActionResult> CancelLesson(int id)
         {
             var result = await _lessonService.CancelLessonAsync(id);
+            
+            if (result.Success)
+            {
+                return Ok(result);
+            }
+
+            if (result.ErrorCode == "NOT_FOUND")
+            {
+                return NotFound(result);
+            }
+
+            return BadRequest(result);
+        }
+
+        /// <summary>
+        /// Actualizar estado de una clase
+        /// </summary>
+        [HttpPut("{id}/status")]
+        [RequirePermission("lesson:edit")]
+        public async Task<IActionResult> UpdateLessonStatus(int id, [FromBody] UpdateLessonStatusDto statusDto)
+        {
+            var result = await _lessonService.UpdateLessonStatusAsync(id, statusDto.Status);
             
             if (result.Success)
             {

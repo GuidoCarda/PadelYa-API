@@ -22,6 +22,11 @@ namespace padelya_api.models
         [StringLength(100)]
         public string? ClassType { get; set; }
 
+        // Estado manual de la clase (Programada, En Curso, Finalizada, Cancelada)
+        // Si es null, se calcula automáticamente basándose en fechas
+        [StringLength(50)]
+        public string? Status { get; set; }
+
         // Campos de auditoría
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? UpdatedAt { get; set; }

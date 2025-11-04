@@ -3,12 +3,68 @@ using padelya_api.Constants;
 using padelya_api.models;
 using padelya_api.Models;
 using padelya_api.Models.Class;
+using padelya_api.Models.Lesson;
+using padelya_api.Models.Annual;
+using padelya_api.Models.Challenge;
+using padelya_api.Models.Notification;
 using padelya_api.Models.Repair;
 using padelya_api.Models.Tournament;
 
 namespace padelya_api.Data
 {
-    public class PadelYaDbContext(DbContextOptions<PadelYaDbContext> options) : DbContext(options)
+  public class PadelYaDbContext(DbContextOptions<PadelYaDbContext> options) : DbContext(options)
+  {
+
+    public DbSet<User> Users { get; set; }
+    public DbSet<Player> Players { get; set; }
+    public DbSet<Teacher> Teachers { get; set; }
+    public DbSet<UserStatus> UserStatuses { get; set; }
+    public DbSet<Module> Modules { get; set; }
+    public DbSet<PermissionComponent> PermissionComponents { get; set; }
+    public DbSet<SimplePermission> SimplePermissions { get; set; }
+    public DbSet<RolComposite> RolComposites { get; set; }
+
+    public DbSet<Complex> Complex { get; set; }
+    public DbSet<Court> Courts { get; set; }
+
+    // Represents all ocuppied court slots
+    public DbSet<CourtSlot> CourtSlots { get; set; }
+
+    // Bookings (antes CourtBookings)
+    public DbSet<Booking> Bookings { get; set; }
+
+    //Tournaments
+    public DbSet<Tournament> Tournaments { get; set; }
+    public DbSet<Couple> Couples { get; set; }
+    public DbSet<TournamentEnrollment> TournamentEnrollments { get; set; }
+    public DbSet<TournamentMatch> TournamentMatches { get; set; }
+    public DbSet<TournamentPhase> TournamentPhases { get; set; }
+    public DbSet<TournamentBracket> TournamentBrackets { get; set; }
+
+    //Lessons
+    public DbSet<Lesson> Lessons { get; set; }
+    public DbSet<LessonEnrollment> LessonEnrollments { get; set; }
+    public DbSet<padelya_api.Models.Lesson.ClassType> ClassTypes { get; set; }
+    public DbSet<padelya_api.Models.Lesson.LessonAttendance> LessonAttendances { get; set; }
+    public DbSet<Stats> Stats { get; set; }
+
+    //Routines
+    public DbSet<Routine> Routines { get; set; }
+    public DbSet<Exercise> Exercises { get; set; }
+
+    //Payments
+    public DbSet<Payment> Payments { get; set; }
+
+    // Annual Ranking
+    public DbSet<AnnualTable> AnnualTables { get; set; }
+    public DbSet<RankingEntry> RankingEntries { get; set; }
+    public DbSet<ScoringRule> ScoringRules { get; set; }
+    public DbSet<Challenge> Challenges { get; set; }
+    public DbSet<Notification> Notifications { get; set; }
+    public DbSet<RankingTrace> RankingTraces { get; set; }
+
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
 
         public DbSet<User> Users { get; set; }

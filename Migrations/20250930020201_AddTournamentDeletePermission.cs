@@ -10,10 +10,16 @@ namespace padelya_api.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.InsertData(
-                table: "PermissionComponents",
-                columns: new[] { "Id", "Description", "DisplayName", "ModuleId", "Name", "PermissionType" },
-                values: new object[] { 50, "Permite eliminar torneos sin inscripciones", "Eliminar torneo", 5, "tournament:delete", "Simple" });
+            // Insert only if the permission doesn't already exist
+            migrationBuilder.Sql(@"
+                IF NOT EXISTS (SELECT 1 FROM [PermissionComponents] WHERE [Id] = 50)
+                BEGIN
+                    SET IDENTITY_INSERT [PermissionComponents] ON;
+                    INSERT INTO [PermissionComponents] ([Id], [Description], [DisplayName], [ModuleId], [Name], [PermissionType])
+                    VALUES (50, N'Permite eliminar torneos sin inscripciones', N'Eliminar torneo', 5, N'tournament:delete', N'Simple');
+                    SET IDENTITY_INSERT [PermissionComponents] OFF;
+                END
+            ");
         }
 
         /// <inheritdoc />

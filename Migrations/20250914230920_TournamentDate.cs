@@ -11,19 +11,23 @@ namespace padelya_api.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<DateTime>(
-                name: "EnrollmentDate",
-                table: "TournamentEnrollments",
-                type: "datetime2",
-                nullable: false,
-                defaultValue: new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified));
+            // Check if EnrollmentDate column already exists before adding it
+            migrationBuilder.Sql(@"
+                IF COL_LENGTH('TournamentEnrollments','EnrollmentDate') IS NULL
+                BEGIN
+                    ALTER TABLE [TournamentEnrollments]
+                    ADD [EnrollmentDate] datetime2 NOT NULL DEFAULT '0001-01-01T00:00:00.0000000'
+                END
+            ");
 
-            migrationBuilder.AddColumn<int>(
-                name: "PlayerId",
-                table: "TournamentEnrollments",
-                type: "int",
-                nullable: false,
-                defaultValue: 0);
+            // Check if PlayerId column already exists before adding it
+            migrationBuilder.Sql(@"
+                IF COL_LENGTH('TournamentEnrollments','PlayerId') IS NULL
+                BEGIN
+                    ALTER TABLE [TournamentEnrollments]
+                    ADD [PlayerId] int NOT NULL DEFAULT 0
+                END
+            ");
         }
 
         /// <inheritdoc />

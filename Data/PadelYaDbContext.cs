@@ -63,62 +63,21 @@ namespace padelya_api.Data
     public DbSet<Notification> Notifications { get; set; }
     public DbSet<RankingTrace> RankingTraces { get; set; }
 
+    // Person (base class for Player and Teacher)
+    public DbSet<Person> Persons { get; set; }
+
+    // Repairs
+    public DbSet<Repair> Repairs { get; set; }
+    public DbSet<RepairAudit> RepairAudits { get; set; }
+    public DbSet<Racket> Rackets { get; set; }
+
+    // LoginAudit
+    public DbSet<LoginAudit> LoginAudits { get; set; }
+
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-
-        public DbSet<User> Users { get; set; }
-
-        public DbSet<Person> Persons { get; set; }
-        public DbSet<Player> Players { get; set; }
-        public DbSet<Teacher> Teachers { get; set; }
-
-        public DbSet<UserStatus> UserStatuses { get; set; }
-        public DbSet<Module> Modules { get; set; }
-        public DbSet<PermissionComponent> PermissionComponents { get; set; }
-        public DbSet<SimplePermission> SimplePermissions { get; set; }
-        public DbSet<RolComposite> RolComposites { get; set; }
-
-        public DbSet<Complex> Complex { get; set; }
-        public DbSet<Court> Courts { get; set; }
-
-        // Represents all ocuppied court slots
-        public DbSet<CourtSlot> CourtSlots { get; set; }
-
-        // Bookings (antes CourtBookings)
-        public DbSet<Booking> Bookings { get; set; }
-
-        //Tournaments
-        public DbSet<Tournament> Tournaments { get; set; }
-        public DbSet<Couple> Couples { get; set; }
-        public DbSet<TournamentEnrollment> TournamentEnrollments { get; set; }
-        public DbSet<TournamentMatch> TournamentMatches { get; set; }
-        public DbSet<TournamentPhase> TournamentPhases { get; set; }
-        public DbSet<TournamentBracket> TournamentBrackets { get; set; }
-
-        //Lessons
-        public DbSet<Lesson> Lessons { get; set; }
-        public DbSet<LessonEnrollment> LessonEnrollments { get; set; }
-        public DbSet<Stats> Stats { get; set; }
-
-        //Routines
-        public DbSet<Routine> Routines { get; set; }
-        public DbSet<Exercise> Exercises { get; set; }
-
-        //Payments
-        public DbSet<Payment> Payments { get; set; }
-
-        //Repairs
-        public DbSet<Repair> Repairs { get; set; }
-        public DbSet<RepairAudit> RepairAudits { get; set; }
-        public DbSet<Racket> Rackets { get; set; }
-
-        //LoginAudit
-        public DbSet<LoginAudit> LoginAudits { get; set; }
-
-        protected override void OnModelCreating(ModelBuilder modelBuilder)
-        {
-            base.OnModelCreating(modelBuilder);
+        base.OnModelCreating(modelBuilder);
 
 
             #region Security Module
@@ -343,7 +302,8 @@ namespace padelya_api.Data
             // LESSON - STATS (One-to-Many)
             modelBuilder.Entity<Lesson>()
                 .HasMany(l => l.Reports)
-                .WithOne()
+                .WithOne(s => s.Lesson)
+                .HasForeignKey(s => s.LessonId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             // STATS - PLAYER (Many-to-One)

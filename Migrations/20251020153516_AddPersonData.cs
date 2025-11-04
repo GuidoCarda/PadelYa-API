@@ -19,6 +19,14 @@ namespace padelya_api.Migrations
                 table: "CouplePlayer");
 
             migrationBuilder.DropForeignKey(
+                name: "FK_LessonAttendances_Person_PersonId",
+                table: "LessonAttendances");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_LessonAttendances_Person_RecordedByTeacherId",
+                table: "LessonAttendances");
+
+            migrationBuilder.DropForeignKey(
                 name: "FK_LessonEnrollments_Person_PersonId",
                 table: "LessonEnrollments");
 
@@ -40,6 +48,10 @@ namespace padelya_api.Migrations
 
             migrationBuilder.DropForeignKey(
                 name: "FK_Stats_Person_PlayerId",
+                table: "Stats");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_Stats_Person_RecordedByTeacherId",
                 table: "Stats");
 
             migrationBuilder.DropForeignKey(
@@ -132,6 +144,21 @@ namespace padelya_api.Migrations
                 onDelete: ReferentialAction.Cascade);
 
             migrationBuilder.AddForeignKey(
+                name: "FK_LessonAttendances_Persons_PersonId",
+                table: "LessonAttendances",
+                column: "PersonId",
+                principalTable: "Persons",
+                principalColumn: "Id",
+                onDelete: ReferentialAction.Restrict);
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_LessonAttendances_Persons_RecordedByTeacherId",
+                table: "LessonAttendances",
+                column: "RecordedByTeacherId",
+                principalTable: "Persons",
+                principalColumn: "Id");
+
+            migrationBuilder.AddForeignKey(
                 name: "FK_LessonEnrollments_Persons_PersonId",
                 table: "LessonEnrollments",
                 column: "PersonId",
@@ -178,6 +205,13 @@ namespace padelya_api.Migrations
                 principalTable: "Persons",
                 principalColumn: "Id",
                 onDelete: ReferentialAction.Restrict);
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_Stats_Persons_RecordedByTeacherId",
+                table: "Stats",
+                column: "RecordedByTeacherId",
+                principalTable: "Persons",
+                principalColumn: "Id");
 
             migrationBuilder.AddForeignKey(
                 name: "FK_Users_Persons_PersonId",

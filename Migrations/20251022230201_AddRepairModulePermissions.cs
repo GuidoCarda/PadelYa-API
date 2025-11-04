@@ -12,10 +12,16 @@ namespace padelya_api.Migrations
     /// <inheritdoc />
     protected override void Up(MigrationBuilder migrationBuilder)
     {
-      migrationBuilder.InsertData(
-          table: "Modules",
-          columns: new[] { "Id", "DisplayName", "Name" },
-          values: new object[] { 9, "Reparaciones", "repair" });
+            // Insert module only if it doesn't exist
+            migrationBuilder.Sql(@"
+                IF NOT EXISTS (SELECT 1 FROM [Modules] WHERE [Id] = 9)
+                BEGIN
+                    SET IDENTITY_INSERT [Modules] ON;
+                    INSERT INTO [Modules] ([Id], [DisplayName], [Name])
+                    VALUES (9, N'Reparaciones', N'repair');
+                    SET IDENTITY_INSERT [Modules] OFF;
+                END
+            ");
 
       migrationBuilder.InsertData(
           table: "PermissionComponents",

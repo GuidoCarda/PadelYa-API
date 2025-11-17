@@ -5,89 +5,80 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace padelya_api.Migrations
 {
+  /// <inheritdoc />
+  public partial class Iteracion1_Clases_Tipos_Asistencia : Migration
+  {
     /// <inheritdoc />
-    public partial class Iteracion1_Clases_Tipos_Asistencia : Migration
+    protected override void Up(MigrationBuilder migrationBuilder)
     {
-        /// <inheritdoc />
-        protected override void Up(MigrationBuilder migrationBuilder)
-        {
-            migrationBuilder.CreateTable(
-                name: "ClassTypes",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    Description = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    Level = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_ClassTypes", x => x.Id);
-                });
+      migrationBuilder.CreateTable(
+          name: "ClassTypes",
+          columns: table => new
+          {
+            Id = table.Column<int>(type: "int", nullable: false)
+                  .Annotation("SqlServer:Identity", "1, 1"),
+            Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+            Description = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+            Level = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
+            CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+            UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true)
+          },
+          constraints: table =>
+          {
+            table.PrimaryKey("PK_ClassTypes", x => x.Id);
+          });
 
-            migrationBuilder.CreateTable(
-                name: "LessonAttendances",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    LessonId = table.Column<int>(type: "int", nullable: false),
-                    PersonId = table.Column<int>(type: "int", nullable: false),
-                    Status = table.Column<int>(type: "int", nullable: false),
-                    Notes = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    RecordedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    RecordedByTeacherId = table.Column<int>(type: "int", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_LessonAttendances", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_LessonAttendances_Lessons_LessonId",
-                        column: x => x.LessonId,
-                        principalTable: "Lessons",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_LessonAttendances_Person_PersonId",
-                        column: x => x.PersonId,
-                        principalTable: "Person",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_LessonAttendances_Person_RecordedByTeacherId",
-                        column: x => x.RecordedByTeacherId,
-                        principalTable: "Person",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
+      // Check if Person table exists (pre-rename) or Persons table exists (post-rename)
+      migrationBuilder.Sql(@"
+                DECLARE @tableName NVARCHAR(50) = 'Person';
+                IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[Person]') AND type in (N'U'))
+                BEGIN
+                    IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[Persons]') AND type in (N'U'))
+                        SET @tableName = 'Persons';
+                END
 
-            migrationBuilder.CreateIndex(
-                name: "IX_LessonAttendances_LessonId",
-                table: "LessonAttendances",
-                column: "LessonId");
+                DECLARE @sql NVARCHAR(MAX) = '
+                CREATE TABLE [LessonAttendances] (
+                    [Id] int NOT NULL IDENTITY,
+                    [LessonId] int NOT NULL,
+                    [PersonId] int NOT NULL,
+                    [Status] int NOT NULL,
+                    [Notes] nvarchar(500) NULL,
+                    [RecordedAt] datetime2 NOT NULL,
+                    [RecordedByTeacherId] int NULL,
+                    CONSTRAINT [PK_LessonAttendances] PRIMARY KEY ([Id]),
+                    CONSTRAINT [FK_LessonAttendances_Lessons_LessonId] FOREIGN KEY ([LessonId]) REFERENCES [Lessons] ([Id]) ON DELETE NO ACTION,
+                    CONSTRAINT [FK_LessonAttendances_' + @tableName + '_PersonId] FOREIGN KEY ([PersonId]) REFERENCES [' + @tableName + '] ([Id]) ON DELETE NO ACTION,
+                    CONSTRAINT [FK_LessonAttendances_' + @tableName + '_RecordedByTeacherId] FOREIGN KEY ([RecordedByTeacherId]) REFERENCES [' + @tableName + '] ([Id]) ON DELETE NO ACTION
+                );';
 
-            migrationBuilder.CreateIndex(
-                name: "IX_LessonAttendances_PersonId",
-                table: "LessonAttendances",
-                column: "PersonId");
+                EXEC sp_executesql @sql;
+            ");
 
-            migrationBuilder.CreateIndex(
-                name: "IX_LessonAttendances_RecordedByTeacherId",
-                table: "LessonAttendances",
-                column: "RecordedByTeacherId");
-        }
+      migrationBuilder.CreateIndex(
+          name: "IX_LessonAttendances_LessonId",
+          table: "LessonAttendances",
+          column: "LessonId");
 
-        /// <inheritdoc />
-        protected override void Down(MigrationBuilder migrationBuilder)
-        {
-            migrationBuilder.DropTable(
-                name: "ClassTypes");
+      migrationBuilder.CreateIndex(
+          name: "IX_LessonAttendances_PersonId",
+          table: "LessonAttendances",
+          column: "PersonId");
 
-            migrationBuilder.DropTable(
-                name: "LessonAttendances");
-        }
+      migrationBuilder.CreateIndex(
+          name: "IX_LessonAttendances_RecordedByTeacherId",
+          table: "LessonAttendances",
+          column: "RecordedByTeacherId");
     }
+
+    /// <inheritdoc />
+    protected override void Down(MigrationBuilder migrationBuilder)
+    {
+      migrationBuilder.DropTable(
+          name: "ClassTypes");
+
+      migrationBuilder.DropTable(
+          name: "LessonAttendances");
+    }
+  }
 }

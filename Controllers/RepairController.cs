@@ -59,6 +59,30 @@ namespace padelya_api.Controllers
       }
     }
 
+    /// <summary>
+    /// Obtiene las reparaciones del usuario autenticado (jugador)
+    /// </summary>
+    [HttpGet("my-repairs")]
+    public async Task<IActionResult> GetMyRepairs()
+    {
+      try
+      {
+        var repairs = await _repairService.GetMyRepairsAsync();
+        return Ok(ResponseMessage<IEnumerable<Repair>>
+          .SuccessResult(repairs, "Reparaciones obtenidas correctamente"));
+      }
+      catch (InvalidOperationException ex)
+      {
+        return BadRequest(ResponseMessage<IEnumerable<Repair>>
+          .Error(ex.Message));
+      }
+      catch (Exception ex)
+      {
+        return BadRequest(ResponseMessage<IEnumerable<Repair>>
+          .Error($"Error al obtener reparaciones: {ex.Message}"));
+      }
+    }
+
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateRepairDto dto)
     {

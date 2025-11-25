@@ -7,6 +7,7 @@ namespace padelya_api.Services
   public interface IRepairService
   {
     Task<IEnumerable<Repair>> GetAllAsync(string? email = null, string? status = null, string? startDate = null, string? endDate = null);
+    Task<IEnumerable<Repair>> GetMyRepairsAsync();
     Task<Repair?> GetByIdAsync(int id);
     Task<Repair> CreateAsync(CreateRepairDto dto);
     Task<Repair> UpdateAsync(int id, UpdateRepairDto dto);

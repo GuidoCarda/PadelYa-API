@@ -1,14 +1,7 @@
-using padelya_api.Models.Repair;
-
 namespace padelya_api.DTOs.Repair
 {
   public class UpdateRepairDto
   {
-    // Customer fields - only for walk-in clients
-    public string? CustomerName { get; set; }
-    public string? CustomerEmail { get; set; }
-    public string? CustomerPhone { get; set; }
-
     // Repair details
     public decimal? Price { get; set; }
     public string? DamageDescription { get; set; }

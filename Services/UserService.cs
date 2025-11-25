@@ -127,6 +127,10 @@ namespace padelya_api.Services
 
                 person = new Teacher
                 {
+                    Name = request.Name ?? string.Empty,
+                    Surname = request.Surname ?? string.Empty,
+                    Email = request.Email,
+                    PhoneNumber = request.PhoneNumber ?? string.Empty,
                     Birthdate = request.Person.Birthdate,
                     Category = request.Person.Category,
                     Institution = institution,
@@ -145,6 +149,10 @@ namespace padelya_api.Services
 
                 person = new Player
                 {
+                    Name = request.Name ?? string.Empty,
+                    Surname = request.Surname ?? string.Empty,
+                    Email = request.Email,
+                    PhoneNumber = request.PhoneNumber ?? string.Empty,
                     Birthdate = request.Person.Birthdate,
                     Category = request.Person.Category,
                     PreferredPosition = preferredPosition

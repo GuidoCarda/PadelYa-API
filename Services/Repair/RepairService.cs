@@ -89,9 +89,12 @@ namespace padelya_api.Services
       return repairs.Select(r => new Repair
       {
         Id = r.Id,
+        PersonId = r.PersonId,
+        RacketId = r.RacketId,
         Racket = r.Racket,
         Person = r.Person,
         Payment = r.Payment,
+        PaymentId = r.PaymentId,
         Price = r.Price,
         DamageDescription = r.DamageDescription,
         RepairNotes = r.RepairNotes,
@@ -100,9 +103,6 @@ namespace padelya_api.Services
         FinishedAt = r.FinishedAt,
         DeliveredAt = r.DeliveredAt,
         EstimatedCompletionTime = r.EstimatedCompletionTime,
-        CustomerName = r.CustomerName,
-        CustomerEmail = r.CustomerEmail,
-        CustomerPhone = r.CustomerPhone,
       }).ToList();
     }
 
@@ -116,37 +116,61 @@ namespace padelya_api.Services
         .FirstOrDefaultAsync(r => r.Id == id);
     }
 
+    public async Task<IEnumerable<Repair>> GetMyRepairsAsync()
+    {
+      var personId = GetCurrentPersonId();
+
+      var repairs = await _context.Repairs
+        .Include(r => r.Racket)
+        .Include(r => r.Payment)
+        .Include(r => r.Person)
+        .Where(r => r.PersonId == personId)
+        .OrderByDescending(r => r.CreatedAt)
+        .ToListAsync();
+
+      return repairs;
+    }
+
+    private int GetCurrentPersonId()
+    {
+      var personIdClaim = _httpContextAccessor.HttpContext?.User.FindFirst("person_id");
+
+      if (personIdClaim == null || !int.TryParse(personIdClaim.Value, out var personId))
+      {
+        throw new InvalidOperationException("Person ID not found in claims. User may not have a person profile.");
+      }
+
+      return personId;
+    }
+
     public async Task<Repair> CreateAsync(CreateRepairDto dto)
     {
-      Person? person;
+      // PersonId es obligatorio - solo se pueden crear reparaciones para usuarios existentes
+      var person = await _context.Persons.FindAsync(dto.PersonId);
+      if (person == null)
+        throw new KeyNotFoundException("Person not found.");
 
-      if (dto.PersonId != null)
-      {
-        person = await _context.Persons.FindAsync(dto.PersonId.Value);
-        if (person == null)
-          throw new Exception("Person not found.");
-      }
-      else
-      {
-        person = await _context.Persons
-          .FirstOrDefaultAsync(p => p.Email == dto.CustomerEmail
-          && p.PhoneNumber == dto.CustomerPhone);
+      // Validaciones de negocio
+      if (dto.Price <= 0)
+        throw new ArgumentException("Price must be greater than zero.");
 
-        if (person == null)
-        {
-          person = new Player
-          {
-            Email = dto.CustomerEmail,
-            PhoneNumber = dto.CustomerPhone,
-            Name = dto.CustomerName.Split(' ')[0],
-            Surname = dto.CustomerName.Split(' ')[1],
-            Birthdate = DateTime.MinValue,
-          };
+      if (string.IsNullOrWhiteSpace(dto.DamageDescription))
+        throw new ArgumentException("Damage description is required.");
 
-          _context.Persons.Add(person);
-          await _context.SaveChangesAsync();
-        }
-      }
+      if (dto.EstimatedCompletionTime < DateTime.UtcNow.Date)
+        throw new ArgumentException("Estimated completion time cannot be in the past.");
+
+      if (dto.Racket == null)
+        throw new ArgumentException("Racket information is required.");
+
+      if (string.IsNullOrWhiteSpace(dto.Racket.Brand))
+        throw new ArgumentException("Racket brand is required.");
+
+      if (string.IsNullOrWhiteSpace(dto.Racket.Model))
+        throw new ArgumentException("Racket model is required.");
+
+      if (string.IsNullOrWhiteSpace(dto.Racket.SerialCode))
+        throw new ArgumentException("Racket serial code is required.");
 
       var racket = new Racket
       {
@@ -162,9 +186,6 @@ namespace padelya_api.Services
       {
         PersonId = person.Id,
         RacketId = racket.Id,
-        CustomerName = dto.CustomerName,
-        CustomerEmail = person.Email,
-        CustomerPhone = person.PhoneNumber,
         Price = dto.Price,
         DamageDescription = dto.DamageDescription,
         EstimatedCompletionTime = dto.EstimatedCompletionTime,
@@ -178,6 +199,10 @@ namespace padelya_api.Services
       LogRepairAuditAsync(repair.Id, RepairAuditAction.Created);
 
       await _context.SaveChangesAsync();
+
+      // Cargar las relaciones para la respuesta
+      repair.Person = person;
+      repair.Racket = racket;
 
       repair.InitializeState();
       return repair;
@@ -195,18 +220,6 @@ namespace padelya_api.Services
 
       // Initialize state for validation
       repair.InitializeState();
-
-      // Only update fields that are provided (not null)
-      // Customer fields - only update if no linked person (walk-in client)
-      if (repair.Person == null || !_context.Users.Any(u => u.PersonId == repair.PersonId))
-      {
-        if (dto.CustomerName != null)
-          repair.CustomerName = dto.CustomerName;
-        if (dto.CustomerEmail != null)
-          repair.CustomerEmail = dto.CustomerEmail;
-        if (dto.CustomerPhone != null)
-          repair.CustomerPhone = dto.CustomerPhone;
-      }
 
       // Racket details
       if (dto.Racket != null)

@@ -784,6 +784,161 @@ namespace padelya_api.Services
       }).ToList();
     }
 
+    public async Task<BookingReportDto> GetBookingReportAsync(DateTime startDate, DateTime endDate)
+    {
+      // Obtener todas las reservas en el rango de fechas
+      var bookings = await _context.Bookings
+          .Include(b => b.CourtSlot)
+          .Include(b => b.CourtSlot.Court)
+          .Include(b => b.Payments)
+          .Where(b => b.CourtSlot.Date >= startDate.Date && b.CourtSlot.Date <= endDate.Date)
+          .ToListAsync();
+
+      // Obtener todas las canchas para calcular tasa de ocupación
+      var courts = await _context.Courts.ToListAsync();
+      var totalDays = (endDate.Date - startDate.Date).Days + 1;
+
+      // Calcular estadísticas generales
+      var completedBookings = bookings.Where(b => 
+        b.Status == BookingStatus.ReservedPaid || 
+        b.Status == BookingStatus.ReservedDeposit).ToList();
+      
+      var cancelledBookings = bookings.Where(b =>
+        b.Status == BookingStatus.CancelledByAdmin ||
+        b.Status == BookingStatus.CancelledByClient ||
+        b.Status == BookingStatus.CancelledBySystem).ToList();
+
+      var pendingBookings = bookings.Where(b => 
+        b.Status == BookingStatus.PendingPayment).ToList();
+
+      var totalRevenue = completedBookings
+        .SelectMany(b => b.Payments)
+        .Sum(p => p.Amount);
+
+      var totalBookings = bookings.Count;
+      var avgRevenuePerBooking = totalBookings > 0 ? totalRevenue / totalBookings : 0;
+
+      // Calcular tasa de ocupación (slots ocupados / slots totales disponibles)
+      var slotsPerCourtPerDay = 10; // Aproximadamente 10 slots de 90 min por día (asumiendo 15 horas)
+      var totalPossibleSlots = courts.Count * totalDays * slotsPerCourtPerDay;
+      var occupancyRate = totalPossibleSlots > 0 
+        ? (decimal)completedBookings.Count / totalPossibleSlots * 100 
+        : 0;
+
+      // Calcular tasa de cancelación
+      var cancellationRate = totalBookings > 0 
+        ? (decimal)cancelledBookings.Count / totalBookings * 100 
+        : 0;
+
+      var statistics = new BookingStatisticsDto
+      {
+        TotalRevenue = totalRevenue,
+        TotalBookings = totalBookings,
+        CompletedBookings = completedBookings.Count,
+        CancelledBookings = cancelledBookings.Count,
+        PendingBookings = pendingBookings.Count,
+        AverageRevenuePerBooking = Math.Round(avgRevenuePerBooking, 2),
+        OccupancyRate = Math.Round(occupancyRate, 2),
+        CancellationRate = Math.Round(cancellationRate, 2)
+      };
+
+      // Ingresos diarios
+      var dailyRevenue = bookings
+        .Where(b => b.Status == BookingStatus.ReservedPaid || b.Status == BookingStatus.ReservedDeposit)
+        .GroupBy(b => b.CourtSlot.Date.Date)
+        .Select(g => new DailyRevenueDto
+        {
+          Date = g.Key.ToString("yyyy-MM-dd"),
+          Revenue = g.SelectMany(b => b.Payments).Sum(p => p.Amount),
+          BookingCount = g.Count()
+        })
+        .OrderBy(d => d.Date)
+        .ToList();
+
+      // Distribución por franja horaria
+      var timeSlotDistribution = bookings
+        .Where(b => b.Status == BookingStatus.ReservedPaid || b.Status == BookingStatus.ReservedDeposit)
+        .GroupBy(b => GetTimeSlotCategory(b.CourtSlot.StartTime))
+        .Select(g => new TimeSlotDistributionDto
+        {
+          TimeSlot = g.Key,
+          BookingCount = g.Count()
+        })
+        .OrderBy(t => GetTimeSlotOrder(t.TimeSlot))
+        .ToList();
+
+      // Popularidad de canchas
+      var courtPopularity = bookings
+        .Where(b => b.Status == BookingStatus.ReservedPaid || b.Status == BookingStatus.ReservedDeposit)
+        .GroupBy(b => new { b.CourtSlot.CourtId, b.CourtSlot.Court.Name })
+        .Select(g => new CourtPopularityDto
+        {
+          CourtId = g.Key.CourtId,
+          CourtName = g.Key.Name,
+          BookingCount = g.Count(),
+          Revenue = g.SelectMany(b => b.Payments).Sum(p => p.Amount)
+        })
+        .OrderByDescending(c => c.BookingCount)
+        .ToList();
+
+      // Distribución por estado
+      var statusDistribution = bookings
+        .GroupBy(b => b.DisplayStatus)
+        .Select(g => new BookingStatusDistributionDto
+        {
+          Status = g.Key,
+          Count = g.Count(),
+          Percentage = Math.Round((decimal)g.Count() / totalBookings * 100, 2)
+        })
+        .OrderByDescending(s => s.Count)
+        .ToList();
+
+      // Distribución por método de pago
+      var paymentMethodDistribution = bookings
+        .Where(b => b.Status == BookingStatus.ReservedPaid || b.Status == BookingStatus.ReservedDeposit)
+        .SelectMany(b => b.Payments)
+        .GroupBy(p => p.PaymentMethod ?? "No especificado")
+        .Select(g => new PaymentMethodDistributionDto
+        {
+          PaymentMethod = g.Key,
+          Count = g.Count(),
+          TotalAmount = g.Sum(p => p.Amount)
+        })
+        .OrderByDescending(p => p.TotalAmount)
+        .ToList();
+
+      return new BookingReportDto
+      {
+        Statistics = statistics,
+        DailyRevenue = dailyRevenue,
+        TimeSlotDistribution = timeSlotDistribution,
+        CourtPopularity = courtPopularity,
+        StatusDistribution = statusDistribution,
+        PaymentMethodDistribution = paymentMethodDistribution
+      };
+    }
+
+    private string GetTimeSlotCategory(TimeOnly time)
+    {
+      var hour = time.Hour;
+      if (hour >= 6 && hour < 12) return "Mañana (6:00-12:00)";
+      if (hour >= 12 && hour < 18) return "Tarde (12:00-18:00)";
+      if (hour >= 18 && hour < 24) return "Noche (18:00-00:00)";
+      return "Madrugada (0:00-6:00)";
+    }
+
+    private int GetTimeSlotOrder(string timeSlot)
+    {
+      return timeSlot switch
+      {
+        "Mañana (6:00-12:00)" => 1,
+        "Tarde (12:00-18:00)" => 2,
+        "Noche (18:00-00:00)" => 3,
+        "Madrugada (0:00-6:00)" => 4,
+        _ => 5
+      };
+    }
+
     // Helper para generar slots posibles de 90 minutos
     private List<(TimeOnly start, TimeOnly end)> GenerateSlotsForCourt(Models.Court court, DateTime date)
     {

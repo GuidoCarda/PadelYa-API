@@ -12,6 +12,7 @@ using padelya_api.Constants;
 using MercadoPago.Resource.Preference;
 using MercadoPago.Client.Preference;
 using MercadoPago.Config;
+using padelya_api.Services.Email;
 
 namespace padelya_api.Services
 {
@@ -26,14 +27,21 @@ namespace padelya_api.Services
     private readonly PadelYaDbContext _context;
     private readonly ICourtSlotService _courtSlotService;
     private readonly IConfiguration _configuration;
+    private readonly IEmailNotificationService _emailNotificationService;
 
     private static readonly TimeSpan BookingExpirationTime = TimeSpan.FromMinutes(3);
 
-    public BookingService(PadelYaDbContext context, ICourtSlotService courtSlotService, IConfiguration configuration)
+    public BookingService(
+      PadelYaDbContext context,
+      ICourtSlotService courtSlotService,
+      IConfiguration configuration,
+      IEmailNotificationService emailNotificationService
+      )
     {
       _context = context;
       _configuration = configuration;
       _courtSlotService = courtSlotService;
+      _emailNotificationService = emailNotificationService;
     }
 
     public async Task<IEnumerable<BookingDto>> GetAllAsync(
@@ -261,6 +269,8 @@ namespace padelya_api.Services
     {
       var booking = await _context.Bookings
         .Include(bk => bk.CourtSlot)
+          .ThenInclude(cs => cs.Court)
+        .Include(bk => bk.Person)
         .FirstOrDefaultAsync(bk => bk.Id == id);
 
       if (booking == null) return false;
@@ -276,6 +286,16 @@ namespace padelya_api.Services
       booking.CourtSlot.Status = CourtSlotStatus.Cancelled;
 
       await _context.SaveChangesAsync();
+
+      try
+      {
+        await _emailNotificationService.SendBookingCancellationAsync(booking, dto.Reason);
+      }
+      catch (Exception ex)
+      {
+        Console.WriteLine($"Error al enviar email de cancelación de reserva: {ex.Message}");
+      }
+
       return true;
     }
 

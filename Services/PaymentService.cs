@@ -4,12 +4,14 @@ using MercadoPago.Config;
 using padelya_api.Constants;
 using padelya_api.Data;
 using padelya_api.DTOs.Payment;
+using padelya_api.Models;
 using LocalPayment = padelya_api.Models.Payment;
 using LocalPaymentStatus = padelya_api.Constants.PaymentStatus;
 using LocalPaymentType = padelya_api.Constants.PaymentType;
 using System.Text.Json;
 using padelya_api.DTOs.Booking;
 using MercadoPago.Resource.Payment;
+using padelya_api.Services.Email;
 
 namespace padelya_api.Services
 {
@@ -31,11 +33,13 @@ namespace padelya_api.Services
   {
     private readonly PadelYaDbContext _context;
     private readonly IConfiguration _configuration;
+    private readonly IEmailNotificationService _emailNotificationService;
 
-    public PaymentService(PadelYaDbContext context, IConfiguration configuration)
+    public PaymentService(PadelYaDbContext context, IConfiguration configuration, IEmailNotificationService emailNotificationService)
     {
       _context = context;
       _configuration = configuration;
+      _emailNotificationService = emailNotificationService;
     }
 
     public async Task<PaymentDto> CreatePaymentAsync(CreatePaymentDto dto)
@@ -226,13 +230,18 @@ namespace padelya_api.Services
       {
         var booking = await _context.Bookings
                 .Include(b => b.CourtSlot)
-                .ThenInclude(cs => cs.Court)
+                  .ThenInclude(cs => cs.Court)
+                .Include(b => b.Person)
                 .FirstOrDefaultAsync(b => b.Id == bookingId);
 
         if (booking is null)
         {
           throw new Exception("Booking not found");
         }
+
+        // Obtener el complejo para el email
+        var complex = await _context.Set<Complex>()
+                .FirstOrDefaultAsync(c => c.Id == booking.CourtSlot.Court.ComplexId);
 
         var bookingPrice = booking.CourtSlot.Court.BookingPrice;
         var amountPaid = payment.TransactionAmount ?? 0;
@@ -264,6 +273,9 @@ namespace padelya_api.Services
           booking.CourtSlot.Status = CourtSlotStatus.Active;
 
           await _context.SaveChangesAsync();
+
+          // Enviar email de confirmación de reserva
+          await _emailNotificationService.SendBookingConfirmationAsync(booking, complex, amountPaid);
         }
 
         if (payment.Status == MercadoPago.Resource.Payment.PaymentStatus.Rejected)
@@ -291,6 +303,7 @@ namespace padelya_api.Services
 
           await _context.SaveChangesAsync();
         }
+
 
         //TODO: Handle pending status
       }

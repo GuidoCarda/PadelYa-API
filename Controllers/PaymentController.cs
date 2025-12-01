@@ -64,10 +64,15 @@ public class PaymentsController : ControllerBase
       },
       BackUrls = new PreferenceBackUrlsRequest
       {
-        Success = "https://9pkvr4lt-3000.brs.devtunnels.ms/bookings/success",
-        Failure = "https://9pkvr4lt-3000.brs.devtunnels.ms/bookings/failure",
-        Pending = "https://9pkvr4lt-3000.brs.devtunnels.ms/bookings/pending"
+        Success = $"{_configuration["AppSettings:FrontBaseUrl"]}/bookings/success",
+        Failure = $"{_configuration["AppSettings:FrontBaseUrl"]}/bookings/failure",
+        Pending = $"{_configuration["AppSettings:FrontBaseUrl"]}/bookings/pending"
       },
+      // {
+      //   Success = "https://9pkvr4lt-3000.brs.devtunnels.ms/bookings/success",
+      //   Failure = "https://9pkvr4lt-3000.brs.devtunnels.ms/bookings/failure",
+      //   Pending = "https://9pkvr4lt-3000.brs.devtunnels.ms/bookings/pending"
+      // },
       AutoReturn = "approved",
       // set preference valid for 10 minutes 
     };
@@ -86,6 +91,9 @@ public class PaymentsController : ControllerBase
   [HttpPost("webhook")]
   public async Task<IActionResult> MercadoPagoWebhook()
   {
+    Console.WriteLine("Webhook request received");
+    Console.WriteLine("Webhook request received");
+    Console.WriteLine("Webhook request received");
     Console.WriteLine("Webhook request received");
     try
     {

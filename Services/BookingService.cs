@@ -448,9 +448,9 @@ namespace padelya_api.Services
         ExternalReference = externalReference,
         BackUrls = new PreferenceBackUrlsRequest
         {
-          Success = "https://9pkvr4lt-3000.brs.devtunnels.ms/bookings/success",
-          Failure = "https://9pkvr4lt-3000.brs.devtunnels.ms/bookings/failure",
-          Pending = "https://9pkvr4lt-3000.brs.devtunnels.ms/bookings/pending"
+          Success = $"{_configuration["AppSettings:FrontBaseUrl"]}/bookings/success",
+          Failure = $"{_configuration["AppSettings:FrontBaseUrl"]}/bookings/failure",
+          Pending = $"{_configuration["AppSettings:FrontBaseUrl"]}/bookings/pending"
         },
         Metadata = new Dictionary<string, object>
         {
@@ -799,16 +799,16 @@ namespace padelya_api.Services
       var totalDays = (endDate.Date - startDate.Date).Days + 1;
 
       // Calcular estadísticas generales
-      var completedBookings = bookings.Where(b => 
-        b.Status == BookingStatus.ReservedPaid || 
+      var completedBookings = bookings.Where(b =>
+        b.Status == BookingStatus.ReservedPaid ||
         b.Status == BookingStatus.ReservedDeposit).ToList();
-      
+
       var cancelledBookings = bookings.Where(b =>
         b.Status == BookingStatus.CancelledByAdmin ||
         b.Status == BookingStatus.CancelledByClient ||
         b.Status == BookingStatus.CancelledBySystem).ToList();
 
-      var pendingBookings = bookings.Where(b => 
+      var pendingBookings = bookings.Where(b =>
         b.Status == BookingStatus.PendingPayment).ToList();
 
       var totalRevenue = completedBookings
@@ -821,13 +821,13 @@ namespace padelya_api.Services
       // Calcular tasa de ocupación (slots ocupados / slots totales disponibles)
       var slotsPerCourtPerDay = 10; // Aproximadamente 10 slots de 90 min por día (asumiendo 15 horas)
       var totalPossibleSlots = courts.Count * totalDays * slotsPerCourtPerDay;
-      var occupancyRate = totalPossibleSlots > 0 
-        ? (decimal)completedBookings.Count / totalPossibleSlots * 100 
+      var occupancyRate = totalPossibleSlots > 0
+        ? (decimal)completedBookings.Count / totalPossibleSlots * 100
         : 0;
 
       // Calcular tasa de cancelación
-      var cancellationRate = totalBookings > 0 
-        ? (decimal)cancelledBookings.Count / totalBookings * 100 
+      var cancellationRate = totalBookings > 0
+        ? (decimal)cancelledBookings.Count / totalBookings * 100
         : 0;
 
       var statistics = new BookingStatisticsDto

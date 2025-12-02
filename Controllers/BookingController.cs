@@ -268,5 +268,36 @@ namespace padelya_api.Controllers
         return BadRequest(ResponseMessage<IEnumerable<BookingDto>>.Error($"Error al obtener reservas por persona: {ex.Message}"));
       }
     }
+
+    [HttpGet("report")]
+    public async Task<IActionResult> GetBookingReport(
+      [FromQuery] string startDate,
+      [FromQuery] string endDate)
+    {
+      try
+      {
+        if (!DateTime.TryParseExact(startDate, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var parsedStartDate))
+        {
+          return BadRequest(ResponseMessage<BookingReportDto>.Error("El formato de fecha inicial debe ser YYYY-MM-DD"));
+        }
+
+        if (!DateTime.TryParseExact(endDate, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var parsedEndDate))
+        {
+          return BadRequest(ResponseMessage<BookingReportDto>.Error("El formato de fecha final debe ser YYYY-MM-DD"));
+        }
+
+        if (parsedStartDate > parsedEndDate)
+        {
+          return BadRequest(ResponseMessage<BookingReportDto>.Error("La fecha inicial no puede ser mayor a la fecha final"));
+        }
+
+        var report = await _bookingService.GetBookingReportAsync(parsedStartDate, parsedEndDate);
+        return Ok(ResponseMessage<BookingReportDto>.SuccessResult(report, "Reporte generado correctamente"));
+      }
+      catch (Exception ex)
+      {
+        return BadRequest(ResponseMessage<BookingReportDto>.Error($"Error al generar reporte: {ex.Message}"));
+      }
+    }
   }
 }

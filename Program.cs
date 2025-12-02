@@ -8,6 +8,7 @@ using padelya_api.Data;
 using padelya_api.Services;
 using padelya_api.Services.Annual;
 using padelya_api.Services.Annual.Scoring;
+using padelya_api.Services.Email;
 using padelya_api.Services.Notification;
 using Scalar.AspNetCore;
 
@@ -36,7 +37,7 @@ builder.Services.AddControllers()
       new JsonStringEnumConverter(JsonNamingPolicy.CamelCase)
     );
     options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
-   
+
   });
 
 
@@ -77,6 +78,11 @@ builder.Services.AddAuthorization(options =>
       policy.RequireAuthenticatedUser());
 });
 
+
+// Configuración y servicios de Email (deben registrarse antes de los servicios que los usan)
+builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection("Smtp"));
+builder.Services.AddScoped<IEmailService, SmtpEmailService>();
+builder.Services.AddScoped<IEmailNotificationService, EmailNotificationService>();
 
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();

@@ -10,6 +10,7 @@ using padelya_api.Data;
 using padelya_api.DTOs.Auth;
 using padelya_api.DTOs.User;
 using padelya_api.Models;
+using padelya_api.Services.Email;
 
 namespace padelya_api.Services
 {
@@ -17,12 +18,14 @@ namespace padelya_api.Services
     PadelYaDbContext context,
     IPasswordService passwordService,
     IConfiguration configuration,
-    IHttpContextAccessor httpContextAccessor
+    IHttpContextAccessor httpContextAccessor,
+    IEmailNotificationService emailNotificationService
     ) : IAuthService
   {
     private readonly PadelYaDbContext _context = context;
     private readonly IPasswordService _passwordService = passwordService;
     private readonly IHttpContextAccessor _httpContextAccessor = httpContextAccessor;
+    private readonly IEmailNotificationService _emailNotificationService = emailNotificationService;
 
     public async Task<TokenResponseDto?> LoginAsync(UserLoginDto request)
     {
@@ -284,6 +287,7 @@ namespace padelya_api.Services
 
     public async Task<bool> RecoverPasswordAsync(string email)
     {
+      Console.WriteLine($"RecoverPasswordAsync: {email}");
       var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email && u.StatusId == UserStatusIds.Active);
       if (user is null)
       {
@@ -295,7 +299,9 @@ namespace padelya_api.Services
       user.PasswordHash = _passwordService.HashPassword(user, newPassword);
       await _context.SaveChangesAsync();
 
-      Console.WriteLine($"Recovery email sent to {email}");
+      // Enviar email con la nueva contraseña
+      await _emailNotificationService.SendPasswordRecoveryAsync(email, user.Name, newPassword);
+
       return true;
     }
 

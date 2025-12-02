@@ -32,5 +32,8 @@ namespace padelya_api.Services
 
     // List bookings by domain subject (Person)
     Task<List<BookingDto>> GetBookingsByPersonIdAsync(int personId, string? status = null);
+
+    // Get booking report with statistics and analytics
+    Task<BookingReportDto> GetBookingReportAsync(DateTime startDate, DateTime endDate);
   }
 }

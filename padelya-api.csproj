@@ -5,6 +5,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>padelya_api</RootNamespace>
+    <UserSecretsId>dce7c42c-18de-4f8b-90ab-f27599ee5225</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>

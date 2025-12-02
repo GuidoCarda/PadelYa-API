@@ -242,6 +242,12 @@ namespace padelya_api.Data
                 .HasForeignKey(m => m.CoupleTwoId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            modelBuilder.Entity<TournamentMatch>()
+                .HasOne(m => m.WinnerCouple)
+                .WithMany()
+                .HasForeignKey(m => m.WinnerCoupleId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             // TournamentPhase - Tournament (n:1)
             modelBuilder.Entity<TournamentPhase>()
                 .HasOne(p => p.Tournament)
@@ -895,39 +901,6 @@ namespace padelya_api.Data
                 .WithMany()
                 .HasForeignKey(oi => oi.ProductId)
                 .OnDelete(DeleteBehavior.Restrict);
-
-            // Seeding Categories
-            modelBuilder.Entity<Category>().HasData(
-                new Category { Id = 1, Name = "Paletas", Description = "Paletas de pádel profesionales y amateur", IsActive = true },
-                new Category { Id = 2, Name = "Pelotas", Description = "Pelotas de pádel de diferentes marcas", IsActive = true },
-                new Category { Id = 3, Name = "Indumentaria", Description = "Ropa y accesorios para pádel", IsActive = true },
-                new Category { Id = 4, Name = "Calzado", Description = "Zapatillas especializadas para pádel", IsActive = true },
-                new Category { Id = 5, Name = "Accesorios", Description = "Bolsos, grips, antivibradores y más", IsActive = true }
-            );
-
-            // Seeding Products
-            var seedDate = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-            modelBuilder.Entity<Product>().HasData(
-                // Paletas
-                new Product { Id = 1, Name = "Paleta Head Delta Pro", Description = "Paleta profesional de control", Price = 89990, Stock = 15, CategoryId = 1, IsActive = true, ImageUrl = "https://via.placeholder.com/300x300?text=Paleta+Head", CreatedAt = seedDate },
-                new Product { Id = 2, Name = "Paleta Bullpadel Vertex", Description = "Paleta de potencia y control", Price = 94990, Stock = 10, CategoryId = 1, IsActive = true, ImageUrl = "https://via.placeholder.com/300x300?text=Paleta+Bullpadel", CreatedAt = seedDate },
-                new Product { Id = 3, Name = "Paleta Nox AT10", Description = "Paleta gama alta", Price = 79990, Stock = 8, CategoryId = 1, IsActive = true, ImageUrl = "https://via.placeholder.com/300x300?text=Paleta+Nox", CreatedAt = seedDate },
-                
-                // Pelotas
-                new Product { Id = 4, Name = "Pelotas Head Pro (x3)", Description = "Tubo de 3 pelotas profesionales", Price = 4990, Stock = 50, CategoryId = 2, IsActive = true, ImageUrl = "https://via.placeholder.com/300x300?text=Pelotas+Head", CreatedAt = seedDate },
-                new Product { Id = 5, Name = "Pelotas Wilson Tour (x3)", Description = "Pelotas de competición", Price = 4590, Stock = 45, CategoryId = 2, IsActive = true, ImageUrl = "https://via.placeholder.com/300x300?text=Pelotas+Wilson", CreatedAt = seedDate },
-                
-                // Indumentaria
-                new Product { Id = 6, Name = "Remera técnica Adidas", Description = "Remera deportiva con tecnología dry-fit", Price = 12990, Stock = 30, CategoryId = 3, IsActive = true, ImageUrl = "https://via.placeholder.com/300x300?text=Remera+Adidas", CreatedAt = seedDate },
-                new Product { Id = 7, Name = "Short Nike Padel", Description = "Short con bolsillos especiales para pelotas", Price = 15990, Stock = 25, CategoryId = 3, IsActive = true, ImageUrl = "https://via.placeholder.com/300x300?text=Short+Nike", CreatedAt = seedDate },
-                
-                // Calzado
-                new Product { Id = 8, Name = "Zapatillas Asics Gel Padel", Description = "Zapatillas especializadas con suela clay", Price = 45990, Stock = 12, CategoryId = 4, IsActive = true, ImageUrl = "https://via.placeholder.com/300x300?text=Zapatillas+Asics", CreatedAt = seedDate },
-                
-                // Accesorios
-                new Product { Id = 9, Name = "Bolso Head Tour Team", Description = "Bolso paletero para 3 paletas", Price = 24990, Stock = 18, CategoryId = 5, IsActive = true, ImageUrl = "https://via.placeholder.com/300x300?text=Bolso+Head", CreatedAt = seedDate },
-                new Product { Id = 10, Name = "Grip Wilson Pro", Description = "Grip premium antideslizante", Price = 1990, Stock = 100, CategoryId = 5, IsActive = true, ImageUrl = "https://via.placeholder.com/300x300?text=Grip+Wilson", CreatedAt = seedDate }
-            );
 
             #endregion
         }

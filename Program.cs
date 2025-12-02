@@ -85,6 +85,7 @@ builder.Services.AddScoped<ILessonService, LessonService>();
 builder.Services.AddScoped<ITournamentService, TournamentService>();
 builder.Services.AddScoped<IBracketGenerationService, BracketGenerationService>();
 builder.Services.AddScoped<IMatchSchedulingService, MatchSchedulingService>();
+builder.Services.AddScoped<IMatchResultService, MatchResultService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<IRepairService, RepairService>();
 

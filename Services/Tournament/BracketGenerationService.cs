@@ -286,6 +286,7 @@ namespace padelya_api.Services
                 Result = match.Result,
                 CoupleOneId = match.CoupleOneId,
                 CoupleTwoId = match.CoupleTwoId,
+                WinnerCoupleId = match.WinnerCoupleId,
                 CourtSlotId = match.CourtSlotId,
                 MatchNumber = matchNumber
             };

@@ -14,11 +14,13 @@ namespace padelya_api.Controllers
     public class TournamentController(
         ITournamentService tournamentService, 
         IBracketGenerationService bracketGenerationService,
-        IMatchSchedulingService matchSchedulingService) : ControllerBase
+        IMatchSchedulingService matchSchedulingService,
+        IMatchResultService matchResultService) : ControllerBase
     {
         private readonly ITournamentService _tournamentService = tournamentService;
         private readonly IBracketGenerationService _bracketGenerationService = bracketGenerationService;
         private readonly IMatchSchedulingService _matchSchedulingService = matchSchedulingService;
+        private readonly IMatchResultService _matchResultService = matchResultService;
 
         [HttpPost]
         public async Task<IActionResult> CreateTournament([FromBody] CreateTournamentDto createTournamentDto)
@@ -282,6 +284,54 @@ namespace padelya_api.Controllers
                 }
 
                 return Ok("Horario del partido eliminado exitosamente.");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error interno del servidor: {ex.Message}");
+            }
+        }
+
+        [HttpPost("match/{matchId}/result")]
+        [RequirePermission(Permissions.Tournament.AssignUser)]
+        public async Task<IActionResult> RegisterMatchResult(int matchId, [FromBody] RegisterMatchResultDto resultDto)
+        {
+            try
+            {
+                resultDto.MatchId = matchId;
+
+                var result = await _matchResultService.RegisterMatchResultAsync(resultDto);
+                return Ok(result);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error interno del servidor: {ex.Message}");
+            }
+        }
+
+        [HttpPut("match/{matchId}/result")]
+        [RequirePermission(Permissions.Tournament.AssignUser)]
+        public async Task<IActionResult> UpdateMatchResult(int matchId, [FromBody] RegisterMatchResultDto resultDto)
+        {
+            try
+            {
+                resultDto.MatchId = matchId;
+
+                var result = await _matchResultService.UpdateMatchResultAsync(matchId, resultDto);
+
+                if (!result)
+                {
+                    return NotFound($"No se encontró el partido con ID {matchId}.");
+                }
+
+                return Ok("Resultado actualizado exitosamente.");
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
             }
             catch (Exception ex)
             {

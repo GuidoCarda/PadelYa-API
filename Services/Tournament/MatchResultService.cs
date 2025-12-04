@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using padelya_api.Constants;
 using padelya_api.Data;
 using padelya_api.DTOs.Tournament;
 using padelya_api.Models.Tournament;
@@ -19,14 +20,15 @@ namespace padelya_api.Services
 
         public async Task<MatchResultResponseDto> RegisterMatchResultAsync(RegisterMatchResultDto resultDto)
         {
-            // Buscar el partido con sus relaciones
             var match = await _context.TournamentMatches
                 .Include(m => m.CoupleOne)
                     .ThenInclude(c => c!.Players)
                 .Include(m => m.CoupleTwo)
                     .ThenInclude(c => c!.Players)
                 .Include(m => m.Bracket)
-                    .ThenInclude(b => b.Tournament)
+                    .ThenInclude(b => b.Phase)
+                        .ThenInclude(p => p.Tournament)
+                .Include(m => m.CourtSlot)
                 .FirstOrDefaultAsync(m => m.Id == resultDto.MatchId);
 
             if (match == null)
@@ -34,38 +36,38 @@ namespace padelya_api.Services
                 throw new ArgumentException($"No se encontró el partido con ID {resultDto.MatchId}");
             }
 
-            // Validar que el partido tenga ambas parejas asignadas
             if (!match.CoupleOneId.HasValue || !match.CoupleTwoId.HasValue)
             {
                 throw new ArgumentException("El partido debe tener ambas parejas asignadas antes de registrar un resultado");
             }
 
-            // Validar que el ganador sea una de las dos parejas del partido
             if (resultDto.WinnerCoupleId != match.CoupleOneId && resultDto.WinnerCoupleId != match.CoupleTwoId)
             {
                 throw new ArgumentException("La pareja ganadora debe ser una de las dos parejas del partido");
             }
 
-            // Validar que el partido no esté ya completado (opcional, permitir edición)
             if (match.TournamentMatchState == "Completed")
             {
                 throw new ArgumentException("El partido ya tiene un resultado registrado. Use la opción de editar resultado.");
             }
 
-            // Validar formato del resultado (básico, ya hay validación en el DTO)
             ValidateResultFormat(resultDto.Result, resultDto.WinnerCoupleId, match.CoupleOneId.Value, match.CoupleTwoId.Value);
 
-            // Actualizar el partido con el resultado
             match.Result = resultDto.Result;
             match.WinnerCoupleId = resultDto.WinnerCoupleId;
             match.TournamentMatchState = "Completed";
 
+            // Liberar el slot de la cancha si estaba programado
+            if (match.CourtSlotId.HasValue && match.CourtSlot != null)
+            {
+                _context.CourtSlots.Remove(match.CourtSlot);
+                match.CourtSlotId = null;
+            }
+
             await _context.SaveChangesAsync();
 
-            // Verificar si debe avanzar a la siguiente ronda
             bool advancedToNextRound = await AdvanceWinnerToNextRound(match);
 
-            // Preparar respuesta
             var winnerCouple = resultDto.WinnerCoupleId == match.CoupleOneId 
                 ? match.CoupleOne 
                 : match.CoupleTwo;
@@ -92,6 +94,7 @@ namespace padelya_api.Services
                     .ThenInclude(c => c!.Players)
                 .Include(m => m.CoupleTwo)
                     .ThenInclude(c => c!.Players)
+                .Include(m => m.CourtSlot)
                 .FirstOrDefaultAsync(m => m.Id == matchId);
 
             if (match == null)
@@ -99,19 +102,23 @@ namespace padelya_api.Services
                 return false;
             }
 
-            // Validar que el ganador sea una de las dos parejas
             if (resultDto.WinnerCoupleId != match.CoupleOneId && resultDto.WinnerCoupleId != match.CoupleTwoId)
             {
                 throw new ArgumentException("La pareja ganadora debe ser una de las dos parejas del partido");
             }
 
-            // Validar formato del resultado
             ValidateResultFormat(resultDto.Result, resultDto.WinnerCoupleId, match.CoupleOneId!.Value, match.CoupleTwoId!.Value);
 
-            // Actualizar resultado
             match.Result = resultDto.Result;
             match.WinnerCoupleId = resultDto.WinnerCoupleId;
             match.TournamentMatchState = "Completed";
+
+            // Liberar el slot de la cancha si estaba programado
+            if (match.CourtSlotId.HasValue && match.CourtSlot != null)
+            {
+                _context.CourtSlots.Remove(match.CourtSlot);
+                match.CourtSlotId = null;
+            }
 
             await _context.SaveChangesAsync();
 
@@ -120,7 +127,6 @@ namespace padelya_api.Services
 
         private void ValidateResultFormat(string result, int winnerCoupleId, int coupleOneId, int coupleTwoId)
         {
-            // Formato esperado: "6-4, 6-3" o "6-4, 4-6, 7-5"
             var sets = result.Split(',').Select(s => s.Trim()).ToArray();
 
             if (sets.Length < 2 || sets.Length > 3)
@@ -144,13 +150,11 @@ namespace padelya_api.Services
                     throw new ArgumentException($"Los puntajes deben ser números: {set}");
                 }
 
-                // Validar que los puntajes sean válidos para pádel
                 if (score1 < 0 || score2 < 0 || score1 > 7 || score2 > 7)
                 {
                     throw new ArgumentException($"Puntajes inválidos en el set: {set}");
                 }
 
-                // Determinar ganador del set
                 if (score1 > score2)
                 {
                     coupleOneWins++;
@@ -161,8 +165,7 @@ namespace padelya_api.Services
                 }
             }
 
-            // Verificar que el ganador declarado coincida con los sets ganados
-            int expectedWinnerWins = sets.Length == 2 ? 2 : 2; // Necesita 2 sets para ganar
+            int expectedWinnerWins = sets.Length == 2 ? 2 : 2;
             int winnerSetWins = winnerCoupleId == coupleOneId ? coupleOneWins : coupleTwoWins;
 
             if (winnerSetWins < expectedWinnerWins)
@@ -173,52 +176,90 @@ namespace padelya_api.Services
 
         private async Task<bool> AdvanceWinnerToNextRound(TournamentMatch completedMatch)
         {
-            // Buscar el siguiente partido en la fase actual o siguiente fase
-            // La lógica depende de cómo está estructurado tu bracket
-            
-            // Por ahora, buscar si hay un partido en una fase superior que esté esperando al ganador de este partido
-            var bracket = completedMatch.Bracket;
-            var tournament = bracket.Tournament;
+            var bracket = await _context.TournamentBrackets
+                .Include(b => b.Phase)
+                .ThenInclude(p => p.Tournament)
+                .Include(b => b.Matches)
+                .FirstOrDefaultAsync(b => b.Id == completedMatch.BracketId);
 
-            // Buscar la siguiente fase (si existe)
-            var nextPhase = await _context.TournamentBrackets
-                .Where(b => b.TournamentId == tournament.Id && b.PhaseOrder == bracket.PhaseOrder + 1)
+            if (bracket == null)
+            {
+                return false;
+            }
+
+            var currentPhase = bracket.Phase;
+            var tournament = currentPhase.Tournament;
+
+            var nextPhase = await _context.TournamentPhases
+                .Include(p => p.Brackets)
+                .ThenInclude(b => b.Matches)
+                .Where(p => p.TournamentId == tournament.Id && p.PhaseOrder == currentPhase.PhaseOrder + 1)
                 .FirstOrDefaultAsync();
 
             if (nextPhase == null)
             {
-                // Es la final, no hay siguiente ronda
+                tournament.TournamentStatus = TournamentStatus.Finalizado;
+                tournament.CurrentPhase = "Finalizado";
+                await _context.SaveChangesAsync();
                 return false;
             }
 
-            // Buscar el partido correspondiente en la siguiente fase
-            // Esta lógica puede variar según tu estructura de eliminación
-            var nextPhaseMatches = await _context.TournamentMatches
-                .Where(m => m.BracketId == nextPhase.Id)
+            var currentPhaseMatches = await _context.TournamentMatches
+                .Where(m => m.BracketId == bracket.Id)
+                .OrderBy(m => m.Id)
                 .ToListAsync();
 
-            // Encontrar el partido que debería recibir al ganador
-            // (Esto depende de la lógica de tu bracket, por ahora asignamos al primer partido sin parejas completas)
-            var targetMatch = nextPhaseMatches.FirstOrDefault(m => 
-                !m.CoupleOneId.HasValue || !m.CoupleTwoId.HasValue);
-
-            if (targetMatch != null)
+            var matchIndex = currentPhaseMatches.IndexOf(completedMatch);
+            if (matchIndex == -1)
             {
-                // Asignar ganador a la siguiente ronda
-                if (!targetMatch.CoupleOneId.HasValue)
-                {
-                    targetMatch.CoupleOneId = completedMatch.WinnerCoupleId;
-                }
-                else if (!targetMatch.CoupleTwoId.HasValue)
-                {
-                    targetMatch.CoupleTwoId = completedMatch.WinnerCoupleId;
-                }
-
-                await _context.SaveChangesAsync();
-                return true;
+                return false;
             }
 
-            return false;
+            var targetMatchIndex = matchIndex / 2;
+
+            var nextPhaseBrackets = nextPhase.Brackets.ToList();
+            if (!nextPhaseBrackets.Any())
+            {
+                return false;
+            }
+
+            var nextPhaseMatches = await _context.TournamentMatches
+                .Where(m => nextPhaseBrackets.Select(b => b.Id).Contains(m.BracketId))
+                .OrderBy(m => m.Id)
+                .ToListAsync();
+
+            if (targetMatchIndex >= nextPhaseMatches.Count)
+            {
+                return false;
+            }
+
+            var targetMatch = nextPhaseMatches[targetMatchIndex];
+
+            if (matchIndex % 2 == 0)
+            {
+                targetMatch.CoupleOneId = completedMatch.WinnerCoupleId;
+            }
+            else
+            {
+                targetMatch.CoupleTwoId = completedMatch.WinnerCoupleId;
+            }
+
+            if (targetMatch.CoupleOneId.HasValue && targetMatch.CoupleTwoId.HasValue)
+            {
+                targetMatch.TournamentMatchState = "Listo";
+            }
+
+            await _context.SaveChangesAsync();
+
+            var allMatchesCompleted = currentPhaseMatches.All(m => m.TournamentMatchState == "Completed");
+            
+            if (allMatchesCompleted)
+            {
+                tournament.CurrentPhase = nextPhase.PhaseName;
+                await _context.SaveChangesAsync();
+            }
+
+            return true;
         }
 
         private string GetCoupleName(Couple couple)

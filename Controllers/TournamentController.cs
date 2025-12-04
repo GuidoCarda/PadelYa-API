@@ -1,7 +1,11 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using padelya_api.Data;
 using padelya_api.DTOs.Tournament;
 using padelya_api.Services;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using padelya_api.Attributes;
@@ -11,16 +15,30 @@ namespace padelya_api.Controllers
 {
     [ApiController]
     [Route("api/Tournament")]
-    public class TournamentController(
-        ITournamentService tournamentService, 
-        IBracketGenerationService bracketGenerationService,
-        IMatchSchedulingService matchSchedulingService,
-        IMatchResultService matchResultService) : ControllerBase
+    public class TournamentController : ControllerBase
     {
-        private readonly ITournamentService _tournamentService = tournamentService;
-        private readonly IBracketGenerationService _bracketGenerationService = bracketGenerationService;
-        private readonly IMatchSchedulingService _matchSchedulingService = matchSchedulingService;
-        private readonly IMatchResultService _matchResultService = matchResultService;
+        private readonly ITournamentService _tournamentService;
+        private readonly IBracketGenerationService _bracketGenerationService;
+        private readonly IMatchSchedulingService _matchSchedulingService;
+        private readonly IMatchResultService _matchResultService;
+        private readonly IAutoSchedulingService _autoSchedulingService;
+        private readonly PadelYaDbContext _context;
+
+        public TournamentController(
+            ITournamentService tournamentService,
+            IBracketGenerationService bracketGenerationService,
+            IMatchSchedulingService matchSchedulingService,
+            IMatchResultService matchResultService,
+            IAutoSchedulingService autoSchedulingService,
+            PadelYaDbContext context)
+        {
+            _tournamentService = tournamentService;
+            _bracketGenerationService = bracketGenerationService;
+            _matchSchedulingService = matchSchedulingService;
+            _matchResultService = matchResultService;
+            _autoSchedulingService = autoSchedulingService;
+            _context = context;
+        }
 
         [HttpPost]
         public async Task<IActionResult> CreateTournament([FromBody] CreateTournamentDto createTournamentDto)
@@ -151,7 +169,6 @@ namespace padelya_api.Controllers
         {
             try
             {
-                // El servicio se encargará de obtener el ID del usuario actual desde el token.
                 var enrollment = await _tournamentService.EnrollPlayerAsync(id, enrollmentDto);
 
                 if (enrollment == null)
@@ -163,7 +180,27 @@ namespace padelya_api.Controllers
             }
             catch (ArgumentException ex)
             {
-                return BadRequest(ex.Message); // Para errores de validación (ej: "cupos llenos")
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error interno del servidor: {ex.Message}");
+            }
+        }
+
+        [Authorize]
+        [RequirePermission(Permissions.Tournament.Join)]
+        [HttpPost("{id}/enroll-with-payment")]
+        public async Task<IActionResult> EnrollInTournamentWithPayment(int id, [FromBody] TournamentEnrollmentWithPaymentDto enrollmentDto)
+        {
+            try
+            {
+                var result = await _tournamentService.EnrollWithPaymentAsync(id, enrollmentDto);
+                return Ok(result);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
             }
             catch (Exception ex)
             {
@@ -178,7 +215,6 @@ namespace padelya_api.Controllers
         {
             try
             {
-                // Obtener el ID del usuario desde el token JWT
                 var userIdClaim = User.FindFirst("user_id");
                 if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
                 {
@@ -205,11 +241,13 @@ namespace padelya_api.Controllers
         }
 
         [HttpPost("{id}/generate-bracket")]
-        public async Task<IActionResult> GenerateTournamentBracket(int id)
+        public async Task<IActionResult> GenerateTournamentBracket(
+            int id, 
+            [FromQuery] bool autoSchedule = false)
         {
             try
             {
-                var result = await _bracketGenerationService.GenerateTournamentBracketAsync(id);
+                var result = await _bracketGenerationService.GenerateTournamentBracketAsync(id, autoSchedule);
 
                 if (result == null)
                 {
@@ -248,13 +286,32 @@ namespace padelya_api.Controllers
             }
         }
 
+        [HttpGet("{id}/all-phases")]
+        public async Task<IActionResult> GetAllTournamentPhases(int id)
+        {
+            try
+            {
+                var result = await _bracketGenerationService.GetAllTournamentPhasesAsync(id);
+
+                if (result == null || result.Count == 0)
+                {
+                    return NotFound($"No se encontraron fases para el torneo con ID {id}.");
+                }
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error interno del servidor: {ex.Message}");
+            }
+        }
+
         [HttpPost("match/{matchId}/schedule")]
         [RequirePermission(Permissions.Tournament.AssignUser)]
         public async Task<IActionResult> AssignMatchSchedule(int matchId, [FromBody] AssignMatchScheduleDto scheduleDto)
         {
             try
             {
-                // Asegurar que el matchId del parámetro de ruta coincida con el del body
                 scheduleDto.MatchId = matchId;
 
                 var result = await _matchSchedulingService.AssignMatchScheduleAsync(scheduleDto);
@@ -292,7 +349,7 @@ namespace padelya_api.Controllers
         }
 
         [HttpPost("match/{matchId}/result")]
-        [RequirePermission(Permissions.Tournament.AssignUser)]
+        [Authorize]
         public async Task<IActionResult> RegisterMatchResult(int matchId, [FromBody] RegisterMatchResultDto resultDto)
         {
             try
@@ -313,7 +370,7 @@ namespace padelya_api.Controllers
         }
 
         [HttpPut("match/{matchId}/result")]
-        [RequirePermission(Permissions.Tournament.AssignUser)]
+        [Authorize]
         public async Task<IActionResult> UpdateMatchResult(int matchId, [FromBody] RegisterMatchResultDto resultDto)
         {
             try
@@ -328,6 +385,36 @@ namespace padelya_api.Controllers
                 }
 
                 return Ok("Resultado actualizado exitosamente.");
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error interno del servidor: {ex.Message}");
+            }
+        }
+
+        [HttpPost("{tournamentId}/phase/{phaseId}/auto-schedule")]
+        [RequirePermission(Permissions.Tournament.AssignUser)]
+        public async Task<IActionResult> AutoSchedulePhaseMatches(int tournamentId, int phaseId)
+        {
+            try
+            {
+                var phaseMatches = await _context.TournamentMatches
+                    .Where(m => m.Bracket.PhaseId == phaseId)
+                    .Select(m => m.Id)
+                    .ToListAsync();
+
+                if (!phaseMatches.Any())
+                {
+                    return NotFound($"No se encontraron partidos para la fase con ID {phaseId}.");
+                }
+
+                var result = await _autoSchedulingService.AutoScheduleMatchesAsync(phaseMatches, tournamentId);
+
+                return Ok(result);
             }
             catch (ArgumentException ex)
             {

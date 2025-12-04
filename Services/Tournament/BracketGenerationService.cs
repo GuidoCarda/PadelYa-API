@@ -10,11 +10,23 @@ using System.Threading.Tasks;
 
 namespace padelya_api.Services
 {
-    public class BracketGenerationService(PadelYaDbContext context) : IBracketGenerationService
+    public class BracketGenerationService : IBracketGenerationService
     {
-        private readonly PadelYaDbContext _context = context;
+        private readonly PadelYaDbContext _context;
+        private readonly IAutoSchedulingService _autoSchedulingService;
+
+        public BracketGenerationService(PadelYaDbContext context, IAutoSchedulingService autoSchedulingService)
+        {
+            _context = context;
+            _autoSchedulingService = autoSchedulingService;
+        }
 
         public async Task<GenerateBracketResponseDto?> GenerateTournamentBracketAsync(int tournamentId)
+        {
+            return await GenerateTournamentBracketAsync(tournamentId, false);
+        }
+
+        public async Task<GenerateBracketResponseDto?> GenerateTournamentBracketAsync(int tournamentId, bool autoSchedule)
         {
             var tournament = await _context.Tournaments
                 .Include(t => t.Enrollments)
@@ -82,6 +94,7 @@ namespace padelya_api.Services
                 {
                     TournamentId = tournamentId,
                     PhaseName = phaseName,
+                    PhaseOrder = numberOfRounds - round + 1, // 1 para primera ronda, 2 para segunda, etc.
                     StartDate = phaseStartDate,
                     EndDate = phaseEndDate,
                     Brackets = new List<TournamentBracket>()
@@ -184,6 +197,30 @@ namespace padelya_api.Services
                 Phases = await MapPhasesToDto(phases)
             };
 
+            if (autoSchedule)
+            {
+                var firstPhaseMatchIds = firstBracket.Matches
+                    .Where(m => m.CoupleOneId.HasValue && m.CoupleTwoId.HasValue)
+                    .Select(m => m.Id)
+                    .ToList();
+
+                if (firstPhaseMatchIds.Any())
+                {
+                    var schedulingResult = await _autoSchedulingService.AutoScheduleMatchesAsync(
+                        firstPhaseMatchIds,
+                        tournamentId
+                    );
+
+                    response.AutoSchedulingResult = schedulingResult;
+                    response.Message += $" | Programación automática: {schedulingResult.TotalMatchesScheduled} partidos programados";
+                    
+                    if (schedulingResult.HasConflicts)
+                    {
+                        response.Message += $", {schedulingResult.TotalMatchesFailed} con conflictos";
+                    }
+                }
+            }
+
             return response;
         }
 
@@ -219,6 +256,34 @@ namespace padelya_api.Services
             return await MapPhaseToDto(currentPhase);
         }
 
+        public async Task<List<TournamentPhaseWithBracketsDto>> GetAllTournamentPhasesAsync(int tournamentId)
+        {
+            var tournament = await _context.Tournaments
+                .Include(t => t.TournamentPhases)
+                .ThenInclude(p => p.Brackets)
+                .ThenInclude(b => b.Matches)
+                .ThenInclude(m => m.CoupleOne)
+                .ThenInclude(c => c.Players)
+                .Include(t => t.TournamentPhases)
+                .ThenInclude(p => p.Brackets)
+                .ThenInclude(b => b.Matches)
+                .ThenInclude(m => m.CoupleTwo)
+                .ThenInclude(c => c.Players)
+                .FirstOrDefaultAsync(t => t.Id == tournamentId);
+
+            if (tournament == null || !tournament.TournamentPhases.Any())
+            {
+                return new List<TournamentPhaseWithBracketsDto>();
+            }
+
+            // Obtener todas las fases ordenadas por PhaseOrder
+            var allPhases = tournament.TournamentPhases
+                .OrderBy(p => p.PhaseOrder)
+                .ToList();
+
+            return await MapPhasesToDto(allPhases);
+        }
+
         private async Task<List<TournamentPhaseWithBracketsDto>> MapPhasesToDto(List<TournamentPhase> phases)
         {
             var phasesDto = new List<TournamentPhaseWithBracketsDto>();
@@ -238,6 +303,7 @@ namespace padelya_api.Services
                 Id = phase.Id,
                 TournamentId = phase.TournamentId,
                 PhaseName = phase.PhaseName,
+                PhaseOrder = phase.PhaseOrder,
                 StartDate = phase.StartDate,
                 EndDate = phase.EndDate,
                 Brackets = new List<TournamentBracketDto>()

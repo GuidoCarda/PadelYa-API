@@ -125,6 +125,7 @@ namespace padelya_api.Services
         case "lesson":
           break;
         case "tournament":
+          await HandleTournamentEnrollmentPayment(payment, targetId);
           break;
         default:
           throw new ArgumentException($"Unknown target entity: {target}");
@@ -158,19 +159,30 @@ namespace padelya_api.Services
 
       var parts = payment.ExternalReference.Split('_');
 
-      if (parts.Length != 2)
+      // Handle new format: tournament_{tournamentId}_enrollment_{enrollmentId}
+      if (parts.Length == 4 && parts[0] == "tournament" && parts[2] == "enrollment")
       {
-        throw new ArgumentException($"Invalid format: {payment.ExternalReference}");
+        if (!int.TryParse(parts[3], out var enrollmentId))
+        {
+          throw new ArgumentException($"Invalid enrollment ID: {parts[3]}");
+        }
+        return new PaymentTarget("tournament", enrollmentId);
       }
 
-      var (target, targetIdStr) = (parts[0], parts[1]);
-
-      if (!int.TryParse(targetIdStr, out var targetId))
+      // Handle legacy format: {target}_{id}
+      if (parts.Length == 2)
       {
-        throw new ArgumentException($"Invalid target ID: {targetIdStr}");
+        var (target, targetIdStr) = (parts[0], parts[1]);
+
+        if (!int.TryParse(targetIdStr, out var targetId))
+        {
+          throw new ArgumentException($"Invalid target ID: {targetIdStr}");
+        }
+
+        return new PaymentTarget(target, targetId);
       }
 
-      return new PaymentTarget(target, targetId);
+      throw new ArgumentException($"Invalid external reference format: {payment.ExternalReference}");
     }
 
     public async Task<PaymentSummaryDto> GetSummaryAsync(string paymentId)
@@ -312,6 +324,81 @@ namespace padelya_api.Services
         type = LocalPaymentType.Balance;
 
       return type;
+    }
+
+    private async Task HandleTournamentEnrollmentPayment(
+      MercadoPago.Resource.Payment.Payment payment,
+      int enrollmentId
+    )
+    {
+      try
+      {
+        var enrollment = await _context.TournamentEnrollments
+                .Include(e => e.Tournament)
+                .Include(e => e.Couple)
+                .ThenInclude(c => c.Players)
+                .FirstOrDefaultAsync(e => e.Id == enrollmentId);
+
+        if (enrollment is null)
+        {
+          throw new Exception("Tournament enrollment not found");
+        }
+
+        var enrollmentPrice = enrollment.Tournament.EnrollmentPrice;
+        var amountPaid = payment.TransactionAmount ?? 0;
+
+        if (payment.Status == MercadoPago.Resource.Payment.PaymentStatus.Approved)
+        {
+          var personIdString = payment.Metadata?["person_id"] as string;
+          if (string.IsNullOrEmpty(personIdString) || !int.TryParse(personIdString, out int personId))
+            throw new Exception("PersonId not found or invalid");
+
+          var newPayment = new LocalPayment
+          {
+            Amount = payment.TransactionAmount ?? 0,
+            PaymentMethod = payment.PaymentTypeId,
+            PaymentStatus = LocalPaymentStatus.Approved,
+            CreatedAt = payment.DateApproved ?? DateTime.UtcNow,
+            TransactionId = payment.Id.ToString()!,
+            TournamentEnrollmentId = enrollmentId,
+            PersonId = personId,
+            PaymentType = LocalPaymentType.Total
+          };
+          _context.Payments.Add(newPayment);
+
+          enrollment.Status = padelya_api.Constants.TournamentEnrollmentStatus.Confirmed;
+
+          await _context.SaveChangesAsync();
+          
+          Console.WriteLine($"[Tournament Payment] Enrollment {enrollmentId} confirmed with payment {payment.Id}");
+        }
+
+        if (payment.Status == MercadoPago.Resource.Payment.PaymentStatus.Rejected)
+        {
+          var newPayment = new LocalPayment
+          {
+            Amount = payment.TransactionAmount ?? 0,
+            PaymentMethod = payment.PaymentMethodId,
+            PaymentStatus = LocalPaymentStatus.Rejected,
+            CreatedAt = payment.DateCreated ?? DateTime.UtcNow,
+            TransactionId = payment.Id.ToString()!,
+            TournamentEnrollmentId = enrollmentId,
+            PersonId = enrollment.PlayerId,
+            PaymentType = LocalPaymentType.Total,
+          };
+          _context.Payments.Add(newPayment);
+
+          enrollment.Status = padelya_api.Constants.TournamentEnrollmentStatus.Rejected;
+
+          await _context.SaveChangesAsync();
+          
+          Console.WriteLine($"[Tournament Payment] Enrollment {enrollmentId} rejected - payment {payment.Id}");
+        }
+      }
+      catch (Exception ex)
+      {
+        Console.WriteLine($"[Tournament Payment Error] {ex.Message}");
+      }
     }
   }
 

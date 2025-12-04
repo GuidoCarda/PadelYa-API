@@ -7,6 +7,16 @@ namespace padelya_api.DTOs.Tournament
         public int PartnerId { get; set; }
     }
 
+    public class TournamentEnrollmentWithPaymentDto
+    {
+        public int PartnerId { get; set; }
+    }
+
+    public class TournamentEnrollmentInitPointDto
+    {
+        public string init_point { get; set; } = string.Empty;
+    }
+
     public class PlayerResponseDto
     {
         public int Id { get; set; }
@@ -29,6 +39,8 @@ namespace padelya_api.DTOs.Tournament
         public int TournamentId { get; set; }
         public DateTime EnrollmentDate { get; set; }
         public CoupleResponseDto Couple { get; set; } = new();
+        public string Status { get; set; } = string.Empty;
+        public DateTime? ExpiresAt { get; set; }
     }
 
     public class TournamentResponseDto
@@ -53,6 +65,7 @@ namespace padelya_api.DTOs.Tournament
         public int Id { get; set; }
         public int TournamentId { get; set; }
         public string PhaseName { get; set; } = string.Empty;
+        public int PhaseOrder { get; set; }
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
     }

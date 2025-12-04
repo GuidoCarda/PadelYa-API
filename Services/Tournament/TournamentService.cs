@@ -10,13 +10,17 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using System.Security.Claims;
 using padelya_api.Models;
+using MercadoPago.Config;
+using MercadoPago.Client.Preference;
+using MercadoPago.Resource.Preference;
 
 namespace padelya_api.Services
 {
-    public class TournamentService(PadelYaDbContext context, IHttpContextAccessor httpContextAccessor) : ITournamentService
+    public class TournamentService(PadelYaDbContext context, IHttpContextAccessor httpContextAccessor, IConfiguration configuration) : ITournamentService
     {
         private readonly PadelYaDbContext _context = context;
         private readonly IHttpContextAccessor _httpContextAccessor = httpContextAccessor;
+        private readonly IConfiguration _configuration = configuration;
 
         private async Task<TournamentEnrollmentResponseDto> MapEnrollmentToDto(TournamentEnrollment enrollment)
         {
@@ -45,6 +49,8 @@ namespace padelya_api.Services
                 Id = enrollment.Id,
                 TournamentId = enrollment.TournamentId,
                 EnrollmentDate = enrollment.EnrollmentDate,
+                Status = enrollment.Status.ToString(),
+                ExpiresAt = enrollment.ExpiresAt,
                 Couple = new CoupleResponseDto
                 {
                     Id = enrollment.Couple.Id,
@@ -56,17 +62,23 @@ namespace padelya_api.Services
 
         private async Task<TournamentResponseDto> MapTournamentToDto(Models.Tournament.Tournament tournament)
         {
-            var allPlayerIds = tournament.Enrollments?
+            var activeEnrollments = tournament.Enrollments?
+                .Where(e => e.Status == TournamentEnrollmentStatus.Confirmed || 
+                           (e.Status == TournamentEnrollmentStatus.PendingPayment && 
+                            e.ExpiresAt.HasValue && e.ExpiresAt.Value > DateTime.UtcNow))
+                .ToList() ?? new List<TournamentEnrollment>();
+
+            var allPlayerIds = activeEnrollments
                 .SelectMany(e => e.Couple.Players.Select(p => p.Id))
                 .Distinct()
-                .ToList() ?? new List<int>();
+                .ToList();
 
             var allUsers = await _context.Users
                 .Include(u => u.Person)
                 .Where(u => u.Person != null && allPlayerIds.Contains(u.Person.Id))
                 .ToListAsync();
 
-            var enrollmentsDto = tournament.Enrollments?.Select(enrollment =>
+            var enrollmentsDto = activeEnrollments.Select(enrollment =>
             {
                 var playersDto = enrollment.Couple.Players.Select(player =>
                 {
@@ -86,6 +98,8 @@ namespace padelya_api.Services
                     Id = enrollment.Id,
                     TournamentId = enrollment.TournamentId,
                     EnrollmentDate = enrollment.EnrollmentDate,
+                    Status = enrollment.Status.ToString(),
+                    ExpiresAt = enrollment.ExpiresAt,
                     Couple = new CoupleResponseDto
                     {
                         Id = enrollment.Couple.Id,
@@ -148,6 +162,8 @@ namespace padelya_api.Services
 
         public async Task<List<TournamentResponseDto>> GetTournamentsAsync()
         {
+            await CleanupAllExpiredEnrollmentsAsync();
+
             var tournaments = await _context.Tournaments
                 .Include(t => t.Enrollments)           
                 .ThenInclude(e => e.Couple)           
@@ -229,6 +245,8 @@ namespace padelya_api.Services
 
         public async Task<TournamentResponseDto?> GetTournamentByIdAsync(int id)
         {
+            await CleanupExpiredEnrollmentsAsync(id);
+
             var tournament = await _context.Tournaments
                 .Include(t => t.Enrollments)
                     .ThenInclude(e => e.Couple)
@@ -279,7 +297,6 @@ namespace padelya_api.Services
             }
 
             var tournament = await _context.Tournaments
-                .Include(t => t.Enrollments)
                 .FirstOrDefaultAsync(t => t.Id == tournamentId);
 
             if (tournament == null)
@@ -297,7 +314,15 @@ namespace padelya_api.Services
                 throw new ArgumentException("El período de inscripción para este torneo ya ha finalizado.");
             }
 
-            if (tournament.Enrollments.Count >= tournament.Quota)
+            // Limpiar inscripciones expiradas antes de validar cupos
+            await CleanupExpiredEnrollmentsAsync(tournamentId);
+
+            // Hacer consulta fresca para contar inscripciones confirmadas (no depender de colecciones en memoria)
+            var confirmedEnrollmentsCount = await _context.TournamentEnrollments
+                .CountAsync(e => e.TournamentId == tournamentId && 
+                                e.Status == TournamentEnrollmentStatus.Confirmed);
+
+            if (confirmedEnrollmentsCount >= tournament.Quota)
             {
                 throw new ArgumentException("Los cupos para este torneo ya están llenos.");
             }
@@ -321,18 +346,24 @@ namespace padelya_api.Services
                 throw new ArgumentException("Ambos usuarios deben tener un perfil de jugador para inscribirse.");
             }
 
-            // Verificar que ninguno de los dos ya esté inscrito
-            var existingPlayerIdsInTournament = await _context.TournamentEnrollments
-                .Where(e => e.TournamentId == tournamentId)
-                .SelectMany(e => e.Couple.Players.Select(p => p.Id))
+            var existingEnrollments = await _context.TournamentEnrollments
+                .Include(e => e.Couple)
+                .ThenInclude(c => c.Players)
+                .Where(e => e.TournamentId == tournamentId && 
+                           (e.Status == TournamentEnrollmentStatus.Confirmed || 
+                           (e.Status == TournamentEnrollmentStatus.PendingPayment && 
+                            e.ExpiresAt.HasValue && e.ExpiresAt.Value > DateTime.UtcNow)))
                 .ToListAsync();
 
-            if (existingPlayerIdsInTournament.Contains(loggedInUser.Person.Id) || existingPlayerIdsInTournament.Contains(partnerUser.Person.Id))
+            var existingPlayerIds = existingEnrollments
+                .SelectMany(e => e.Couple.Players.Select(p => p.Id))
+                .ToList();
+
+            if (existingPlayerIds.Contains(loggedInUser.Person.Id) || existingPlayerIds.Contains(partnerUser.Person.Id))
             {
-                throw new ArgumentException("Uno de los jugadores ya se encuentra inscrito en este torneo.");
+                throw new ArgumentException("Uno de los jugadores ya se encuentra inscrito o tiene una inscripción pendiente en este torneo.");
             }
 
-            // Crear pareja e inscripción
             var newCouple = new Couple
             {
                 Name = $"{loggedInUser.Name} & {partnerUser.Name}",
@@ -347,12 +378,13 @@ namespace padelya_api.Services
                 CreatedAt = DateTime.UtcNow,
                 EnrollmentDate = DateTime.UtcNow,
                 PlayerId = loggedInUserId,
+                Status = TournamentEnrollmentStatus.Confirmed,
+                ExpiresAt = null
             };
             _context.TournamentEnrollments.Add(newEnrollment);
 
             await _context.SaveChangesAsync();
 
-            // Recargar con datos relacionados para la respuesta
             var enrollmentWithData = await _context.TournamentEnrollments
                 .Include(e => e.Couple)
                     .ThenInclude(c => c.Players)
@@ -364,6 +396,242 @@ namespace padelya_api.Services
             }
 
             return enrollmentWithData;
+        }
+
+        public async Task<TournamentEnrollmentInitPointDto> EnrollWithPaymentAsync(int tournamentId, TournamentEnrollmentWithPaymentDto enrollmentDto)
+        {
+            var loggedInUserIdString = _httpContextAccessor.HttpContext?.User?.FindFirstValue("user_id");
+            if (string.IsNullOrEmpty(loggedInUserIdString))
+            {
+                throw new ArgumentException("No se pudo identificar al usuario. Inicie sesión nuevamente.");
+            }
+            var loggedInUserId = int.Parse(loggedInUserIdString);
+            var partnerId = enrollmentDto.PartnerId;
+
+            if (loggedInUserId == partnerId)
+            {
+                throw new ArgumentException("No puedes inscribirte contigo mismo como compañero.");
+            }
+
+            var tournament = await _context.Tournaments
+                .FirstOrDefaultAsync(t => t.Id == tournamentId);
+
+            if (tournament == null)
+            {
+                throw new ArgumentException("El torneo especificado no existe.");
+            }
+
+            // Validar estado y período de inscripción
+            if (tournament.TournamentStatus != TournamentStatus.AbiertoParaInscripcion)
+            {
+                throw new ArgumentException("El torneo no está abierto para inscripciones.");
+            }
+            if (DateTime.UtcNow > tournament.EnrollmentEndDate)
+            {
+                throw new ArgumentException("El período de inscripción para este torneo ya ha finalizado.");
+            }
+
+            // Limpiar inscripciones expiradas antes de validar cupos
+            await CleanupExpiredEnrollmentsAsync(tournamentId);
+
+            // Cancelar inscripciones pendientes del usuario actual (permite reintentar inmediatamente)
+            await CancelUserPendingEnrollmentsAsync(tournamentId, loggedInUserId);
+
+            // Hacer consulta fresca para contar inscripciones confirmadas (no depender de colecciones en memoria)
+            var confirmedEnrollmentsCount = await _context.TournamentEnrollments
+                .CountAsync(e => e.TournamentId == tournamentId && 
+                                e.Status == TournamentEnrollmentStatus.Confirmed);
+
+            if (confirmedEnrollmentsCount >= tournament.Quota)
+            {
+                throw new ArgumentException("Los cupos para este torneo ya están llenos.");
+            }
+
+            // Cargar ambos usuarios (el logueado y su compañero)
+            var playersToEnroll = await _context.Users
+                .Where(u => u.Id == loggedInUserId || u.Id == partnerId)
+                .Include(u => u.Person)
+                .ToListAsync();
+
+            if (playersToEnroll.Count != 2)
+            {
+                throw new ArgumentException("Uno o ambos jugadores no existen en el sistema.");
+            }
+
+            var loggedInUser = playersToEnroll.First(u => u.Id == loggedInUserId);
+            var partnerUser = playersToEnroll.First(u => u.Id == partnerId);
+
+            if (loggedInUser.Person == null || partnerUser.Person == null)
+            {
+                throw new ArgumentException("Ambos usuarios deben tener un perfil de jugador para inscribirse.");
+            }
+
+            // Verificar que ninguno de los dos ya esté inscrito (solo inscripciones ACTIVAS: confirmadas o pendientes válidas)
+            var activeEnrollments = await _context.TournamentEnrollments
+                .Include(e => e.Couple)
+                .ThenInclude(c => c.Players)
+                .Where(e => e.TournamentId == tournamentId && 
+                           (e.Status == TournamentEnrollmentStatus.Confirmed || 
+                           (e.Status == TournamentEnrollmentStatus.PendingPayment && 
+                            e.ExpiresAt.HasValue && e.ExpiresAt.Value > DateTime.UtcNow)))
+                .ToListAsync();
+
+            var activePlayerIds = activeEnrollments
+                .SelectMany(e => e.Couple.Players.Select(p => p.Id))
+                .ToList();
+
+            if (activePlayerIds.Contains(loggedInUser.Person.Id) || activePlayerIds.Contains(partnerUser.Person.Id))
+            {
+                throw new ArgumentException("Uno de los jugadores ya se encuentra inscrito o tiene una inscripción pendiente válida en este torneo.");
+            }
+
+            // Crear pareja e inscripción con estado PendingPayment
+            var newCouple = new Couple
+            {
+                Name = $"{loggedInUser.Name} & {partnerUser.Name}",
+                Players = new List<Player> { (Player)loggedInUser.Person, (Player)partnerUser.Person }
+            };
+            _context.Couples.Add(newCouple);
+
+            var newEnrollment = new TournamentEnrollment
+            {
+                TournamentId = tournament.Id,
+                Couple = newCouple,
+                CreatedAt = DateTime.UtcNow,
+                EnrollmentDate = DateTime.UtcNow,
+                PlayerId = loggedInUserId,
+                Status = TournamentEnrollmentStatus.PendingPayment,
+                PreferenceId = null,
+                ExpiresAt = DateTime.UtcNow.AddMinutes(15)
+            };
+            _context.TournamentEnrollments.Add(newEnrollment);
+            await _context.SaveChangesAsync();
+
+            var preference = await CreateMercadoPagoPreference(newEnrollment, tournament.EnrollmentPrice, loggedInUserId);
+
+            if (preference == null)
+                throw new Exception("Preference not created");
+
+            newEnrollment.PreferenceId = preference.Id;
+            await _context.SaveChangesAsync();
+
+            var response = new TournamentEnrollmentInitPointDto
+            {
+                init_point = preference.InitPoint
+            };
+
+            return response;
+        }
+
+        private async Task<Preference> CreateMercadoPagoPreference(TournamentEnrollment enrollment, decimal amount, int personId)
+        {
+            MercadoPagoConfig.AccessToken = _configuration["MercadoPago:AccessToken"];
+
+            var externalReference = $"tournament_{enrollment.TournamentId}_enrollment_{enrollment.Id}";
+
+            var request = new PreferenceRequest
+            {
+                Items = new List<PreferenceItemRequest>
+                {
+                    new PreferenceItemRequest
+                    {
+                        Title = $"Inscripción al torneo",
+                        Quantity = 1,
+                        CurrencyId = "ARS",
+                        UnitPrice = amount
+                    }
+                },
+                ExternalReference = externalReference,
+                BackUrls = new PreferenceBackUrlsRequest
+                {
+                    Success = "https://x8dgxb6z-3000.brs.devtunnels.ms/tournaments/payment/success",
+                    Failure = "https://x8dgxb6z-3000.brs.devtunnels.ms/tournaments/payment/failure",
+                    Pending = "https://x8dgxb6z-3000.brs.devtunnels.ms/tournaments/payment/pending"
+                },
+                NotificationUrl = "https://x8dgxb6z-5105.brs.devtunnels.ms/api/Payments/webhook",
+                Metadata = new Dictionary<string, object>
+                {
+                    ["tournament_enrollment_id"] = enrollment.Id.ToString(),
+                    ["person_id"] = personId.ToString(),
+                    ["tournament_id"] = enrollment.TournamentId.ToString()
+                },
+                AutoReturn = "approved",
+                Expires = true,
+                ExpirationDateTo = DateTime.UtcNow.AddMinutes(15),
+                DateOfExpiration = DateTime.UtcNow.AddMinutes(15),
+                PaymentMethods = new()
+                {
+                    Installments = 1,
+                    ExcludedPaymentTypes = new List<PreferencePaymentTypeRequest>
+                    {
+                        new PreferencePaymentTypeRequest
+                        {
+                            Id = "ticket",
+                        }
+                    }
+                }
+            };
+
+            var client = new PreferenceClient();
+            var preference = await client.CreateAsync(request);
+
+            return preference;
+        }
+        private async Task CleanupExpiredEnrollmentsAsync(int tournamentId)
+        {
+            var expiredEnrollments = await _context.TournamentEnrollments
+                .Include(e => e.Couple)
+                .Where(e => e.TournamentId == tournamentId &&
+                           e.Status == TournamentEnrollmentStatus.PendingPayment &&
+                           e.ExpiresAt.HasValue &&
+                           e.ExpiresAt.Value <= DateTime.UtcNow)
+                .ToListAsync();
+
+            if (expiredEnrollments.Any())
+            {
+                foreach (var enrollment in expiredEnrollments)
+                {
+                    enrollment.Status = TournamentEnrollmentStatus.Cancelled;
+                }
+                await _context.SaveChangesAsync();
+            }
+        }
+
+        private async Task CleanupAllExpiredEnrollmentsAsync()
+        {
+            var expiredEnrollments = await _context.TournamentEnrollments
+                .Where(e => e.Status == TournamentEnrollmentStatus.PendingPayment &&
+                           e.ExpiresAt.HasValue &&
+                           e.ExpiresAt.Value <= DateTime.UtcNow)
+                .ToListAsync();
+
+            if (expiredEnrollments.Any())
+            {
+                foreach (var enrollment in expiredEnrollments)
+                {
+                    enrollment.Status = TournamentEnrollmentStatus.Cancelled;
+                }
+                await _context.SaveChangesAsync();
+            }
+        }
+
+        private async Task CancelUserPendingEnrollmentsAsync(int tournamentId, int userId)
+        {
+            // Buscar inscripciones pendientes del usuario (independientemente de si están expiradas o no)
+            var pendingEnrollments = await _context.TournamentEnrollments
+                .Where(e => e.TournamentId == tournamentId &&
+                           e.PlayerId == userId &&
+                           e.Status == TournamentEnrollmentStatus.PendingPayment)
+                .ToListAsync();
+
+            if (pendingEnrollments.Any())
+            {
+                foreach (var enrollment in pendingEnrollments)
+                {
+                    enrollment.Status = TournamentEnrollmentStatus.Cancelled;
+                }
+                await _context.SaveChangesAsync();
+            }
         }
 
         public async Task<bool> CancelEnrollmentAsync(int tournamentId, int userId)
@@ -382,25 +650,29 @@ namespace padelya_api.Services
                 .ThenInclude(c => c.Players)
                 .Include(e => e.Tournament)
                 .FirstOrDefaultAsync(e => e.TournamentId == tournamentId && 
-                    e.Couple.Players.Any(p => p.Id == user.Person.Id));
+                    e.Couple.Players.Any(p => p.Id == user.Person.Id) &&
+                    (e.Status == TournamentEnrollmentStatus.Confirmed || 
+                     e.Status == TournamentEnrollmentStatus.PendingPayment));
 
             if (enrollment == null)
             {
                 return false;
             }
 
-            // Solo permitir cancelación si el torneo sigue abierto
             if (enrollment.Tournament.TournamentStatus != TournamentStatus.AbiertoParaInscripcion)
             {
                 throw new ArgumentException("No se puede cancelar la inscripción. El torneo ya no está abierto para cambios.");
             }
 
-            var couple = enrollment.Couple;
-            
-            _context.TournamentEnrollments.Remove(enrollment);
-            _context.Couples.Remove(couple);
+            enrollment.Status = TournamentEnrollmentStatus.Cancelled;
+            _context.Entry(enrollment).State = Microsoft.EntityFrameworkCore.EntityState.Modified;
 
-            await _context.SaveChangesAsync();
+            var saveResult = await _context.SaveChangesAsync();
+
+            if (saveResult == 0)
+            {
+                throw new Exception("No se pudo guardar el cambio de estado de la inscripción");
+            }
 
             return true;
         }

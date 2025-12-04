@@ -33,6 +33,7 @@ namespace padelya_api.DTOs.Tournament
         public int Id { get; set; }
         public int TournamentId { get; set; }
         public string PhaseName { get; set; } = string.Empty;
+        public int PhaseOrder { get; set; }
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
         public List<TournamentBracketDto> Brackets { get; set; } = new();
@@ -45,6 +46,7 @@ namespace padelya_api.DTOs.Tournament
         public int TotalPhases { get; set; }
         public int TotalMatches { get; set; }
         public List<TournamentPhaseWithBracketsDto> Phases { get; set; } = new();
+        public AutoSchedulingResultDto? AutoSchedulingResult { get; set; }
     }
 }
 

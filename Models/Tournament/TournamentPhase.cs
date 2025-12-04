@@ -11,6 +11,7 @@ namespace padelya_api.Models.Tournament
         
         // Propiedades de la fase
         public string PhaseName { get; set; } = string.Empty;
+        public int PhaseOrder { get; set; } // Orden de la fase (1 = primera ronda, 2 = segunda, etc.)
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
 

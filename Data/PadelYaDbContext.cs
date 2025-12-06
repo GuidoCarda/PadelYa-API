@@ -114,6 +114,18 @@ namespace padelya_api.Data
                 .HasForeignKey("ModuleId")
                 .IsRequired();
 
+            // SimplePermission - RequiredEntity (enum stored as string)
+            modelBuilder.Entity<SimplePermission>()
+                .Property(sp => sp.RequiredEntity)
+                .HasConversion<string>()
+                .IsRequired(false);
+
+            // RolComposite - TargetType (enum stored as string)
+            modelBuilder.Entity<RolComposite>()
+                .Property(r => r.TargetType)
+                .HasConversion<string>()
+                .IsRequired(false);
+
             // RolComposite - PermissionComponent (many-to-many self reference)
             modelBuilder.Entity<RolComposite>()
                 .HasMany(r => r.Permissions)
@@ -452,86 +464,86 @@ namespace padelya_api.Data
             // 2. SimplePermissions
             modelBuilder.Entity<SimplePermission>().HasData(
                 // Booking permissions
-                new { Id = 1, Name = "booking:make", ModuleId = 1, PermissionType = "Simple", DisplayName = "Hacer reserva", Description = "Permite a un cliente reservar un turno en su propia cuenta" },
-                new { Id = 2, Name = "booking:create", ModuleId = 1, PermissionType = "Simple", DisplayName = "Crear reserva", Description = "Permite crear reservas para cualquier usuario" },
-                new { Id = 3, Name = "booking:edit", ModuleId = 1, PermissionType = "Simple", DisplayName = "Editar reserva", Description = "Permite modificar reservas existentes" },
-                new { Id = 4, Name = "booking:cancel", ModuleId = 1, PermissionType = "Simple", DisplayName = "Cancelar reserva", Description = "Permite cancelar reservas" },
-                new { Id = 5, Name = "booking:view", ModuleId = 1, PermissionType = "Simple", DisplayName = "Ver reservas", Description = "Permite ver todas las reservas" },
-                new { Id = 6, Name = "booking:view_own", ModuleId = 1, PermissionType = "Simple", DisplayName = "Ver reservas propias", Description = "Permite ver las reservas del usuario" },
-                new { Id = 7, Name = "booking:assign_user", ModuleId = 1, PermissionType = "Simple", DisplayName = "Asignar usuario a reserva", Description = "Permite asignar un usuario a una reserva" },
-                new { Id = 8, Name = "booking:mark_paid", ModuleId = 1, PermissionType = "Simple", DisplayName = "Marcar reserva como pagada", Description = "Permite marcar la reserva como pagada" },
+                new { Id = 1, Name = "booking:make", ModuleId = 1, PermissionType = "Simple", DisplayName = "Hacer reserva", Description = "Permite a un cliente reservar un turno en su propia cuenta", RequiredEntity = (RequiredEntityType?)RequiredEntityType.Player },
+                new { Id = 2, Name = "booking:create", ModuleId = 1, PermissionType = "Simple", DisplayName = "Crear reserva", Description = "Permite crear reservas para cualquier usuario", RequiredEntity = (RequiredEntityType?)null },
+                new { Id = 3, Name = "booking:edit", ModuleId = 1, PermissionType = "Simple", DisplayName = "Editar reserva", Description = "Permite modificar reservas existentes", RequiredEntity = (RequiredEntityType?)null },
+                new { Id = 4, Name = "booking:cancel", ModuleId = 1, PermissionType = "Simple", DisplayName = "Cancelar reserva", Description = "Permite cancelar reservas", RequiredEntity = (RequiredEntityType?)null },
+                new { Id = 5, Name = "booking:view", ModuleId = 1, PermissionType = "Simple", DisplayName = "Ver reservas", Description = "Permite ver todas las reservas", RequiredEntity = (RequiredEntityType?)null },
+                new { Id = 6, Name = "booking:view_own", ModuleId = 1, PermissionType = "Simple", DisplayName = "Ver reservas propias", Description = "Permite ver las reservas del usuario", RequiredEntity = (RequiredEntityType?)RequiredEntityType.Player },
+                new { Id = 7, Name = "booking:assign_user", ModuleId = 1, PermissionType = "Simple", DisplayName = "Asignar usuario a reserva", Description = "Permite asignar un usuario a una reserva", RequiredEntity = (RequiredEntityType?)null },
+                new { Id = 8, Name = "booking:mark_paid", ModuleId = 1, PermissionType = "Simple", DisplayName = "Marcar reserva como pagada", Description = "Permite marcar la reserva como pagada", RequiredEntity = (RequiredEntityType?)null },
 
                 // Tournament permissions
-                new { Id = 9, Name = "tournament:create", ModuleId = 5, PermissionType = "Simple", DisplayName = "Crear torneo", Description = "Permite crear nuevos torneos" },
-                new { Id = 10, Name = "tournament:edit", ModuleId = 5, PermissionType = "Simple", DisplayName = "Editar torneo", Description = "Permite editar datos de torneos" },
-                new { Id = 50, Name = "tournament:delete", ModuleId = 5, PermissionType = "Simple", DisplayName = "Eliminar torneo", Description = "Permite eliminar torneos sin inscripciones" },
-                new { Id = 11, Name = "tournament:cancel", ModuleId = 5, PermissionType = "Simple", DisplayName = "Cancelar torneo", Description = "Permite cancelar torneos" },
-                new { Id = 12, Name = "tournament:view", ModuleId = 5, PermissionType = "Simple", DisplayName = "Ver torneos", Description = "Permite ver torneos" },
-                new { Id = 13, Name = "tournament:join", ModuleId = 5, PermissionType = "Simple", DisplayName = "Inscribir en torneo", Description = "Permite inscribir participantes a un torneo" },
-                new { Id = 14, Name = "tournament:assign_user", ModuleId = 5, PermissionType = "Simple", DisplayName = "Asignar usuario a torneo", Description = "Permite asignar usuarios a un torneo" },
-                new { Id = 15, Name = "tournament:manage_scores", ModuleId = 5, PermissionType = "Simple", DisplayName = "Gestionar resultados", Description = "Permite cargar y gestionar resultados de partidos" },
-                new { Id = 16, Name = "tournament:generate_bracket", ModuleId = 5, PermissionType = "Simple", DisplayName = "Generar cuadro", Description = "Permite generar el cuadro del torneo" },
-                new { Id = 17, Name = "tournament:schedule_matches", ModuleId = 5, PermissionType = "Simple", DisplayName = "Programar partidos", Description = "Permite programar los partidos del torneo" },
+                new { Id = 9, Name = "tournament:create", ModuleId = 5, PermissionType = "Simple", DisplayName = "Crear torneo", Description = "Permite crear nuevos torneos", RequiredEntity = (RequiredEntityType?)null },
+                new { Id = 10, Name = "tournament:edit", ModuleId = 5, PermissionType = "Simple", DisplayName = "Editar torneo", Description = "Permite editar datos de torneos", RequiredEntity = (RequiredEntityType?)null },
+                new { Id = 50, Name = "tournament:delete", ModuleId = 5, PermissionType = "Simple", DisplayName = "Eliminar torneo", Description = "Permite eliminar torneos sin inscripciones", RequiredEntity = (RequiredEntityType?)null },
+                new { Id = 11, Name = "tournament:cancel", ModuleId = 5, PermissionType = "Simple", DisplayName = "Cancelar torneo", Description = "Permite cancelar torneos", RequiredEntity = (RequiredEntityType?)null },
+                new { Id = 12, Name = "tournament:view", ModuleId = 5, PermissionType = "Simple", DisplayName = "Ver torneos", Description = "Permite ver torneos", RequiredEntity = (RequiredEntityType?)null },
+                new { Id = 13, Name = "tournament:join", ModuleId = 5, PermissionType = "Simple", DisplayName = "Inscribir en torneo", Description = "Permite inscribir participantes a un torneo", RequiredEntity = (RequiredEntityType?)RequiredEntityType.Player },
+                new { Id = 14, Name = "tournament:assign_user", ModuleId = 5, PermissionType = "Simple", DisplayName = "Asignar usuario a torneo", Description = "Permite asignar usuarios a un torneo", RequiredEntity = (RequiredEntityType?)null },
+                new { Id = 15, Name = "tournament:manage_scores", ModuleId = 5, PermissionType = "Simple", DisplayName = "Gestionar resultados", Description = "Permite cargar y gestionar resultados de partidos", RequiredEntity = (RequiredEntityType?)null },
+                new { Id = 16, Name = "tournament:generate_bracket", ModuleId = 5, PermissionType = "Simple", DisplayName = "Generar cuadro", Description = "Permite generar el cuadro del torneo", RequiredEntity = (RequiredEntityType?)null },
+                new { Id = 17, Name = "tournament:schedule_matches", ModuleId = 5, PermissionType = "Simple", DisplayName = "Programar partidos", Description = "Permite programar los partidos del torneo", RequiredEntity = (RequiredEntityType?)null },
 
 
                 // Court permissions
-                new { Id = 18, Name = "court:create", ModuleId = 2, PermissionType = "Simple", DisplayName = "Crear cancha", Description = "Permite crear nuevas canchas" },
-                new { Id = 19, Name = "court:edit", ModuleId = 2, PermissionType = "Simple", DisplayName = "Editar cancha", Description = "Permite editar información de canchas" },
-                new { Id = 20, Name = "court:delete", ModuleId = 2, PermissionType = "Simple", DisplayName = "Eliminar cancha", Description = "Permite eliminar canchas" },
-                new { Id = 21, Name = "court:view", ModuleId = 2, PermissionType = "Simple", DisplayName = "Ver canchas", Description = "Permite ver todas las canchas" },
+                new { Id = 18, Name = "court:create", ModuleId = 2, PermissionType = "Simple", DisplayName = "Crear cancha", Description = "Permite crear nuevas canchas", RequiredEntity = (RequiredEntityType?)null },
+                new { Id = 19, Name = "court:edit", ModuleId = 2, PermissionType = "Simple", DisplayName = "Editar cancha", Description = "Permite editar información de canchas", RequiredEntity = (RequiredEntityType?)null },
+                new { Id = 20, Name = "court:delete", ModuleId = 2, PermissionType = "Simple", DisplayName = "Eliminar cancha", Description = "Permite eliminar canchas", RequiredEntity = (RequiredEntityType?)null },
+                new { Id = 21, Name = "court:view", ModuleId = 2, PermissionType = "Simple", DisplayName = "Ver canchas", Description = "Permite ver todas las canchas", RequiredEntity = (RequiredEntityType?)null },
 
                 // lesson permissions
-                new { Id = 22, Name = "lesson:create", ModuleId = 6, PermissionType = "Simple", DisplayName = "Crear clase", Description = "Permite crear nuevas clases" },
-                new { Id = 23, Name = "lesson:edit", ModuleId = 6, PermissionType = "Simple", DisplayName = "Editar clase", Description = "Permite editar clases" },
-                new { Id = 24, Name = "lesson:cancel", ModuleId = 6, PermissionType = "Simple", DisplayName = "Cancelar clase", Description = "Permite cancelar clases" },
-                new { Id = 25, Name = "lesson:view", ModuleId = 6, PermissionType = "Simple", DisplayName = "Ver clases", Description = "Permite ver clases" },
-                new { Id = 26, Name = "lesson:join", ModuleId = 6, PermissionType = "Simple", DisplayName = "Inscribirse en clase", Description = "Permite inscribirse a clases" },
-                new { Id = 27, Name = "lesson:assign_user", ModuleId = 6, PermissionType = "Simple", DisplayName = "Asignar usuario a clase", Description = "Permite asignar usuarios a una clase" },
-                new { Id = 28, Name = "lesson:leave", ModuleId = 6, PermissionType = "Simple", DisplayName = "Salir de clase", Description = "Permite darse de baja de una clase" },
+                new { Id = 22, Name = "lesson:create", ModuleId = 6, PermissionType = "Simple", DisplayName = "Crear clase", Description = "Permite crear nuevas clases", RequiredEntity = (RequiredEntityType?)RequiredEntityType.Teacher },
+                new { Id = 23, Name = "lesson:edit", ModuleId = 6, PermissionType = "Simple", DisplayName = "Editar clase", Description = "Permite editar clases", RequiredEntity = (RequiredEntityType?)RequiredEntityType.Teacher },
+                new { Id = 24, Name = "lesson:cancel", ModuleId = 6, PermissionType = "Simple", DisplayName = "Cancelar clase", Description = "Permite cancelar clases", RequiredEntity = (RequiredEntityType?)RequiredEntityType.Teacher },
+                new { Id = 25, Name = "lesson:view", ModuleId = 6, PermissionType = "Simple", DisplayName = "Ver clases", Description = "Permite ver clases", RequiredEntity = (RequiredEntityType?)RequiredEntityType.Teacher },
+                new { Id = 26, Name = "lesson:join", ModuleId = 6, PermissionType = "Simple", DisplayName = "Inscribirse en clase", Description = "Permite inscribirse a clases", RequiredEntity = (RequiredEntityType?)RequiredEntityType.Player },
+                new { Id = 27, Name = "lesson:assign_user", ModuleId = 6, PermissionType = "Simple", DisplayName = "Asignar usuario a clase", Description = "Permite asignar usuarios a una clase", RequiredEntity = (RequiredEntityType?)RequiredEntityType.Teacher },
+                new { Id = 28, Name = "lesson:leave", ModuleId = 6, PermissionType = "Simple", DisplayName = "Salir de clase", Description = "Permite darse de baja de una clase", RequiredEntity = (RequiredEntityType?)RequiredEntityType.Player },
 
                 // User management permissions
-                new { Id = 29, Name = "user:create", ModuleId = 3, PermissionType = "Simple", DisplayName = "Crear usuario", Description = "Permite crear nuevos usuarios" },
-                new { Id = 30, Name = "user:edit", ModuleId = 3, PermissionType = "Simple", DisplayName = "Editar usuario", Description = "Permite editar usuarios" },
-                new { Id = 31, Name = "user:edit_self", ModuleId = 3, PermissionType = "Simple", DisplayName = "Editar perfil propio", Description = "Permite que el usuario edite su propio perfil" },
-                new { Id = 32, Name = "user:view", ModuleId = 3, PermissionType = "Simple", DisplayName = "Ver usuarios", Description = "Permite ver todos los usuarios" },
-                new { Id = 33, Name = "user:view_own", ModuleId = 3, PermissionType = "Simple", DisplayName = "Ver perfil propio", Description = "Permite ver la información del propio usuario" },
-                new { Id = 34, Name = "user:assign_roles", ModuleId = 3, PermissionType = "Simple", DisplayName = "Asignar roles", Description = "Permite asignar roles a usuarios" },
-                new { Id = 35, Name = "user:deactivate", ModuleId = 3, PermissionType = "Simple", DisplayName = "Desactivar usuario", Description = "Permite desactivar usuarios" },
+                new { Id = 29, Name = "user:create", ModuleId = 3, PermissionType = "Simple", DisplayName = "Crear usuario", Description = "Permite crear nuevos usuarios", RequiredEntity = (RequiredEntityType?)null },
+                new { Id = 30, Name = "user:edit", ModuleId = 3, PermissionType = "Simple", DisplayName = "Editar usuario", Description = "Permite editar usuarios", RequiredEntity = (RequiredEntityType?)null },
+                new { Id = 31, Name = "user:edit_self", ModuleId = 3, PermissionType = "Simple", DisplayName = "Editar perfil propio", Description = "Permite que el usuario edite su propio perfil", RequiredEntity = (RequiredEntityType?)null },
+                new { Id = 32, Name = "user:view", ModuleId = 3, PermissionType = "Simple", DisplayName = "Ver usuarios", Description = "Permite ver todos los usuarios", RequiredEntity = (RequiredEntityType?)null },
+                new { Id = 33, Name = "user:view_own", ModuleId = 3, PermissionType = "Simple", DisplayName = "Ver perfil propio", Description = "Permite ver la información del propio usuario", RequiredEntity = (RequiredEntityType?)null },
+                new { Id = 34, Name = "user:assign_roles", ModuleId = 3, PermissionType = "Simple", DisplayName = "Asignar roles", Description = "Permite asignar roles a usuarios", RequiredEntity = (RequiredEntityType?)null },
+                new { Id = 35, Name = "user:deactivate", ModuleId = 3, PermissionType = "Simple", DisplayName = "Desactivar usuario", Description = "Permite desactivar usuarios", RequiredEntity = (RequiredEntityType?)null },
 
                 // Role management permissions
-                new { Id = 36, Name = "role:create", ModuleId = 4, PermissionType = "Simple", DisplayName = "Crear rol", Description = "Permite crear roles" },
-                new { Id = 37, Name = "role:edit", ModuleId = 4, PermissionType = "Simple", DisplayName = "Editar rol", Description = "Permite editar roles" },
-                new { Id = 38, Name = "role:delete", ModuleId = 4, PermissionType = "Simple", DisplayName = "Eliminar rol", Description = "Permite eliminar roles" },
-                new { Id = 39, Name = "role:permission:assign", ModuleId = 4, PermissionType = "Simple", DisplayName = "Asignar permisos a rol", Description = "Permite agregar o quitar permisos de un rol" },
-                new { Id = 40, Name = "role:view", ModuleId = 4, PermissionType = "Simple", DisplayName = "Ver roles", Description = "Permite ver todos los roles" },
+                new { Id = 36, Name = "role:create", ModuleId = 4, PermissionType = "Simple", DisplayName = "Crear rol", Description = "Permite crear roles", RequiredEntity = (RequiredEntityType?)null },
+                new { Id = 37, Name = "role:edit", ModuleId = 4, PermissionType = "Simple", DisplayName = "Editar rol", Description = "Permite editar roles", RequiredEntity = (RequiredEntityType?)null },
+                new { Id = 38, Name = "role:delete", ModuleId = 4, PermissionType = "Simple", DisplayName = "Eliminar rol", Description = "Permite eliminar roles", RequiredEntity = (RequiredEntityType?)null },
+                new { Id = 39, Name = "role:permission:assign", ModuleId = 4, PermissionType = "Simple", DisplayName = "Asignar permisos a rol", Description = "Permite agregar o quitar permisos de un rol", RequiredEntity = (RequiredEntityType?)null },
+                new { Id = 40, Name = "role:view", ModuleId = 4, PermissionType = "Simple", DisplayName = "Ver roles", Description = "Permite ver todos los roles", RequiredEntity = (RequiredEntityType?)null },
 
                 // Routine permissions
-                new { Id = 41, Name = "routine:create", ModuleId = 7, PermissionType = "Simple", DisplayName = "Crear rutina", Description = "Permite crear rutinas" },
-                new { Id = 42, Name = "routine:edit", ModuleId = 7, PermissionType = "Simple", DisplayName = "Editar rutina", Description = "Permite editar rutinas" },
-                new { Id = 43, Name = "routine:delete", ModuleId = 7, PermissionType = "Simple", DisplayName = "Eliminar rutina", Description = "Permite eliminar rutinas" },
-                new { Id = 44, Name = "routine:view", ModuleId = 7, PermissionType = "Simple", DisplayName = "Ver rutinas", Description = "Permite ver rutinas" },
-                new { Id = 45, Name = "routine:assign_user", ModuleId = 7, PermissionType = "Simple", DisplayName = "Asignar usuario a rutina", Description = "Permite asignar usuarios a una rutina" },
+                new { Id = 41, Name = "routine:create", ModuleId = 7, PermissionType = "Simple", DisplayName = "Crear rutina", Description = "Permite crear rutinas", RequiredEntity = (RequiredEntityType?)RequiredEntityType.Teacher },
+                new { Id = 42, Name = "routine:edit", ModuleId = 7, PermissionType = "Simple", DisplayName = "Editar rutina", Description = "Permite editar rutinas", RequiredEntity = (RequiredEntityType?)RequiredEntityType.Teacher },
+                new { Id = 43, Name = "routine:delete", ModuleId = 7, PermissionType = "Simple", DisplayName = "Eliminar rutina", Description = "Permite eliminar rutinas", RequiredEntity = (RequiredEntityType?)RequiredEntityType.Teacher },
+                new { Id = 44, Name = "routine:view", ModuleId = 7, PermissionType = "Simple", DisplayName = "Ver rutinas", Description = "Permite ver rutinas", RequiredEntity = (RequiredEntityType?)RequiredEntityType.Teacher },
+                new { Id = 45, Name = "routine:assign_user", ModuleId = 7, PermissionType = "Simple", DisplayName = "Asignar usuario a rutina", Description = "Permite asignar usuarios a una rutina", RequiredEntity = (RequiredEntityType?)RequiredEntityType.Teacher },
 
                 // Feedback permissions
-                new { Id = 46, Name = "feedback:create", ModuleId = 8, PermissionType = "Simple", DisplayName = "Crear comentario", Description = "Permite crear comentarios" },
-                new { Id = 47, Name = "feedback:edit", ModuleId = 8, PermissionType = "Simple", DisplayName = "Editar comentario", Description = "Permite editar comentarios" },
-                new { Id = 48, Name = "feedback:delete", ModuleId = 8, PermissionType = "Simple", DisplayName = "Eliminar comentario", Description = "Permite eliminar comentarios" },
-                new { Id = 49, Name = "feedback:view", ModuleId = 8, PermissionType = "Simple", DisplayName = "Ver comentarios", Description = "Permite ver comentarios" },
+                new { Id = 46, Name = "feedback:create", ModuleId = 8, PermissionType = "Simple", DisplayName = "Crear comentario", Description = "Permite crear comentarios", RequiredEntity = (RequiredEntityType?)RequiredEntityType.Teacher },
+                new { Id = 47, Name = "feedback:edit", ModuleId = 8, PermissionType = "Simple", DisplayName = "Editar comentario", Description = "Permite editar comentarios", RequiredEntity = (RequiredEntityType?)RequiredEntityType.Teacher },
+                new { Id = 48, Name = "feedback:delete", ModuleId = 8, PermissionType = "Simple", DisplayName = "Eliminar comentario", Description = "Permite eliminar comentarios", RequiredEntity = (RequiredEntityType?)RequiredEntityType.Teacher },
+                new { Id = 49, Name = "feedback:view", ModuleId = 8, PermissionType = "Simple", DisplayName = "Ver comentarios", Description = "Permite ver comentarios", RequiredEntity = (RequiredEntityType?)RequiredEntityType.Teacher },
 
 
               // Repair permissions
-              new { Id = 55, Name = "repair:create", ModuleId = 9, PermissionType = "Simple", DisplayName = "Crear reparación", Description = "Permite crear nuevas reparaciones" },
-              new { Id = 56, Name = "repair:edit", ModuleId = 9, PermissionType = "Simple", DisplayName = "Editar reparación", Description = "Permite editar reparaciones" },
-              new { Id = 57, Name = "repair:cancel", ModuleId = 9, PermissionType = "Simple", DisplayName = "Cancelar reparación", Description = "Permite cancelar reparaciones" },
-              new { Id = 58, Name = "repair:view", ModuleId = 9, PermissionType = "Simple", DisplayName = "Ver reparaciones", Description = "Permite ver reparaciones" },
-              new { Id = 59, Name = "repair:view_own", ModuleId = 9, PermissionType = "Simple", DisplayName = "Ver reparación propia", Description = "Permite ver la reparación del usuario" }
+              new { Id = 55, Name = "repair:create", ModuleId = 9, PermissionType = "Simple", DisplayName = "Crear reparación", Description = "Permite crear nuevas reparaciones", RequiredEntity = (RequiredEntityType?)null },
+              new { Id = 56, Name = "repair:edit", ModuleId = 9, PermissionType = "Simple", DisplayName = "Editar reparación", Description = "Permite editar reparaciones", RequiredEntity = (RequiredEntityType?)null },
+              new { Id = 57, Name = "repair:cancel", ModuleId = 9, PermissionType = "Simple", DisplayName = "Cancelar reparación", Description = "Permite cancelar reparaciones", RequiredEntity = (RequiredEntityType?)null },
+              new { Id = 58, Name = "repair:view", ModuleId = 9, PermissionType = "Simple", DisplayName = "Ver reparaciones", Description = "Permite ver reparaciones", RequiredEntity = (RequiredEntityType?)null },
+              new { Id = 59, Name = "repair:view_own", ModuleId = 9, PermissionType = "Simple", DisplayName = "Ver reparación propia", Description = "Permite ver la reparación del usuario", RequiredEntity = (RequiredEntityType?)RequiredEntityType.Player }
             );
 
             // 3. Roles (RolComposite)
             modelBuilder.Entity<RolComposite>().HasData(
-                new { Id = 100, Name = "Administrador", PermissionType = "Composite" },
-                new { Id = 101, Name = "Profesor", PermissionType = "Composite" },
-                new { Id = 102, Name = "Jugador", PermissionType = "Composite" }
+                new { Id = 100, Name = "Administrador", PermissionType = "Composite", TargetType = (RequiredEntityType?)null },
+                new { Id = 101, Name = "Profesor", PermissionType = "Composite", TargetType = (RequiredEntityType?)RequiredEntityType.Teacher },
+                new { Id = 102, Name = "Jugador", PermissionType = "Composite", TargetType = (RequiredEntityType?)RequiredEntityType.Player }
             );
 
             // 4. Asignar permisos a roles (tabla intermedia)

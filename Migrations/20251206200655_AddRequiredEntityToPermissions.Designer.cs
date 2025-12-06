@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using padelya_api.Data;
 
@@ -11,9 +12,11 @@ using padelya_api.Data;
 namespace padelya_api.Migrations
 {
     [DbContext(typeof(PadelYaDbContext))]
-    partial class PadelYaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251206200655_AddRequiredEntityToPermissions")]
+    partial class AddRequiredEntityToPermissions
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -2273,8 +2276,7 @@ namespace padelya_api.Migrations
                             PermissionType = "Simple",
                             Description = "Permite crear nuevas clases",
                             DisplayName = "Crear clase",
-                            ModuleId = 6,
-                            RequiredEntity = "Teacher"
+                            ModuleId = 6
                         },
                         new
                         {
@@ -2283,8 +2285,7 @@ namespace padelya_api.Migrations
                             PermissionType = "Simple",
                             Description = "Permite editar clases",
                             DisplayName = "Editar clase",
-                            ModuleId = 6,
-                            RequiredEntity = "Teacher"
+                            ModuleId = 6
                         },
                         new
                         {
@@ -2293,8 +2294,7 @@ namespace padelya_api.Migrations
                             PermissionType = "Simple",
                             Description = "Permite cancelar clases",
                             DisplayName = "Cancelar clase",
-                            ModuleId = 6,
-                            RequiredEntity = "Teacher"
+                            ModuleId = 6
                         },
                         new
                         {
@@ -2303,8 +2303,7 @@ namespace padelya_api.Migrations
                             PermissionType = "Simple",
                             Description = "Permite ver clases",
                             DisplayName = "Ver clases",
-                            ModuleId = 6,
-                            RequiredEntity = "Teacher"
+                            ModuleId = 6
                         },
                         new
                         {
@@ -2323,8 +2322,7 @@ namespace padelya_api.Migrations
                             PermissionType = "Simple",
                             Description = "Permite asignar usuarios a una clase",
                             DisplayName = "Asignar usuario a clase",
-                            ModuleId = 6,
-                            RequiredEntity = "Teacher"
+                            ModuleId = 6
                         },
                         new
                         {
@@ -2451,8 +2449,7 @@ namespace padelya_api.Migrations
                             PermissionType = "Simple",
                             Description = "Permite crear rutinas",
                             DisplayName = "Crear rutina",
-                            ModuleId = 7,
-                            RequiredEntity = "Teacher"
+                            ModuleId = 7
                         },
                         new
                         {
@@ -2461,8 +2458,7 @@ namespace padelya_api.Migrations
                             PermissionType = "Simple",
                             Description = "Permite editar rutinas",
                             DisplayName = "Editar rutina",
-                            ModuleId = 7,
-                            RequiredEntity = "Teacher"
+                            ModuleId = 7
                         },
                         new
                         {
@@ -2471,8 +2467,7 @@ namespace padelya_api.Migrations
                             PermissionType = "Simple",
                             Description = "Permite eliminar rutinas",
                             DisplayName = "Eliminar rutina",
-                            ModuleId = 7,
-                            RequiredEntity = "Teacher"
+                            ModuleId = 7
                         },
                         new
                         {
@@ -2481,8 +2476,7 @@ namespace padelya_api.Migrations
                             PermissionType = "Simple",
                             Description = "Permite ver rutinas",
                             DisplayName = "Ver rutinas",
-                            ModuleId = 7,
-                            RequiredEntity = "Teacher"
+                            ModuleId = 7
                         },
                         new
                         {
@@ -2491,8 +2485,7 @@ namespace padelya_api.Migrations
                             PermissionType = "Simple",
                             Description = "Permite asignar usuarios a una rutina",
                             DisplayName = "Asignar usuario a rutina",
-                            ModuleId = 7,
-                            RequiredEntity = "Teacher"
+                            ModuleId = 7
                         },
                         new
                         {
@@ -2501,8 +2494,7 @@ namespace padelya_api.Migrations
                             PermissionType = "Simple",
                             Description = "Permite crear comentarios",
                             DisplayName = "Crear comentario",
-                            ModuleId = 8,
-                            RequiredEntity = "Teacher"
+                            ModuleId = 8
                         },
                         new
                         {
@@ -2511,8 +2503,7 @@ namespace padelya_api.Migrations
                             PermissionType = "Simple",
                             Description = "Permite editar comentarios",
                             DisplayName = "Editar comentario",
-                            ModuleId = 8,
-                            RequiredEntity = "Teacher"
+                            ModuleId = 8
                         },
                         new
                         {
@@ -2521,8 +2512,7 @@ namespace padelya_api.Migrations
                             PermissionType = "Simple",
                             Description = "Permite eliminar comentarios",
                             DisplayName = "Eliminar comentario",
-                            ModuleId = 8,
-                            RequiredEntity = "Teacher"
+                            ModuleId = 8
                         },
                         new
                         {
@@ -2531,8 +2521,7 @@ namespace padelya_api.Migrations
                             PermissionType = "Simple",
                             Description = "Permite ver comentarios",
                             DisplayName = "Ver comentarios",
-                            ModuleId = 8,
-                            RequiredEntity = "Teacher"
+                            ModuleId = 8
                         },
                         new
                         {

@@ -18,6 +18,9 @@ namespace padelya_api.Services
         // Status Management
         Task<bool> UpdateUserStatusAsync(int id, int statusId);
 
+        // Profile Management (self-service)
+        Task<UserDto?> UpdateProfileAsync(int id, UpdateProfileDto profileDto);
+
         // Role Management
         //Task<bool> AssignRoleToUserAsync(int userId, int roleId);
     }

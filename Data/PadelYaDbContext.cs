@@ -100,6 +100,11 @@ namespace padelya_api.Data
                 .Property(u => u.StatusId)
                 .HasDefaultValue(1);
 
+            // Set default for RegisteredAt
+            modelBuilder.Entity<User>()
+                .Property(u => u.RegisteredAt)
+                .HasDefaultValueSql("GETDATE()");
+
             // User - RolComposite
             modelBuilder.Entity<User>()
                 .HasOne(u => u.Role)

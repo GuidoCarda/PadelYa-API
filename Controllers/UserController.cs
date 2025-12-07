@@ -157,6 +157,34 @@ namespace padelya_api.Controllers
     }
 
     /// <summary>
+    /// Update user profile (self-service for users to update their own profile)
+    /// </summary>
+    /// <param name="id">User ID</param>
+    /// <param name="profileDto">Profile update data</param>
+    /// <returns>Updated user information</returns>
+    [HttpPut("{id}/profile")]
+    public async Task<ActionResult<ResponseMessage<UserDto>>> UpdateProfile(int id, [FromBody] UpdateProfileDto profileDto)
+    {
+      try
+      {
+        var user = await userService.UpdateProfileAsync(id, profileDto);
+        if (user == null)
+        {
+          var notFoundResponse = ResponseMessage<UserDto>.NotFound($"User with ID {id} not found");
+          return NotFound(notFoundResponse);
+        }
+
+        var response = ResponseMessage<UserDto>.SuccessResult(user, "Profile updated successfully");
+        return Ok(response);
+      }
+      catch (Exception ex)
+      {
+        var response = ResponseMessage<UserDto>.Error($"Error updating profile: {ex.Message}", "PROFILE_UPDATE_ERROR");
+        return StatusCode(500, response);
+      }
+    }
+
+    /// <summary>
     /// Delete a user
     /// </summary>
     /// <param name="id">User ID</param>
@@ -206,7 +234,7 @@ namespace padelya_api.Controllers
         var result = await userService.ChangePasswordAsync(id, changePasswordDto);
         if (!result)
         {
-          var notFoundResponse = ResponseMessage.NotFound($"User with ID {id} not found or invalid old password");
+          var notFoundResponse = ResponseMessage.NotFound($"Contraseña incorrecta");
           return NotFound(notFoundResponse);
         }
 

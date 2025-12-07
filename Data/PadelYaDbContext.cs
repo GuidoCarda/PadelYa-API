@@ -463,7 +463,9 @@ namespace padelya_api.Data
                 new Module { Id = 6, Name = "lesson", DisplayName = "Clases" },
                 new Module { Id = 7, Name = "routine", DisplayName = "Rutinas" },
                 new Module { Id = 8, Name = "feedback", DisplayName = "Comentarios" },
-                new Module { Id = 9, Name = "repair", DisplayName = "Reparaciones" }
+                new Module { Id = 9, Name = "repair", DisplayName = "Reparaciones" },
+                new Module { Id = 10, Name = "ranking", DisplayName = "Ranking" },
+                new Module { Id = 11, Name = "report", DisplayName = "Reportes" }
             );
 
             // 2. SimplePermissions
@@ -541,8 +543,16 @@ namespace padelya_api.Data
               new { Id = 56, Name = "repair:edit", ModuleId = 9, PermissionType = "Simple", DisplayName = "Editar reparación", Description = "Permite editar reparaciones", RequiredEntity = (RequiredEntityType?)null },
               new { Id = 57, Name = "repair:cancel", ModuleId = 9, PermissionType = "Simple", DisplayName = "Cancelar reparación", Description = "Permite cancelar reparaciones", RequiredEntity = (RequiredEntityType?)null },
               new { Id = 58, Name = "repair:view", ModuleId = 9, PermissionType = "Simple", DisplayName = "Ver reparaciones", Description = "Permite ver reparaciones", RequiredEntity = (RequiredEntityType?)null },
-              new { Id = 59, Name = "repair:view_own", ModuleId = 9, PermissionType = "Simple", DisplayName = "Ver reparación propia", Description = "Permite ver la reparación del usuario", RequiredEntity = (RequiredEntityType?)RequiredEntityType.Player }
-            );
+              new { Id = 59, Name = "repair:view_own", ModuleId = 9, PermissionType = "Simple", DisplayName = "Ver reparación propia", Description = "Permite ver la reparación del usuario", RequiredEntity = (RequiredEntityType?)RequiredEntityType.Player },
+            
+              // Ranking permissions (ModuleId = 10 for ranking)
+              new { Id = 60, Name = "ranking:view", ModuleId = 10, PermissionType = "Simple", DisplayName = "Ver ranking", Description = "Permite ver el ranking", RequiredEntity = (RequiredEntityType?)null },
+              new { Id = 61, Name = "ranking:view_own", ModuleId = 10, PermissionType = "Simple", DisplayName = "Ver ranking propio", Description = "Permite ver el ranking del usuario", RequiredEntity = (RequiredEntityType?)RequiredEntityType.Player },
+              new { Id = 62, Name = "ranking:manage", ModuleId = 10, PermissionType = "Simple", DisplayName = "Gestionar ranking", Description = "Permite gestionar el ranking", RequiredEntity = (RequiredEntityType?)null },
+            
+                // Report permissions (ModuleId = 11 for reports)
+                new { Id = 63, Name = "report:view", ModuleId = 11, PermissionType = "Simple", DisplayName = "Ver reportes", Description = "Permite ver reportes", RequiredEntity = (RequiredEntityType?)null }
+                );
 
             // 3. Roles (RolComposite)
             modelBuilder.Entity<RolComposite>().HasData(
@@ -609,6 +619,9 @@ namespace padelya_api.Data
                 new { RoleId = 100, PermissionComponentId = 57 },
                 new { RoleId = 100, PermissionComponentId = 58 },
                 new { RoleId = 100, PermissionComponentId = 59 },
+                new { RoleId = 100, PermissionComponentId = 60 },
+                new { RoleId = 100, PermissionComponentId = 62 },
+                new { RoleId = 100, PermissionComponentId = 63 },
 
                 // Teacher: permisos específicos
                 new { RoleId = 101, PermissionComponentId = 1 }, // booking:make

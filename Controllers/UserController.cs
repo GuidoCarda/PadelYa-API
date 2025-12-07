@@ -157,6 +157,34 @@ namespace padelya_api.Controllers
     }
 
     /// <summary>
+    /// Update user profile (self-service for users to update their own profile)
+    /// </summary>
+    /// <param name="id">User ID</param>
+    /// <param name="profileDto">Profile update data</param>
+    /// <returns>Updated user information</returns>
+    [HttpPut("{id}/profile")]
+    public async Task<ActionResult<ResponseMessage<UserDto>>> UpdateProfile(int id, [FromBody] UpdateProfileDto profileDto)
+    {
+      try
+      {
+        var user = await userService.UpdateProfileAsync(id, profileDto);
+        if (user == null)
+        {
+          var notFoundResponse = ResponseMessage<UserDto>.NotFound($"User with ID {id} not found");
+          return NotFound(notFoundResponse);
+        }
+
+        var response = ResponseMessage<UserDto>.SuccessResult(user, "Profile updated successfully");
+        return Ok(response);
+      }
+      catch (Exception ex)
+      {
+        var response = ResponseMessage<UserDto>.Error($"Error updating profile: {ex.Message}", "PROFILE_UPDATE_ERROR");
+        return StatusCode(500, response);
+      }
+    }
+
+    /// <summary>
     /// Delete a user
     /// </summary>
     /// <param name="id">User ID</param>
@@ -206,7 +234,7 @@ namespace padelya_api.Controllers
         var result = await userService.ChangePasswordAsync(id, changePasswordDto);
         if (!result)
         {
-          var notFoundResponse = ResponseMessage.NotFound($"User with ID {id} not found or invalid old password");
+          var notFoundResponse = ResponseMessage.NotFound($"Contraseña incorrecta");
           return NotFound(notFoundResponse);
         }
 
@@ -216,6 +244,62 @@ namespace padelya_api.Controllers
       catch (Exception ex)
       {
         var response = ResponseMessage.Error($"Error changing password: {ex.Message}", "PASSWORD_CHANGE_ERROR");
+        return StatusCode(500, response);
+      }
+    }
+
+    /// <summary>
+    /// Update user status (activate or deactivate)
+    /// </summary>
+    /// <param name="id">User ID</param>
+    /// <param name="statusDto">Status update data</param>
+    /// <returns>Success confirmation</returns>
+    [HttpPatch("{id}/status")]
+    //[Authorize(Roles = "Admin")]
+    public async Task<ActionResult<ResponseMessage>> UpdateUserStatus(int id, [FromBody] UpdateUserStatusDto statusDto)
+    {
+      try
+      {
+        // Validate DTO
+        if (statusDto == null)
+        {
+          var validationResponse = ResponseMessage.ValidationError(
+            "Invalid request data",
+            new List<ValidationError>
+            {
+              new ValidationError("Request", "Status update data is required")
+            }
+          );
+          return BadRequest(validationResponse);
+        }
+
+        // Validate statusId
+        if (statusDto.StatusId != UserStatusIds.Active && statusDto.StatusId != UserStatusIds.Inactive)
+        {
+          var validationResponse = ResponseMessage.ValidationError(
+            "Invalid status ID",
+            new List<ValidationError>
+            {
+              new ValidationError("StatusId", "StatusId must be 1 (Active) or 2 (Inactive)")
+            }
+          );
+          return BadRequest(validationResponse);
+        }
+
+        var result = await userService.UpdateUserStatusAsync(id, statusDto.StatusId);
+        if (!result)
+        {
+          var notFoundResponse = ResponseMessage.NotFound($"User with ID {id} not found or could not be updated");
+          return NotFound(notFoundResponse);
+        }
+
+        var statusName = statusDto.StatusId == UserStatusIds.Active ? "activated" : "deactivated";
+        var response = ResponseMessage.SuccessMessage($"User {statusName} successfully");
+        return Ok(response);
+      }
+      catch (Exception ex)
+      {
+        var response = ResponseMessage.Error($"Error updating user status: {ex.Message}", "USER_STATUS_UPDATE_ERROR");
         return StatusCode(500, response);
       }
     }

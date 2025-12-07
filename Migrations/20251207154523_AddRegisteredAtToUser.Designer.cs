@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using padelya_api.Data;
 
@@ -11,9 +12,11 @@ using padelya_api.Data;
 namespace padelya_api.Migrations
 {
     [DbContext(typeof(PadelYaDbContext))]
-    partial class PadelYaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251207154523_AddRegisteredAtToUser")]
+    partial class AddRegisteredAtToUser
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -423,21 +426,6 @@ namespace padelya_api.Migrations
                         new
                         {
                             PermissionComponentId = 59,
-                            RoleId = 100
-                        },
-                        new
-                        {
-                            PermissionComponentId = 60,
-                            RoleId = 100
-                        },
-                        new
-                        {
-                            PermissionComponentId = 62,
-                            RoleId = 100
-                        },
-                        new
-                        {
-                            PermissionComponentId = 63,
                             RoleId = 100
                         },
                         new
@@ -1364,18 +1352,6 @@ namespace padelya_api.Migrations
                             Id = 9,
                             DisplayName = "Reparaciones",
                             Name = "repair"
-                        },
-                        new
-                        {
-                            Id = 10,
-                            DisplayName = "Ranking",
-                            Name = "ranking"
-                        },
-                        new
-                        {
-                            Id = 11,
-                            DisplayName = "Reportes",
-                            Name = "report"
                         });
                 });
 
@@ -1877,9 +1853,7 @@ namespace padelya_api.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<DateTime>("RegisteredAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETDATE()");
+                        .HasColumnType("datetime2");
 
                     b.Property<int>("RoleId")
                         .HasColumnType("int");
@@ -2616,43 +2590,6 @@ namespace padelya_api.Migrations
                             DisplayName = "Ver reparación propia",
                             ModuleId = 9,
                             RequiredEntity = "Player"
-                        },
-                        new
-                        {
-                            Id = 60,
-                            Name = "ranking:view",
-                            PermissionType = "Simple",
-                            Description = "Permite ver el ranking",
-                            DisplayName = "Ver ranking",
-                            ModuleId = 10
-                        },
-                        new
-                        {
-                            Id = 61,
-                            Name = "ranking:view_own",
-                            PermissionType = "Simple",
-                            Description = "Permite ver el ranking del usuario",
-                            DisplayName = "Ver ranking propio",
-                            ModuleId = 10,
-                            RequiredEntity = "Player"
-                        },
-                        new
-                        {
-                            Id = 62,
-                            Name = "ranking:manage",
-                            PermissionType = "Simple",
-                            Description = "Permite gestionar el ranking",
-                            DisplayName = "Gestionar ranking",
-                            ModuleId = 10
-                        },
-                        new
-                        {
-                            Id = 63,
-                            Name = "report:view",
-                            PermissionType = "Simple",
-                            Description = "Permite ver reportes",
-                            DisplayName = "Ver reportes",
-                            ModuleId = 11
                         });
                 });
 

@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using padelya_api.Data;
 
@@ -11,9 +12,11 @@ using padelya_api.Data;
 namespace padelya_api.Migrations
 {
     [DbContext(typeof(PadelYaDbContext))]
-    partial class PadelYaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251207172350_AddRankingAndReportPermissionsModules")]
+    partial class AddRankingAndReportPermissionsModules
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -423,21 +426,6 @@ namespace padelya_api.Migrations
                         new
                         {
                             PermissionComponentId = 59,
-                            RoleId = 100
-                        },
-                        new
-                        {
-                            PermissionComponentId = 60,
-                            RoleId = 100
-                        },
-                        new
-                        {
-                            PermissionComponentId = 62,
-                            RoleId = 100
-                        },
-                        new
-                        {
-                            PermissionComponentId = 63,
                             RoleId = 100
                         },
                         new
@@ -2624,7 +2612,7 @@ namespace padelya_api.Migrations
                             PermissionType = "Simple",
                             Description = "Permite ver el ranking",
                             DisplayName = "Ver ranking",
-                            ModuleId = 10
+                            ModuleId = 11
                         },
                         new
                         {
@@ -2633,7 +2621,7 @@ namespace padelya_api.Migrations
                             PermissionType = "Simple",
                             Description = "Permite ver el ranking del usuario",
                             DisplayName = "Ver ranking propio",
-                            ModuleId = 10,
+                            ModuleId = 11,
                             RequiredEntity = "Player"
                         },
                         new
@@ -2643,7 +2631,7 @@ namespace padelya_api.Migrations
                             PermissionType = "Simple",
                             Description = "Permite gestionar el ranking",
                             DisplayName = "Gestionar ranking",
-                            ModuleId = 10
+                            ModuleId = 11
                         },
                         new
                         {

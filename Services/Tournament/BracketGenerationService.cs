@@ -10,11 +10,23 @@ using System.Threading.Tasks;
 
 namespace padelya_api.Services
 {
-    public class BracketGenerationService(PadelYaDbContext context) : IBracketGenerationService
+    public class BracketGenerationService : IBracketGenerationService
     {
-        private readonly PadelYaDbContext _context = context;
+        private readonly PadelYaDbContext _context;
+        private readonly IAutoSchedulingService _autoSchedulingService;
+
+        public BracketGenerationService(PadelYaDbContext context, IAutoSchedulingService autoSchedulingService)
+        {
+            _context = context;
+            _autoSchedulingService = autoSchedulingService;
+        }
 
         public async Task<GenerateBracketResponseDto?> GenerateTournamentBracketAsync(int tournamentId)
+        {
+            return await GenerateTournamentBracketAsync(tournamentId, false);
+        }
+
+        public async Task<GenerateBracketResponseDto?> GenerateTournamentBracketAsync(int tournamentId, bool autoSchedule)
         {
             var tournament = await _context.Tournaments
                 .Include(t => t.Enrollments)
@@ -37,10 +49,11 @@ namespace padelya_api.Services
             }
 
             var enrolledCouples = tournament.Enrollments.Select(e => e.Couple).ToList();
+            var totalPlayers = enrolledCouples.Sum(c => c.Players.Count);
 
-            if (enrolledCouples.Count < 2)
+            if (enrolledCouples.Count < 2 || totalPlayers < 4)
             {
-                throw new ArgumentException("Se necesitan al menos 2 parejas inscritas para generar el bracket.");
+                throw new ArgumentException("Se necesitan al menos 4 jugadores (2 parejas) para generar el cuadro. Un torneo de pádel requiere mínimo una final con 2 parejas.");
             }
 
             // Eliminar brackets existentes si los hay
@@ -81,6 +94,7 @@ namespace padelya_api.Services
                 {
                     TournamentId = tournamentId,
                     PhaseName = phaseName,
+                    PhaseOrder = numberOfRounds - round + 1, // 1 para primera ronda, 2 para segunda, etc.
                     StartDate = phaseStartDate,
                     EndDate = phaseEndDate,
                     Brackets = new List<TournamentBracket>()
@@ -183,6 +197,30 @@ namespace padelya_api.Services
                 Phases = await MapPhasesToDto(phases)
             };
 
+            if (autoSchedule)
+            {
+                var firstPhaseMatchIds = firstBracket.Matches
+                    .Where(m => m.CoupleOneId.HasValue && m.CoupleTwoId.HasValue)
+                    .Select(m => m.Id)
+                    .ToList();
+
+                if (firstPhaseMatchIds.Any())
+                {
+                    var schedulingResult = await _autoSchedulingService.AutoScheduleMatchesAsync(
+                        firstPhaseMatchIds,
+                        tournamentId
+                    );
+
+                    response.AutoSchedulingResult = schedulingResult;
+                    response.Message += $" | Programación automática: {schedulingResult.TotalMatchesScheduled} partidos programados";
+                    
+                    if (schedulingResult.HasConflicts)
+                    {
+                        response.Message += $", {schedulingResult.TotalMatchesFailed} con conflictos";
+                    }
+                }
+            }
+
             return response;
         }
 
@@ -218,6 +256,34 @@ namespace padelya_api.Services
             return await MapPhaseToDto(currentPhase);
         }
 
+        public async Task<List<TournamentPhaseWithBracketsDto>> GetAllTournamentPhasesAsync(int tournamentId)
+        {
+            var tournament = await _context.Tournaments
+                .Include(t => t.TournamentPhases)
+                .ThenInclude(p => p.Brackets)
+                .ThenInclude(b => b.Matches)
+                .ThenInclude(m => m.CoupleOne)
+                .ThenInclude(c => c.Players)
+                .Include(t => t.TournamentPhases)
+                .ThenInclude(p => p.Brackets)
+                .ThenInclude(b => b.Matches)
+                .ThenInclude(m => m.CoupleTwo)
+                .ThenInclude(c => c.Players)
+                .FirstOrDefaultAsync(t => t.Id == tournamentId);
+
+            if (tournament == null || !tournament.TournamentPhases.Any())
+            {
+                return new List<TournamentPhaseWithBracketsDto>();
+            }
+
+            // Obtener todas las fases ordenadas por PhaseOrder
+            var allPhases = tournament.TournamentPhases
+                .OrderBy(p => p.PhaseOrder)
+                .ToList();
+
+            return await MapPhasesToDto(allPhases);
+        }
+
         private async Task<List<TournamentPhaseWithBracketsDto>> MapPhasesToDto(List<TournamentPhase> phases)
         {
             var phasesDto = new List<TournamentPhaseWithBracketsDto>();
@@ -237,6 +303,7 @@ namespace padelya_api.Services
                 Id = phase.Id,
                 TournamentId = phase.TournamentId,
                 PhaseName = phase.PhaseName,
+                PhaseOrder = phase.PhaseOrder,
                 StartDate = phase.StartDate,
                 EndDate = phase.EndDate,
                 Brackets = new List<TournamentBracketDto>()
@@ -285,9 +352,27 @@ namespace padelya_api.Services
                 Result = match.Result,
                 CoupleOneId = match.CoupleOneId,
                 CoupleTwoId = match.CoupleTwoId,
+                WinnerCoupleId = match.WinnerCoupleId,
                 CourtSlotId = match.CourtSlotId,
                 MatchNumber = matchNumber
             };
+
+            // Cargar información de programación si existe
+            if (match.CourtSlotId.HasValue)
+            {
+                var courtSlot = await _context.CourtSlots
+                    .Include(cs => cs.Court)
+                    .FirstOrDefaultAsync(cs => cs.Id == match.CourtSlotId.Value);
+
+                if (courtSlot != null)
+                {
+                    matchDto.ScheduledDate = courtSlot.Date;
+                    matchDto.ScheduledStartTime = courtSlot.StartTime.ToTimeSpan();
+                    matchDto.ScheduledEndTime = courtSlot.EndTime.ToTimeSpan();
+                    matchDto.CourtId = courtSlot.CourtId;
+                    matchDto.CourtName = courtSlot.Court?.Name ?? "";
+                }
+            }
 
             if (match.CoupleOneId.HasValue && match.CoupleOne != null)
             {

@@ -9,6 +9,7 @@ using padelya_api.Models.Challenge;
 using padelya_api.Models.Notification;
 using padelya_api.Models.Repair;
 using padelya_api.Models.Tournament;
+using padelya_api.Models.Ecommerce;
 
 namespace padelya_api.Data
 {
@@ -74,6 +75,12 @@ namespace padelya_api.Data
     // LoginAudit
     public DbSet<LoginAudit> LoginAudits { get; set; }
 
+
+        //Ecommerce
+        public DbSet<Category> Categories { get; set; }
+        public DbSet<Product> Products { get; set; }
+        public DbSet<Order> Orders { get; set; }
+        public DbSet<OrderItem> OrderItems { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -265,6 +272,12 @@ namespace padelya_api.Data
                 .HasOne(m => m.CoupleTwo)
                 .WithMany()
                 .HasForeignKey(m => m.CoupleTwoId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<TournamentMatch>()
+                .HasOne(m => m.WinnerCouple)
+                .WithMany()
+                .HasForeignKey(m => m.WinnerCoupleId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             // TournamentPhase - Tournament (n:1)
@@ -671,7 +684,9 @@ namespace padelya_api.Data
                 new { RoleId = 102, PermissionComponentId = 31 }, // user:edit_self
                 new { RoleId = 102, PermissionComponentId = 33 }, // user:view_own
                 new { RoleId = 102, PermissionComponentId = 37 }, // routine:view
-                new { RoleId = 102, PermissionComponentId = 42 }  // feedback:view
+                new { RoleId = 102, PermissionComponentId = 42 }, // feedback:view
+                new { RoleId = 102, PermissionComponentId = 13 }, // tournament:view
+                new { RoleId = 102, PermissionComponentId = 14 }  // tournament:join
             );
 
             modelBuilder.Entity<UserStatus>().HasData(
@@ -848,6 +863,92 @@ namespace padelya_api.Data
                 new Booking { Id = 3, CourtSlotId = 3, PersonId = 1, Status = BookingStatus.ReservedPaid },
                 new Booking { Id = 4, CourtSlotId = 4, PersonId = 3, Status = BookingStatus.ReservedPaid }
             );
+
+            #region Ecommerce Configuration
+
+            // Category Configuration
+            modelBuilder.Entity<Category>()
+                .HasKey(c => c.Id);
+
+            modelBuilder.Entity<Category>()
+                .Property(c => c.Name)
+                .IsRequired()
+                .HasMaxLength(100);
+
+            // Product Configuration
+            modelBuilder.Entity<Product>()
+                .HasKey(p => p.Id);
+
+            modelBuilder.Entity<Product>()
+                .Property(p => p.Name)
+                .IsRequired()
+                .HasMaxLength(200);
+
+            modelBuilder.Entity<Product>()
+                .Property(p => p.Price)
+                .HasPrecision(18, 2);
+
+            modelBuilder.Entity<Product>()
+                .Property(p => p.CreatedAt)
+                .HasDefaultValueSql("GETUTCDATE()");
+
+            // Product - Category relationship
+            modelBuilder.Entity<Product>()
+                .HasOne(p => p.Category)
+                .WithMany(c => c.Products)
+                .HasForeignKey(p => p.CategoryId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Order Configuration
+            modelBuilder.Entity<Order>()
+                .HasKey(o => o.Id);
+
+            modelBuilder.Entity<Order>()
+                .Property(o => o.TotalAmount)
+                .HasPrecision(18, 2);
+
+            // Order - User relationship
+            modelBuilder.Entity<Order>()
+                .HasOne(o => o.User)
+                .WithMany()
+                .HasForeignKey(o => o.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Order - Payment relationship
+            modelBuilder.Entity<Order>()
+                .HasOne(o => o.Payment)
+                .WithMany()
+                .HasForeignKey(o => o.PaymentId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .IsRequired(false);
+
+            // OrderItem Configuration
+            modelBuilder.Entity<OrderItem>()
+                .HasKey(oi => oi.Id);
+
+            modelBuilder.Entity<OrderItem>()
+                .Property(oi => oi.UnitPrice)
+                .HasPrecision(18, 2);
+
+            modelBuilder.Entity<OrderItem>()
+                .Property(oi => oi.Subtotal)
+                .HasPrecision(18, 2);
+
+            // OrderItem - Order relationship
+            modelBuilder.Entity<OrderItem>()
+                .HasOne(oi => oi.Order)
+                .WithMany(o => o.OrderItems)
+                .HasForeignKey(oi => oi.OrderId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // OrderItem - Product relationship
+            modelBuilder.Entity<OrderItem>()
+                .HasOne(oi => oi.Product)
+                .WithMany()
+                .HasForeignKey(oi => oi.ProductId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            #endregion
         }
     }
 }

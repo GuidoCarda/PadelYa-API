@@ -28,6 +28,15 @@ namespace padelya_api.DTOs.User
     }
 
     /// <summary>
+    /// DTO for booking statistics related to a user
+    /// </summary>
+    public class UserBookingStatsDto
+    {
+        public int ActiveCount { get; set; }
+        public int TotalCount { get; set; }
+    }
+
+    /// <summary>
     /// DTO for user information returned by API
     /// </summary>
     public class UserDto
@@ -42,6 +51,7 @@ namespace padelya_api.DTOs.User
         public string RoleName { get; set; }
         public PersonDto? Person { get; set; }
         public List<string> Permissions { get; set; }
+        public UserBookingStatsDto? Bookings { get; set; }
     }
 
 
@@ -54,6 +64,14 @@ namespace padelya_api.DTOs.User
         public string OldPassword { get; set; } = string.Empty;
 
         public string NewPassword { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// DTO for updating user status
+    /// </summary>
+    public class UpdateUserStatusDto
+    {
+        public int StatusId { get; set; }
     }
 
     [JsonDerivedType(typeof(PlayerDto), "player")]

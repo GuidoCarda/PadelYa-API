@@ -255,6 +255,20 @@ namespace padelya_api.Controllers
       }
     }
 
+    [HttpGet("user/{userId}/active")]
+    public async Task<IActionResult> GetActiveUserBookings(int userId)
+    {
+      try
+      {
+        var bookings = await _bookingService.GetActiveUserBookingsAsync(userId);
+        return Ok(ResponseMessage<IEnumerable<BookingDto>>.SuccessResult(bookings, "Reservas activas del usuario obtenidas correctamente"));
+      }
+      catch (Exception ex)
+      {
+        return BadRequest(ResponseMessage<IEnumerable<BookingDto>>.Error($"Error al obtener reservas activas del usuario: {ex.Message}"));
+      }
+    }
+
     [HttpGet("person/{personId}")]
     public async Task<IActionResult> GetPersonBookings(int personId, [FromQuery] string? status)
     {

@@ -10,11 +10,12 @@ using Microsoft.AspNetCore.Http;
 
 namespace padelya_api.Services
 {
-    public class UserService(PadelYaDbContext context, IPasswordService passwordService, IConfiguration configuration, IHttpContextAccessor httpContextAccessor) : IUserService
+    public class UserService(PadelYaDbContext context, IPasswordService passwordService, IConfiguration configuration, IHttpContextAccessor httpContextAccessor, IBookingService bookingService) : IUserService
     {
         private readonly PadelYaDbContext _context = context;
         private readonly IPasswordService _passwordService = passwordService;
         private readonly IHttpContextAccessor _httpContextAccessor = httpContextAccessor;
+        private readonly IBookingService _bookingService = bookingService;
 
 
         public async Task<IEnumerable<UserDto>> GetUsersAsync(string? search = null, int? statusId = null)
@@ -23,7 +24,6 @@ namespace padelya_api.Services
                 .Include(u => u.Status)
                 .Include(u => u.Role)
                 .Include(u => u.Person)
-                .Where(u => u.StatusId == UserStatusIds.Active)
                 .AsQueryable();
 
             if (!string.IsNullOrEmpty(search))
@@ -38,18 +38,37 @@ namespace padelya_api.Services
 
             var users = await query.ToListAsync();
 
+            // Get all person IDs for users that have a person
+            var personIds = users.Where(u => u.PersonId.HasValue).Select(u => u.PersonId.Value).ToList();
+
+            // Get booking counts from BookingService (separation of concerns)
+            var bookingCountsDict = await _bookingService.GetBookingCountsByPersonIdsAsync(personIds);
+
             return users
-                .Select(user => new UserDto
+                .Select(user => 
                 {
-                    Id = user.Id,
-                    Name = user.Name,
-                    Surname = user.Surname,
-                    Email = user.Email,
-                    StatusId = user.StatusId,
-                    StatusName = user.Status.Name,
-                    RoleId = user.RoleId,
-                    RoleName = user.Role.Name,
-                    Person = user.Person == null ? null : MapPersonToDto(user.Person)
+                    var bookingCount = user.PersonId.HasValue && bookingCountsDict.ContainsKey(user.PersonId.Value)
+                        ? bookingCountsDict[user.PersonId.Value]
+                        : (ActiveCount: 0, TotalCount: 0);
+
+                    return new UserDto
+                    {
+                        Id = user.Id,
+                        Name = user.Name,
+                        Surname = user.Surname,
+                        Email = user.Email,
+                        StatusId = user.StatusId,
+                        StatusName = user.Status.Name,
+                        RoleId = user.RoleId,
+                        RoleName = user.Role.Name,
+                        Person = user.Person == null ? null : MapPersonToDto(user.Person),
+                        Permissions = new List<string>(),
+                        Bookings = new UserBookingStatsDto
+                        {
+                            ActiveCount = bookingCount.ActiveCount,
+                            TotalCount = bookingCount.TotalCount
+                        }
+                    };
                 })
                 .ToList();
         }
@@ -91,6 +110,22 @@ namespace padelya_api.Services
                 return null;
             }
 
+            // Get booking counts from BookingService
+            UserBookingStatsDto? bookingStats = null;
+            if (user.PersonId.HasValue)
+            {
+                var bookingCounts = await _bookingService.GetBookingCountsByPersonIdsAsync(new List<int> { user.PersonId.Value });
+                if (bookingCounts.ContainsKey(user.PersonId.Value))
+                {
+                    var counts = bookingCounts[user.PersonId.Value];
+                    bookingStats = new UserBookingStatsDto
+                    {
+                        ActiveCount = counts.ActiveCount,
+                        TotalCount = counts.TotalCount
+                    };
+                }
+            }
+
             return new UserDto
             {
                 Id = user.Id,
@@ -101,7 +136,9 @@ namespace padelya_api.Services
                 StatusName = user.Status.Name,
                 RoleId = user.RoleId,
                 RoleName = user.Role.Name,
-                Person = user.Person == null ? null : MapPersonToDto(user.Person)
+                Person = user.Person == null ? null : MapPersonToDto(user.Person),
+                Permissions = new List<string>(),
+                Bookings = bookingStats ?? new UserBookingStatsDto { ActiveCount = 0, TotalCount = 0 }
             };
         }
 
@@ -205,7 +242,9 @@ namespace padelya_api.Services
                 StatusId = user.StatusId,
                 RoleId = user.RoleId,
                 RoleName = user.Role.Name,
-                Person = person == null ? null : MapPersonToDto(person)
+                Person = person == null ? null : MapPersonToDto(person),
+                Permissions = new List<string>(),
+                Bookings = new UserBookingStatsDto { ActiveCount = 0, TotalCount = 0 }
             };
         }
 
@@ -242,6 +281,23 @@ namespace padelya_api.Services
                 user.Surname = userDto.Surname;
 
             await _context.SaveChangesAsync();
+
+            // Get booking counts from BookingService
+            UserBookingStatsDto? bookingStats = null;
+            if (user.PersonId.HasValue)
+            {
+                var bookingCounts = await _bookingService.GetBookingCountsByPersonIdsAsync(new List<int> { user.PersonId.Value });
+                if (bookingCounts.ContainsKey(user.PersonId.Value))
+                {
+                    var counts = bookingCounts[user.PersonId.Value];
+                    bookingStats = new UserBookingStatsDto
+                    {
+                        ActiveCount = counts.ActiveCount,
+                        TotalCount = counts.TotalCount
+                    };
+                }
+            }
+
             return new UserDto
             {
                 Id = user.Id,
@@ -252,7 +308,9 @@ namespace padelya_api.Services
                 StatusName = user.Status.Name,
                 RoleId = user.RoleId,
                 RoleName = user.Role.Name,
-                Person = user.Person == null ? null : MapPersonToDto(user.Person)
+                Person = user.Person == null ? null : MapPersonToDto(user.Person),
+                Permissions = new List<string>(),
+                Bookings = bookingStats ?? new UserBookingStatsDto { ActiveCount = 0, TotalCount = 0 }
             };
         }
 
@@ -301,6 +359,26 @@ namespace padelya_api.Services
             return true;
         }
 
+        public async Task<bool> UpdateUserStatusAsync(int id, int statusId)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
+
+            if (user == null)
+            {
+                return false; // User not found
+            }
+
+            // Validate statusId (should be 1 for Active or 2 for Inactive)
+            if (statusId != UserStatusIds.Active && statusId != UserStatusIds.Inactive)
+            {
+                return false; // Invalid status ID
+            }
+
+            user.StatusId = statusId;
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
         public async Task<RolComposite?> GetUserRoleAsync(int userId)
         {
             var user = await _context.Users
@@ -341,7 +419,8 @@ namespace padelya_api.Services
                         PreferredPosition = (u.Person as Player) != null ? (u.Person as Player).PreferredPosition : null
                     } : null,
 
-                    Permissions = new List<string>()
+                    Permissions = new List<string>(),
+                    Bookings = new UserBookingStatsDto { ActiveCount = 0, TotalCount = 0 }
                 })
                 .ToListAsync();
         }

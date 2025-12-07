@@ -221,6 +221,62 @@ namespace padelya_api.Controllers
     }
 
     /// <summary>
+    /// Update user status (activate or deactivate)
+    /// </summary>
+    /// <param name="id">User ID</param>
+    /// <param name="statusDto">Status update data</param>
+    /// <returns>Success confirmation</returns>
+    [HttpPatch("{id}/status")]
+    //[Authorize(Roles = "Admin")]
+    public async Task<ActionResult<ResponseMessage>> UpdateUserStatus(int id, [FromBody] UpdateUserStatusDto statusDto)
+    {
+      try
+      {
+        // Validate DTO
+        if (statusDto == null)
+        {
+          var validationResponse = ResponseMessage.ValidationError(
+            "Invalid request data",
+            new List<ValidationError>
+            {
+              new ValidationError("Request", "Status update data is required")
+            }
+          );
+          return BadRequest(validationResponse);
+        }
+
+        // Validate statusId
+        if (statusDto.StatusId != UserStatusIds.Active && statusDto.StatusId != UserStatusIds.Inactive)
+        {
+          var validationResponse = ResponseMessage.ValidationError(
+            "Invalid status ID",
+            new List<ValidationError>
+            {
+              new ValidationError("StatusId", "StatusId must be 1 (Active) or 2 (Inactive)")
+            }
+          );
+          return BadRequest(validationResponse);
+        }
+
+        var result = await userService.UpdateUserStatusAsync(id, statusDto.StatusId);
+        if (!result)
+        {
+          var notFoundResponse = ResponseMessage.NotFound($"User with ID {id} not found or could not be updated");
+          return NotFound(notFoundResponse);
+        }
+
+        var statusName = statusDto.StatusId == UserStatusIds.Active ? "activated" : "deactivated";
+        var response = ResponseMessage.SuccessMessage($"User {statusName} successfully");
+        return Ok(response);
+      }
+      catch (Exception ex)
+      {
+        var response = ResponseMessage.Error($"Error updating user status: {ex.Message}", "USER_STATUS_UPDATE_ERROR");
+        return StatusCode(500, response);
+      }
+    }
+
+    /// <summary>
     /// Get user roles
     /// </summary>
     /// <param name="id">User ID</param>

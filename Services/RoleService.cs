@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using padelya_api.Constants;
 using padelya_api.Data;
 using padelya_api.DTOs.Role;
 using padelya_api.Models;
@@ -17,6 +18,7 @@ namespace padelya_api.Services
     {
         public int Id { get; set; }
         public string Name { get; set; }
+        public RequiredEntityType? TargetType { get; set; }
         public List<PermissionComponent> Permissions { get; set; } = new();
         public int UserCount { get; set; }
     }
@@ -35,6 +37,7 @@ namespace padelya_api.Services
         public string Name { get; set; }
         public string? DisplayName { get; set; }
         public string? Description { get; set; }
+        public RequiredEntityType? RequiredEntity { get; set; }
     }
 
     public class RoleService : IRoleService
@@ -55,6 +58,7 @@ namespace padelya_api.Services
                       {
                           Id = r.Id,
                           Name = r.Name,
+                          TargetType = r.TargetType,
                           Permissions = r.Permissions.ToList(),
                           UserCount = _context.Users.Count(u => u.RoleId == r.Id)
                       })
@@ -93,7 +97,8 @@ namespace padelya_api.Services
 
             var newRole = new RolComposite
             {
-                Name = roleDto.Name
+                Name = roleDto.Name,
+                TargetType = roleDto.TargetType
             };
 
             _context.PermissionComponents.Add(newRole);
@@ -267,7 +272,8 @@ namespace padelya_api.Services
                         Id = p.Id,
                         Name = p.Name,
                         DisplayName = p.DisplayName,
-                        Description = p.Description
+                        Description = p.Description,
+                        RequiredEntity = p.RequiredEntity
                     }).ToList()
                 })
                 .ToListAsync();

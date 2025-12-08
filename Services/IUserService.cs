@@ -16,8 +16,10 @@ namespace padelya_api.Services
         Task<bool> ChangePasswordAsync(int id, ChangePasswordDto changePasswordDto);
         Task<IEnumerable<UserDto>> SearchPlayersByEmailAsync(string email);
         // Status Management
-        //Task<bool> ActivateUserAsync(int id);
-        //Task<bool> DeactivateUserAsync(int id);
+        Task<bool> UpdateUserStatusAsync(int id, int statusId);
+
+        // Profile Management (self-service)
+        Task<UserDto?> UpdateProfileAsync(int id, UpdateProfileDto profileDto);
 
         // Role Management
         //Task<bool> AssignRoleToUserAsync(int userId, int roleId);

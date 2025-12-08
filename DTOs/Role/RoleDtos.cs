@@ -1,8 +1,11 @@
+using padelya_api.Constants;
+
 namespace padelya_api.DTOs.Role
 {
   public class CreateRoleDto
   {
     public string Name { get; set; } = string.Empty;
+    public RequiredEntityType? TargetType { get; set; }
   }
 
   public class UpdateRoleDto

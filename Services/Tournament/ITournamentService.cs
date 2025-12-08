@@ -15,6 +15,7 @@ namespace padelya_api.Services
         Task<TournamentResponseDto?> GetTournamentByIdAsync(int id);
         Task<Tournament?> UpdateTournamentStatusAsync(int id, TournamentStatus newStatus);
         Task<TournamentEnrollment?> EnrollPlayerAsync(int tournamentId, TournamentEnrollmentDto enrollmentDto);
+        Task<TournamentEnrollmentInitPointDto> EnrollWithPaymentAsync(int tournamentId, TournamentEnrollmentWithPaymentDto enrollmentDto);
         Task<bool> CancelEnrollmentAsync(int tournamentId, int userId);
 
     }

@@ -29,11 +29,17 @@ namespace padelya_api.Services
 
     // List bookings for the logged-in user (maps userId -> personId internally)
     Task<List<BookingDto>> GetUserBookingsAsync(int userId, string? status = null);
+    
+    // Get active bookings for a user (future date/time + active status)
+    Task<List<BookingDto>> GetActiveUserBookingsAsync(int userId);
 
     // List bookings by domain subject (Person)
     Task<List<BookingDto>> GetBookingsByPersonIdAsync(int personId, string? status = null);
 
     // Get booking report with statistics and analytics
     Task<BookingReportDto> GetBookingReportAsync(DateTime startDate, DateTime endDate);
+
+    // Get booking counts for multiple person IDs (for user list optimization)
+    Task<Dictionary<int, (int ActiveCount, int TotalCount)>> GetBookingCountsByPersonIdsAsync(List<int> personIds);
   }
 }

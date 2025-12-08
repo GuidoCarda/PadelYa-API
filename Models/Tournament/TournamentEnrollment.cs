@@ -1,5 +1,6 @@
 using System;
 using padelya_api.Models;
+using padelya_api.Constants;
 
 namespace padelya_api.Models.Tournament
 {
@@ -8,6 +9,18 @@ namespace padelya_api.Models.Tournament
     public int Id { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime EnrollmentDate { get; set; }
+    
+    // MercadoPago preference ID for payment tracking
+    public string? PreferenceId { get; set; }
+    
+    // Enrollment status
+    public TournamentEnrollmentStatus Status { get; set; } = TournamentEnrollmentStatus.PendingPayment;
+    
+    // Expiration for pending enrollments (15 minutes to complete payment)
+    public DateTime? ExpiresAt { get; set; }
+    
+    // Helper property to check if enrollment is expired
+    public bool IsExpired => ExpiresAt.HasValue && DateTime.UtcNow > ExpiresAt.Value;
 
     // Foreign Keys
     // Player who is being enrolled (used by service logic)

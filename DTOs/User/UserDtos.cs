@@ -25,6 +25,16 @@ namespace padelya_api.DTOs.User
         public string? Surname { get; set; }
         public string? Email { get; set; }
         public int? RoleId { get; set; }
+        public string? PhoneNumber { get; set; } // For updating Person.PhoneNumber
+    }
+
+    /// <summary>
+    /// DTO for booking statistics related to a user
+    /// </summary>
+    public class UserBookingStatsDto
+    {
+        public int ActiveCount { get; set; }
+        public int TotalCount { get; set; }
     }
 
     /// <summary>
@@ -42,6 +52,9 @@ namespace padelya_api.DTOs.User
         public string RoleName { get; set; }
         public PersonDto? Person { get; set; }
         public List<string> Permissions { get; set; }
+        public UserBookingStatsDto? Bookings { get; set; }
+        public DateTime? LastLoginAt { get; set; }
+        public DateTime RegisteredAt { get; set; }
     }
 
 
@@ -56,6 +69,35 @@ namespace padelya_api.DTOs.User
         public string NewPassword { get; set; } = string.Empty;
     }
 
+    /// <summary>
+    /// DTO for updating user status
+    /// </summary>
+    public class UpdateUserStatusDto
+    {
+        public int StatusId { get; set; }
+    }
+
+    /// <summary>
+    /// DTO for updating user profile (self-service)
+    /// </summary>
+    public class UpdateProfileDto
+    {
+        public string? Name { get; set; }
+        public string? Surname { get; set; }
+        
+        // Person fields (for Player/Teacher users)
+        public string? PhoneNumber { get; set; }
+        public DateTime? Birthdate { get; set; }
+        public string? Category { get; set; }
+        
+        // Player-specific field
+        public string? PreferredPosition { get; set; }
+        
+        // Teacher-specific fields
+        public string? Title { get; set; }
+        public string? Institution { get; set; }
+    }
+
     [JsonDerivedType(typeof(PlayerDto), "player")]
     [JsonDerivedType(typeof(TeacherDto), "teacher")]
     public class PersonDto
@@ -64,6 +106,7 @@ namespace padelya_api.DTOs.User
         public string PersonType { get; set; }
         public DateTime Birthdate { get; set; }
         public string Category { get; set; }
+        public string? PhoneNumber { get; set; }
     }
 
     public class PlayerDto : PersonDto

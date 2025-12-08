@@ -94,6 +94,9 @@ builder.Services.AddScoped<ILessonRoutineAssignmentService, LessonRoutineAssignm
 builder.Services.AddScoped<IExerciseService, ExerciseService>();
 builder.Services.AddScoped<ITournamentService, TournamentService>();
 builder.Services.AddScoped<IBracketGenerationService, BracketGenerationService>();
+builder.Services.AddScoped<IMatchSchedulingService, MatchSchedulingService>();
+builder.Services.AddScoped<IMatchResultService, MatchResultService>();
+builder.Services.AddScoped<IAutoSchedulingService, AutoSchedulingService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<IAnnualTableService, AnnualTableService>();
 builder.Services.AddScoped<IScoringService, ScoringService>();

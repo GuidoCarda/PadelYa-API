@@ -750,6 +750,76 @@ namespace padelya_api.Services
       }).ToList();
     }
 
+    public async Task<List<BookingDto>> GetActiveUserBookingsAsync(int userId)
+    {
+      var personId = await _context.Users
+          .Where(u => u.Id == userId)
+          .Select(u => u.PersonId)
+          .FirstOrDefaultAsync();
+
+      if (!personId.HasValue)
+        return new List<BookingDto>();
+
+      var now = DateTime.Now;
+      var today = now.Date;
+      var currentTime = TimeOnly.FromDateTime(now);
+
+      var query = _context.Bookings
+          .Include(b => b.CourtSlot)
+          .Include(b => b.CourtSlot.Court)
+          .Include(b => b.Person)
+          .Include(b => b.Payments)
+          .Where(b => b.PersonId == personId.Value)
+          // Only active statuses (not cancelled)
+          .Where(b => b.Status != BookingStatus.CancelledByClient &&
+                     b.Status != BookingStatus.CancelledByAdmin &&
+                     b.Status != BookingStatus.CancelledBySystem)
+          // Only future bookings (date in future, or same date but time in future)
+          .Where(b => b.CourtSlot.Date > today ||
+                     (b.CourtSlot.Date == today && b.CourtSlot.StartTime > currentTime))
+          .AsQueryable();
+
+      var bookings = await query.OrderBy(bk => bk.CourtSlot.Date)
+                                .ThenBy(bk => bk.CourtSlot.StartTime)
+                                .ToListAsync();
+
+      return bookings.Select(b => new BookingDto
+      {
+        Id = b.Id,
+        CourtSlotId = b.CourtSlotId,
+        PersonId = b.PersonId,
+        Status = b.Status,
+        DisplayStatus = b.DisplayStatus,
+
+        // Información del slot/cancha
+        Date = b.CourtSlot.Date,
+        StartTime = b.CourtSlot.StartTime,
+        EndTime = b.CourtSlot.EndTime,
+        CourtId = b.CourtSlot.Court.Id,
+        CourtName = b.CourtSlot.Court.Name,
+        CourtType = b.CourtSlot.Court.Type,
+
+        // Información del usuario (obtener desde la tabla User)
+        UserName = _context.Users.FirstOrDefault(u => u.PersonId == b.PersonId)?.Name ?? "",
+        UserSurname = _context.Users.FirstOrDefault(u => u.PersonId == b.PersonId)?.Surname ?? "",
+        UserEmail = _context.Users.FirstOrDefault(u => u.PersonId == b.PersonId)?.Email ?? "",
+
+        // Información de pagos
+        Payments = b.Payments.Select(p => new PaymentDto
+        {
+          Id = p.Id,
+          Amount = p.Amount,
+          PaymentMethod = p.PaymentMethod,
+          PaymentStatus = p.PaymentStatus,
+          CreatedAt = p.CreatedAt,
+          TransactionId = p.TransactionId,
+          PersonId = p.PersonId
+        }).ToList(),
+        TotalPaid = b.Payments.Sum(p => p.Amount),
+        TotalAmount = b.CourtSlot.Court.BookingPrice
+      }).ToList();
+    }
+
     public async Task<List<BookingDto>> GetBookingsByPersonIdAsync(int personId, string? status = null)
     {
       var query = _context.Bookings
@@ -1009,6 +1079,38 @@ namespace padelya_api.Services
 
       Console.WriteLine($"Court {court.Id} generated {slots.Count} slots");
       return slots;
+    }
+
+    public async Task<Dictionary<int, (int ActiveCount, int TotalCount)>> GetBookingCountsByPersonIdsAsync(List<int> personIds)
+    {
+      if (personIds == null || personIds.Count == 0)
+        return new Dictionary<int, (int ActiveCount, int TotalCount)>();
+
+      var now = DateTime.Now;
+      var today = now.Date;
+      var currentTime = TimeOnly.FromDateTime(now);
+
+      var bookingCounts = await _context.Bookings
+          .Include(b => b.CourtSlot)
+          .Where(b => personIds.Contains(b.PersonId))
+          .GroupBy(b => b.PersonId)
+          .Select(g => new
+          {
+            PersonId = g.Key,
+            TotalCount = g.Count(),
+            ActiveCount = g.Count(b =>
+              b.Status != BookingStatus.CancelledByClient &&
+              b.Status != BookingStatus.CancelledByAdmin &&
+              b.Status != BookingStatus.CancelledBySystem &&
+              (b.CourtSlot.Date > today ||
+               (b.CourtSlot.Date == today && b.CourtSlot.StartTime > currentTime)))
+          })
+          .ToListAsync();
+
+      return bookingCounts.ToDictionary(
+        bc => bc.PersonId,
+        bc => (bc.ActiveCount, bc.TotalCount)
+      );
     }
   }
 }

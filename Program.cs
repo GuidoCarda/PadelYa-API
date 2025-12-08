@@ -33,9 +33,13 @@ builder.Services.AddControllers()
   {
     options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
     options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
-    // Removed JsonStringEnumConverter to serialize enums as numbers instead of strings
-    // This is important for AttendanceStatus and other enums
+    options.JsonSerializerOptions.Converters.Add(
+      new JsonStringEnumConverter(JsonNamingPolicy.CamelCase)
+    );
+    options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+
   });
+
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();

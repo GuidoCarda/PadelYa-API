@@ -135,7 +135,7 @@ namespace padelya_api.Services
                     .Include(a => a.Person)
                     .Where(a => a.LessonId == lessonId)
                     .ToListAsync();
-
+                
                 var dtos = new List<LessonAttendanceDto>();
                 foreach (var attendance in attendances)
                 {

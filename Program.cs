@@ -33,17 +33,9 @@ builder.Services.AddControllers()
   {
     options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
     options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
-    options.JsonSerializerOptions.Converters.Add(
-      new JsonStringEnumConverter(JsonNamingPolicy.CamelCase)
-    );
-    options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
-
+    // Removed JsonStringEnumConverter to serialize enums as numbers instead of strings
+    // This is important for AttendanceStatus and other enums
   });
-
-
-//  options.JsonSerializerOptions.Converters.Add(
-//       new JsonStringEnumConverter(JsonNamingPolicy.CamelCase)
-//     );
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
@@ -98,6 +90,8 @@ builder.Services.AddScoped<ILessonEnrollmentService, LessonEnrollmentService>();
 builder.Services.AddScoped<ILessonAttendanceService, LessonAttendanceService>();
 builder.Services.AddScoped<IStatsService, StatsService>();
 builder.Services.AddScoped<IRoutineService, RoutineService>();
+builder.Services.AddScoped<ILessonRoutineAssignmentService, LessonRoutineAssignmentService>();
+builder.Services.AddScoped<IExerciseService, ExerciseService>();
 builder.Services.AddScoped<ITournamentService, TournamentService>();
 builder.Services.AddScoped<IBracketGenerationService, BracketGenerationService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();

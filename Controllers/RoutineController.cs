@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using padelya_api.Attributes;
+using padelya_api.Data;
 using padelya_api.DTOs.Lesson;
 using padelya_api.Services;
 using padelya_api.Shared;
@@ -13,10 +14,12 @@ namespace padelya_api.Controllers
     public class RoutineController : ControllerBase
     {
         private readonly IRoutineService _routineService;
+        private readonly PadelYaDbContext _context;
 
-        public RoutineController(IRoutineService routineService)
+        public RoutineController(IRoutineService routineService, PadelYaDbContext context)
         {
             _routineService = routineService;
+            _context = context;
         }
 
         /// <summary>
@@ -33,8 +36,15 @@ namespace padelya_api.Controllers
                     ModelState.ToDictionary(x => x.Key, x => x.Value?.Errors.Select(e => e.ErrorMessage).ToArray() ?? Array.Empty<string>())));
             }
 
-            var teacherId = int.Parse(User.FindFirst("user_id")?.Value ?? "0");
-            var result = await _routineService.CreateRoutineAsync(createDto, teacherId);
+            var userId = int.Parse(User.FindFirst("user_id")?.Value ?? "0");
+            // Obtener el PersonId del usuario (que es el TeacherId)
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null || user.PersonId == null)
+            {
+                return BadRequest(ResponseMessage<object>.Error("Usuario no encontrado o sin persona asociada"));
+            }
+            
+            var result = await _routineService.CreateRoutineAsync(createDto, user.PersonId.Value);
 
             if (result.Success)
             {
@@ -58,8 +68,15 @@ namespace padelya_api.Controllers
                     ModelState.ToDictionary(x => x.Key, x => x.Value?.Errors.Select(e => e.ErrorMessage).ToArray() ?? Array.Empty<string>())));
             }
 
-            var teacherId = int.Parse(User.FindFirst("user_id")?.Value ?? "0");
-            var result = await _routineService.UpdateRoutineAsync(routineId, updateDto, teacherId);
+            var userId = int.Parse(User.FindFirst("user_id")?.Value ?? "0");
+            // Obtener el PersonId del usuario (que es el TeacherId)
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null || user.PersonId == null)
+            {
+                return BadRequest(ResponseMessage<object>.Error("Usuario no encontrado o sin persona asociada"));
+            }
+            
+            var result = await _routineService.UpdateRoutineAsync(routineId, updateDto, user.PersonId.Value);
 
             if (result.Success)
             {
@@ -112,9 +129,27 @@ namespace padelya_api.Controllers
         /// Obtener rutinas de un jugador
         /// </summary>
         [HttpGet("player/{playerId}")]
-        [RequirePermission("lesson:view_own")]
+        [RequirePermission("lesson:view")]
         public async Task<IActionResult> GetRoutinesByPlayer(int playerId)
         {
+            // Verificar que el usuario solo pueda ver sus propias rutinas (a menos que sea admin/profesor)
+            var userId = int.Parse(User.FindFirst("user_id")?.Value ?? "0");
+            var user = await _context.Users.FindAsync(userId);
+            
+            if (user == null || user.PersonId == null)
+            {
+                return BadRequest(ResponseMessage<object>.Error("Usuario no encontrado o sin persona asociada"));
+            }
+
+            // Si el usuario no es admin/profesor, solo puede ver sus propias rutinas
+            var userRoleId = user.RoleId;
+            var isAdminOrTeacher = userRoleId == 100 || userRoleId == 101; // 100=Admin, 101=Profesor
+            
+            if (!isAdminOrTeacher && user.PersonId.Value != playerId)
+            {
+                return Forbid();
+            }
+
             var result = await _routineService.GetRoutinesByPlayerAsync(playerId);
 
             if (result.Success)
@@ -132,8 +167,15 @@ namespace padelya_api.Controllers
         [RequirePermission("lesson:assign_user")]
         public async Task<IActionResult> DeleteRoutine(int routineId)
         {
-            var teacherId = int.Parse(User.FindFirst("user_id")?.Value ?? "0");
-            var result = await _routineService.DeleteRoutineAsync(routineId, teacherId);
+            var userId = int.Parse(User.FindFirst("user_id")?.Value ?? "0");
+            // Obtener el PersonId del usuario (que es el TeacherId)
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null || user.PersonId == null)
+            {
+                return BadRequest(ResponseMessage<object>.Error("Usuario no encontrado o sin persona asociada"));
+            }
+            
+            var result = await _routineService.DeleteRoutineAsync(routineId, user.PersonId.Value);
 
             if (result.Success)
             {

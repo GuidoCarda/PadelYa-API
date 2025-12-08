@@ -11,134 +11,28 @@ namespace padelya_api.Controllers
     [ApiController]
     [Route("api/[controller]")]
     [Authorize]
-    public class StatsController : ControllerBase
+    public class LessonRoutineAssignmentController : ControllerBase
     {
-        private readonly IStatsService _statsService;
+        private readonly ILessonRoutineAssignmentService _assignmentService;
         private readonly PadelYaDbContext _context;
 
-        public StatsController(IStatsService statsService, PadelYaDbContext context)
+        public LessonRoutineAssignmentController(
+            ILessonRoutineAssignmentService assignmentService,
+            PadelYaDbContext context)
         {
-            _statsService = statsService;
+            _assignmentService = assignmentService;
             _context = context;
         }
 
         /// <summary>
-        /// Registrar progreso de un alumno
-        /// </summary>
-        [HttpPost]
-        [RequirePermission("lesson:assign_user")] // Solo profesores
-        public async Task<IActionResult> CreateStats([FromBody] StatsCreateDto createDto)
-        {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ResponseMessage<object>.ValidationError(
-                    "Datos de entrada inválidos",
-                    ModelState.ToDictionary(x => x.Key, x => x.Value?.Errors.Select(e => e.ErrorMessage).ToArray() ?? Array.Empty<string>())));
-            }
-
-            var userId = int.Parse(User.FindFirst("user_id")?.Value ?? "0");
-            // Obtener el PersonId del usuario (que es el TeacherId)
-            var user = await _context.Users.FindAsync(userId);
-            if (user == null || user.PersonId == null)
-            {
-                return BadRequest(ResponseMessage<object>.Error("Usuario no encontrado o sin persona asociada"));
-            }
-            
-            var result = await _statsService.CreateStatsAsync(createDto, user.PersonId.Value);
-
-            if (result.Success)
-            {
-                return Ok(result);
-            }
-
-            if (result.ErrorCode == "NOT_FOUND")
-            {
-                return NotFound(result);
-            }
-
-            return BadRequest(result);
-        }
-
-        /// <summary>
-        /// Actualizar progreso de un alumno
-        /// </summary>
-        [HttpPut("{statsId}")]
-        [RequirePermission("lesson:assign_user")]
-        public async Task<IActionResult> UpdateStats(int statsId, [FromBody] StatsUpdateDto updateDto)
-        {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ResponseMessage<object>.ValidationError(
-                    "Datos de entrada inválidos",
-                    ModelState.ToDictionary(x => x.Key, x => x.Value?.Errors.Select(e => e.ErrorMessage).ToArray() ?? Array.Empty<string>())));
-            }
-
-            var userId = int.Parse(User.FindFirst("user_id")?.Value ?? "0");
-            // Obtener el PersonId del usuario (que es el TeacherId)
-            var user = await _context.Users.FindAsync(userId);
-            if (user == null || user.PersonId == null)
-            {
-                return BadRequest(ResponseMessage<object>.Error("Usuario no encontrado o sin persona asociada"));
-            }
-            
-            var result = await _statsService.UpdateStatsAsync(statsId, updateDto, user.PersonId.Value);
-
-            if (result.Success)
-            {
-                return Ok(result);
-            }
-
-            if (result.ErrorCode == "NOT_FOUND")
-            {
-                return NotFound(result);
-            }
-
-            return BadRequest(result);
-        }
-
-        /// <summary>
-        /// Obtener progreso por ID
-        /// </summary>
-        [HttpGet("{statsId}")]
-        [RequirePermission("lesson:view")]
-        public async Task<IActionResult> GetStatsById(int statsId)
-        {
-            var result = await _statsService.GetStatsByIdAsync(statsId);
-
-            if (result.Success)
-            {
-                return Ok(result);
-            }
-
-            return NotFound(result);
-        }
-
-        /// <summary>
-        /// Obtener progreso de un jugador
-        /// </summary>
-        [HttpGet("player/{playerId}")]
-        [RequirePermission("lesson:view_own")]
-        public async Task<IActionResult> GetStatsByPlayer(int playerId)
-        {
-            var result = await _statsService.GetStatsByPlayerAsync(playerId);
-
-            if (result.Success)
-            {
-                return Ok(result);
-            }
-
-            return BadRequest(result);
-        }
-
-        /// <summary>
-        /// Obtener progreso de una clase
+        /// Obtener asignaciones de rutinas de una clase
         /// </summary>
         [HttpGet("lesson/{lessonId}")]
         [RequirePermission("lesson:view")]
-        public async Task<IActionResult> GetStatsByLesson(int lessonId)
+        public async Task<IActionResult> GetAssignmentsByLesson(int lessonId)
         {
-            var result = await _statsService.GetStatsByLessonAsync(lessonId);
-
+            var result = await _assignmentService.GetAssignmentsByLessonAsync(lessonId);
+            
             if (result.Success)
             {
                 return Ok(result);
@@ -148,22 +42,93 @@ namespace padelya_api.Controllers
         }
 
         /// <summary>
-        /// Eliminar registro de progreso
+        /// Asignar rutinas masivamente a alumnos de una clase
         /// </summary>
-        [HttpDelete("{statsId}")]
+        [HttpPost("bulk")]
         [RequirePermission("lesson:assign_user")]
-        public async Task<IActionResult> DeleteStats(int statsId)
+        public async Task<IActionResult> AssignRoutinesBulk([FromBody] LessonRoutineAssignmentBulkDto bulkDto)
         {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ResponseMessage<object>.ValidationError(
+                    "Datos de entrada inválidos",
+                    ModelState.ToDictionary(x => x.Key, x => x.Value?.Errors.Select(e => e.ErrorMessage).ToArray() ?? Array.Empty<string>())));
+            }
+
             var userId = int.Parse(User.FindFirst("user_id")?.Value ?? "0");
-            // Obtener el PersonId del usuario (que es el TeacherId)
             var user = await _context.Users.FindAsync(userId);
             if (user == null || user.PersonId == null)
             {
                 return BadRequest(ResponseMessage<object>.Error("Usuario no encontrado o sin persona asociada"));
             }
             
-            var result = await _statsService.DeleteStatsAsync(statsId, user.PersonId.Value);
+            var result = await _assignmentService.AssignRoutinesBulkAsync(bulkDto, user.PersonId.Value);
+            
+            if (result.Success)
+            {
+                return Ok(result);
+            }
 
+            if (result.ErrorCode == "NOT_FOUND")
+            {
+                return NotFound(result);
+            }
+
+            return BadRequest(result);
+        }
+
+        /// <summary>
+        /// Asignar rutina a un alumno en una clase
+        /// </summary>
+        [HttpPost("lesson/{lessonId}")]
+        [RequirePermission("lesson:assign_user")]
+        public async Task<IActionResult> AssignRoutine(int lessonId, [FromBody] LessonRoutineAssignmentCreateDto createDto)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ResponseMessage<object>.ValidationError(
+                    "Datos de entrada inválidos",
+                    ModelState.ToDictionary(x => x.Key, x => x.Value?.Errors.Select(e => e.ErrorMessage).ToArray() ?? Array.Empty<string>())));
+            }
+
+            var userId = int.Parse(User.FindFirst("user_id")?.Value ?? "0");
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null || user.PersonId == null)
+            {
+                return BadRequest(ResponseMessage<object>.Error("Usuario no encontrado o sin persona asociada"));
+            }
+            
+            var result = await _assignmentService.AssignRoutineAsync(createDto, lessonId, user.PersonId.Value);
+            
+            if (result.Success)
+            {
+                return Ok(result);
+            }
+
+            if (result.ErrorCode == "NOT_FOUND")
+            {
+                return NotFound(result);
+            }
+
+            return BadRequest(result);
+        }
+
+        /// <summary>
+        /// Eliminar asignación de rutina
+        /// </summary>
+        [HttpDelete("{assignmentId}")]
+        [RequirePermission("lesson:assign_user")]
+        public async Task<IActionResult> RemoveAssignment(int assignmentId)
+        {
+            var userId = int.Parse(User.FindFirst("user_id")?.Value ?? "0");
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null || user.PersonId == null)
+            {
+                return BadRequest(ResponseMessage<object>.Error("Usuario no encontrado o sin persona asociada"));
+            }
+            
+            var result = await _assignmentService.RemoveAssignmentAsync(assignmentId, user.PersonId.Value);
+            
             if (result.Success)
             {
                 return Ok(result);

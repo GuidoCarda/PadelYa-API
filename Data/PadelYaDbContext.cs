@@ -46,6 +46,7 @@ namespace padelya_api.Data
     public DbSet<LessonEnrollment> LessonEnrollments { get; set; }
     public DbSet<padelya_api.Models.Lesson.ClassType> ClassTypes { get; set; }
     public DbSet<padelya_api.Models.Lesson.LessonAttendance> LessonAttendances { get; set; }
+    public DbSet<padelya_api.Models.Lesson.LessonRoutineAssignment> LessonRoutineAssignments { get; set; }
     public DbSet<Stats> Stats { get; set; }
 
     //Routines
@@ -354,6 +355,39 @@ namespace padelya_api.Data
                         .HasForeignKey("RoutineId")
                         .OnDelete(DeleteBehavior.Cascade)
                 );
+
+            // LESSON ROUTINE ASSIGNMENT - LESSON (Many-to-One)
+            modelBuilder.Entity<LessonRoutineAssignment>()
+                .HasOne(a => a.Lesson)
+                .WithMany()
+                .HasForeignKey(a => a.LessonId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // LESSON ROUTINE ASSIGNMENT - PERSON (Many-to-One)
+            modelBuilder.Entity<LessonRoutineAssignment>()
+                .HasOne(a => a.Person)
+                .WithMany()
+                .HasForeignKey(a => a.PersonId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // LESSON ROUTINE ASSIGNMENT - ROUTINE (Many-to-One)
+            modelBuilder.Entity<LessonRoutineAssignment>()
+                .HasOne(a => a.Routine)
+                .WithMany()
+                .HasForeignKey(a => a.RoutineId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // LESSON ROUTINE ASSIGNMENT - TEACHER (Many-to-One)
+            modelBuilder.Entity<LessonRoutineAssignment>()
+                .HasOne(a => a.AssignedByTeacher)
+                .WithMany()
+                .HasForeignKey(a => a.AssignedByTeacherId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Unique constraint: one routine per person per lesson
+            modelBuilder.Entity<LessonRoutineAssignment>()
+                .HasIndex(a => new { a.LessonId, a.PersonId })
+                .IsUnique();
 
 
             #endregion

@@ -38,10 +38,15 @@ namespace padelya_api.Controllers
                     ModelState.ToDictionary(x => x.Key, x => x.Value?.Errors.Select(e => e.ErrorMessage).ToArray() ?? Array.Empty<string>())));
             }
 
-            var teacherId = int.Parse(User.FindFirst("user_id")?.Value ?? "0");
-            // Obtener el TeacherId desde el PersonId del usuario
-            // Esto se puede mejorar con un helper
-            var result = await _attendanceService.RecordAttendanceAsync(createDto, teacherId);
+            var userId = int.Parse(User.FindFirst("user_id")?.Value ?? "0");
+            // Obtener el PersonId del usuario (que es el TeacherId en la tabla Lessons)
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null || user.PersonId == null)
+            {
+                return BadRequest(ResponseMessage<object>.Error("Usuario no encontrado o sin persona asociada"));
+            }
+            
+            var result = await _attendanceService.RecordAttendanceAsync(createDto, user.PersonId.Value);
             
             if (result.Success)
             {
@@ -70,9 +75,15 @@ namespace padelya_api.Controllers
                     ModelState.ToDictionary(x => x.Key, x => x.Value?.Errors.Select(e => e.ErrorMessage).ToArray() ?? Array.Empty<string>())));
             }
 
-            var teacherId = int.Parse(User.FindFirst("user_id")?.Value ?? "0");
+            var userId = int.Parse(User.FindFirst("user_id")?.Value ?? "0");
+            // Obtener el PersonId del usuario (que es el TeacherId en la tabla Lessons)
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null || user.PersonId == null)
+            {
+                return BadRequest(ResponseMessage<object>.Error("Usuario no encontrado o sin persona asociada"));
+            }
             
-            var result = await _attendanceService.RecordBulkAttendanceAsync(bulkDto, teacherId);
+            var result = await _attendanceService.RecordBulkAttendanceAsync(bulkDto, user.PersonId.Value);
             
             if (result.Success)
             {
@@ -103,9 +114,19 @@ namespace padelya_api.Controllers
         /// Obtener asistencia de un estudiante
         /// </summary>
         [HttpGet("student/{personId}")]
-        [RequirePermission("lesson:view_own")]
+        [RequirePermission("lesson:view")]
         public async Task<IActionResult> GetAttendanceByStudent(int personId)
         {
+            var userId = int.Parse(User.FindFirst("user_id")?.Value ?? "0");
+            var userRoleId = int.Parse(User.FindFirst("role_id")?.Value ?? "0");
+            
+            // Verificar que el usuario solo vea sus propias asistencias (a menos que sea admin)
+            var user = await _context.Users.FindAsync(userId);
+            if (user != null && user.PersonId != personId && userRoleId != 100) // 100 = Admin
+            {
+                return Forbid();
+            }
+
             var result = await _attendanceService.GetAttendanceByStudentAsync(personId);
             
             if (result.Success)
@@ -120,7 +141,7 @@ namespace padelya_api.Controllers
         /// Obtener estadísticas de asistencia de un estudiante
         /// </summary>
         [HttpGet("student/{personId}/statistics")]
-        [RequirePermission("lesson:view_own")]
+        [RequirePermission("lesson:view")]
         public async Task<IActionResult> GetAttendanceStatisticsByStudent(int personId)
         {
             var userId = int.Parse(User.FindFirst("user_id")?.Value ?? "0");
@@ -157,13 +178,19 @@ namespace padelya_api.Controllers
                     ModelState.ToDictionary(x => x.Key, x => x.Value?.Errors.Select(e => e.ErrorMessage).ToArray() ?? Array.Empty<string>())));
             }
 
-            var teacherId = int.Parse(User.FindFirst("user_id")?.Value ?? "0");
+            var userId = int.Parse(User.FindFirst("user_id")?.Value ?? "0");
+            // Obtener el PersonId del usuario (que es el TeacherId en la tabla Lessons)
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null || user.PersonId == null)
+            {
+                return BadRequest(ResponseMessage<object>.Error("Usuario no encontrado o sin persona asociada"));
+            }
             
             var result = await _attendanceService.UpdateAttendanceAsync(
                 attendanceId, 
                 updateDto.Status, 
                 updateDto.Notes, 
-                teacherId);
+                user.PersonId.Value);
             
             if (result.Success)
             {

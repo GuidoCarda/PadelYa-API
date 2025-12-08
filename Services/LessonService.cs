@@ -3,6 +3,7 @@ using padelya_api.Data;
 using padelya_api.DTOs.Lesson;
 using padelya_api.models;
 using padelya_api.Models;
+using padelya_api.Models.Lesson;
 using padelya_api.Shared;
 
 namespace padelya_api.Services
@@ -650,6 +651,272 @@ namespace padelya_api.Services
       catch (Exception ex)
       {
         return ResponseMessage<bool>.Error($"Error al actualizar el estado de la clase: {ex.Message}");
+      }
+    }
+
+    #endregion
+
+    #region Reports
+
+    public async Task<ResponseMessage<LessonReportDto>> GetLessonReportAsync(DateTime startDate, DateTime endDate)
+    {
+      try
+      {
+        // Obtener todas las clases en el rango de fechas
+        var lessons = await _context.Lessons
+            .Include(l => l.Teacher)
+            .Include(l => l.CourtSlot)
+            .ThenInclude(cs => cs.Court)
+            .Where(l => l.CourtSlot.Date >= startDate.Date && l.CourtSlot.Date <= endDate.Date)
+            .ToListAsync();
+
+        // Obtener inscripciones
+        var lessonIds = lessons.Select(l => l.Id).ToList();
+        var enrollments = await _context.LessonEnrollments
+            .Include(e => e.Person)
+            .Where(e => lessonIds.Contains(e.LessonId))
+            .ToListAsync();
+
+        // Obtener asistencias
+        var attendances = await _context.LessonAttendances
+            .Where(a => lessonIds.Contains(a.LessonId))
+            .ToListAsync();
+
+        // Obtener asignaciones de rutinas
+        var routineAssignments = await _context.LessonRoutineAssignments
+            .Include(ra => ra.Routine)
+            .ThenInclude(r => r.Exercises)
+            .Include(ra => ra.Routine.Creator)
+            .Where(ra => lessonIds.Contains(ra.LessonId))
+            .ToListAsync();
+
+        // Calcular estadísticas generales
+        var totalLessons = lessons.Count;
+        var programmedLessons = lessons.Count(l => l.Status != null && l.Status.ToLower() == "programada");
+        var completedLessons = lessons.Count(l => l.Status != null && l.Status.ToLower() == "finalizada");
+        var cancelledLessons = lessons.Count(l => l.Status != null && l.Status.ToLower() == "cancelada");
+        var totalEnrollments = enrollments.Count;
+        var avgEnrollmentsPerLesson = totalLessons > 0 ? (decimal)totalEnrollments / totalLessons : 0;
+        
+        var totalAttendances = attendances.Count;
+        var presentAttendances = attendances.Count(a => a.Status == AttendanceStatus.Present);
+        var attendanceRate = totalAttendances > 0 ? (decimal)presentAttendances / totalAttendances * 100 : 0;
+
+        var totalRoutinesAssigned = routineAssignments.Count;
+        var uniqueExercises = routineAssignments
+            .Where(ra => ra.Routine != null && ra.Routine.Exercises != null)
+            .SelectMany(ra => ra.Routine.Exercises)
+            .Select(e => e.Id)
+            .Distinct()
+            .Count();
+
+        var activeTeachers = lessons.Select(l => l.TeacherId).Distinct().Count();
+        var activeStudents = enrollments.Select(e => e.PersonId).Distinct().Count();
+        
+        var totalRevenue = lessons
+            .Where(l => l.Status == null || l.Status.ToLower() != "cancelada")
+            .Sum(l => l.Price);
+
+        var statistics = new LessonStatisticsDto
+        {
+          TotalLessons = totalLessons,
+          ProgrammedLessons = programmedLessons,
+          CompletedLessons = completedLessons,
+          CancelledLessons = cancelledLessons,
+          TotalEnrollments = totalEnrollments,
+          AverageEnrollmentsPerLesson = avgEnrollmentsPerLesson,
+          AttendanceRate = attendanceRate,
+          TotalRoutinesAssigned = totalRoutinesAssigned,
+          TotalExercisesUsed = uniqueExercises,
+          ActiveTeachers = activeTeachers,
+          ActiveStudents = activeStudents,
+          TotalRevenue = totalRevenue
+        };
+
+        // Clases por día
+        var dailyLessons = lessons
+            .GroupBy(l => l.CourtSlot.Date.Date)
+            .OrderBy(g => g.Key)
+            .Select(g => new DailyLessonDto
+            {
+              Date = g.Key.ToString("yyyy-MM-dd"),
+              LessonCount = g.Count(),
+              EnrollmentCount = enrollments.Count(e => g.Select(l => l.Id).Contains(e.LessonId)),
+              AttendedCount = attendances.Count(a => g.Select(l => l.Id).Contains(a.LessonId) && a.Status == AttendanceStatus.Present)
+            })
+            .ToList();
+
+        // Rendimiento de profesores
+        var teacherPerformance = new List<TeacherPerformanceDto>();
+        foreach (var teacherGroup in lessons.GroupBy(l => l.TeacherId))
+        {
+          var teacher = teacherGroup.First().Teacher;
+          var teacherName = (teacher != null) ? teacher.Name + " " + teacher.Surname : "Desconocido";
+          var teacherLessonIds = teacherGroup.Select(l => l.Id).ToList();
+          var teacherAttendances = attendances.Where(a => teacherLessonIds.Contains(a.LessonId)).ToList();
+          
+          teacherPerformance.Add(new TeacherPerformanceDto
+          {
+            TeacherId = teacherGroup.Key,
+            TeacherName = teacherName,
+            LessonCount = teacherGroup.Count(),
+            TotalStudents = enrollments.Count(e => teacherLessonIds.Contains(e.LessonId)),
+            AverageAttendance = teacherAttendances.Count > 0
+                ? (decimal)teacherAttendances.Count(a => a.Status == AttendanceStatus.Present) / teacherAttendances.Count * 100
+                : 0,
+            RoutinesCreated = _context.Routines.Count(r => r.CreatorId == teacherGroup.Key)
+          });
+        }
+        teacherPerformance = teacherPerformance.OrderByDescending(t => t.LessonCount).ToList();
+
+        // Distribución por tipo de clase
+        var classTypeDistribution = lessons
+            .GroupBy(l => l.ClassType ?? "Sin tipo")
+            .Select(g => new ClassTypeDistributionDto
+            {
+              ClassTypeId = 0, // No hay ID ya que es un string
+              ClassTypeName = g.Key,
+              LessonCount = g.Count(),
+              EnrollmentCount = enrollments.Count(e => g.Select(l => l.Id).Contains(e.LessonId)),
+              Percentage = totalLessons > 0 ? (decimal)g.Count() / totalLessons * 100 : 0
+            })
+            .OrderByDescending(ct => ct.LessonCount)
+            .ToList();
+
+        // Distribución de asistencia
+        var attendanceDistribution = new List<AttendanceDistributionDto>
+        {
+          new AttendanceDistributionDto
+          {
+            Status = "Presente",
+            Count = attendances.Count(a => a.Status == AttendanceStatus.Present),
+            Percentage = totalAttendances > 0 ? (decimal)attendances.Count(a => a.Status == AttendanceStatus.Present) / totalAttendances * 100 : 0
+          },
+          new AttendanceDistributionDto
+          {
+            Status = "Ausente",
+            Count = attendances.Count(a => a.Status == AttendanceStatus.Absent),
+            Percentage = totalAttendances > 0 ? (decimal)attendances.Count(a => a.Status == AttendanceStatus.Absent) / totalAttendances * 100 : 0
+          },
+          new AttendanceDistributionDto
+          {
+            Status = "Justificado",
+            Count = attendances.Count(a => a.Status == AttendanceStatus.Justified),
+            Percentage = totalAttendances > 0 ? (decimal)attendances.Count(a => a.Status == AttendanceStatus.Justified) / totalAttendances * 100 : 0
+          }
+        };
+
+        // Top rutinas más asignadas
+        var topRoutines = new List<TopRoutineDto>();
+        var routineGroups = routineAssignments
+            .Where(ra => ra.Routine != null)
+            .GroupBy(ra => ra.RoutineId);
+        
+        foreach (var group in routineGroups)
+        {
+          var routine = group.First().Routine;
+          if (routine != null)
+          {
+            var creatorName = "Desconocido";
+            if (routine.Creator != null)
+            {
+              creatorName = routine.Creator.Name + " " + routine.Creator.Surname;
+            }
+            
+            topRoutines.Add(new TopRoutineDto
+            {
+              RoutineId = routine.Id,
+              Category = routine.Category,
+              Description = routine.Description,
+              AssignmentCount = group.Count(),
+              CreatorName = creatorName
+            });
+          }
+        }
+        topRoutines = topRoutines.OrderByDescending(r => r.AssignmentCount).Take(10).ToList();
+
+        // Top ejercicios más usados
+        var allRoutines = routineAssignments
+            .Where(ra => ra.Routine != null && ra.Routine.Exercises != null)
+            .Select(ra => ra.Routine)
+            .Distinct()
+            .ToList();
+
+        var exerciseUsage = new Dictionary<int, (string Name, string Category, int Count)>();
+        foreach (var routine in allRoutines)
+        {
+          if (routine.Exercises != null)
+          {
+            foreach (var exercise in routine.Exercises)
+            {
+              if (exerciseUsage.ContainsKey(exercise.Id))
+              {
+                var current = exerciseUsage[exercise.Id];
+                exerciseUsage[exercise.Id] = (current.Name, current.Category, current.Count + 1);
+              }
+              else
+              {
+                exerciseUsage[exercise.Id] = (exercise.Name, exercise.Category, 1);
+              }
+            }
+          }
+        }
+
+        var topExercises = exerciseUsage
+            .Select(kvp => new TopExerciseDto
+            {
+              ExerciseId = kvp.Key,
+              Name = kvp.Value.Name,
+              Category = kvp.Value.Category,
+              UsageCount = kvp.Value.Count
+            })
+            .OrderByDescending(e => e.UsageCount)
+            .Take(10)
+            .ToList();
+
+        // Top estudiantes por asistencia
+        var studentAttendance = new List<StudentAttendanceDto>();
+        var studentGroups = enrollments.GroupBy(e => e.PersonId);
+        
+        foreach (var group in studentGroups)
+        {
+          var person = group.First().Person;
+          var studentName = person?.Name + " " + person?.Surname ?? "Desconocido";
+          var totalClasses = group.Count();
+          var attendedClasses = attendances.Count(a => a.PersonId == group.Key && a.Status == AttendanceStatus.Present);
+          
+          studentAttendance.Add(new StudentAttendanceDto
+          {
+            StudentId = group.Key,
+            StudentName = studentName,
+            TotalClasses = totalClasses,
+            AttendedClasses = attendedClasses,
+            AttendanceRate = totalClasses > 0 ? (decimal)attendedClasses / totalClasses * 100 : 0
+          });
+        }
+        studentAttendance = studentAttendance
+            .OrderByDescending(s => s.AttendanceRate)
+            .ThenByDescending(s => s.TotalClasses)
+            .Take(10)
+            .ToList();
+
+        var report = new LessonReportDto
+        {
+          Statistics = statistics,
+          DailyLessons = dailyLessons,
+          TeacherPerformance = teacherPerformance,
+          ClassTypeDistribution = classTypeDistribution,
+          AttendanceDistribution = attendanceDistribution,
+          TopRoutines = topRoutines,
+          TopExercises = topExercises,
+          TopStudents = studentAttendance
+        };
+
+        return ResponseMessage<LessonReportDto>.SuccessResult(report);
+      }
+      catch (Exception ex)
+      {
+        return ResponseMessage<LessonReportDto>.Error($"Error al generar reporte: {ex.Message}");
       }
     }
 

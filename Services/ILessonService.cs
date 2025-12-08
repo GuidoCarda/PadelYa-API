@@ -17,5 +17,6 @@ namespace padelya_api.Services
         Task<ResponseMessage<bool>> ValidateCourtAvailabilityAsync(int courtId, DateTime date, TimeOnly startTime, TimeOnly endTime, int? excludeLessonId = null);
         Task<ResponseMessage<List<object>>> GetTeachersAsync();
         Task<ResponseMessage<bool>> UpdateLessonStatusAsync(int lessonId, string status);
+        Task<ResponseMessage<LessonReportDto>> GetLessonReportAsync(DateTime startDate, DateTime endDate);
     }
 } 

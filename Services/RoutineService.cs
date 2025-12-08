@@ -99,7 +99,7 @@ namespace padelya_api.Services
                     routine.Description = updateDto.Description;
 
                 // Actualizar jugadores si se proporcionan
-                if (updateDto.PlayerIds != null && updateDto.PlayerIds.Count > 0)
+                if (updateDto.PlayerIds != null)
                 {
                     var players = await _context.Players
                         .Where(p => updateDto.PlayerIds.Contains(p.Id))
@@ -110,11 +110,13 @@ namespace padelya_api.Services
                         return ResponseMessage<RoutineDto>.Error("Uno o más jugadores no encontrados");
                     }
 
-                    routine.Players = players;
+                    // Limpiar y agregar nuevos jugadores
+                    routine.Players.Clear();
+                    routine.Players.AddRange(players);
                 }
 
                 // Actualizar ejercicios si se proporcionan
-                if (updateDto.ExerciseIds != null && updateDto.ExerciseIds.Count > 0)
+                if (updateDto.ExerciseIds != null)
                 {
                     var exercises = await _context.Exercises
                         .Where(e => updateDto.ExerciseIds.Contains(e.Id))
@@ -125,7 +127,9 @@ namespace padelya_api.Services
                         return ResponseMessage<RoutineDto>.Error("Uno o más ejercicios no encontrados");
                     }
 
-                    routine.Exercises = exercises;
+                    // Limpiar y agregar nuevos ejercicios
+                    routine.Exercises.Clear();
+                    routine.Exercises.AddRange(exercises);
                 }
 
                 _context.Routines.Update(routine);

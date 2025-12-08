@@ -313,6 +313,23 @@ namespace padelya_api.Controllers
 
             return BadRequest(result);
         }
+
+        /// <summary>
+        /// Obtener reporte de clases con estadísticas y métricas
+        /// </summary>
+        [HttpGet("report")]
+        [RequirePermission("lesson:view")]
+        public async Task<IActionResult> GetLessonReport([FromQuery] DateTime startDate, [FromQuery] DateTime endDate)
+        {
+            var result = await _lessonService.GetLessonReportAsync(startDate, endDate);
+
+            if (result.Success)
+            {
+                return Ok(result);
+            }
+
+            return BadRequest(result);
+        }
     }
 
     /// <summary>

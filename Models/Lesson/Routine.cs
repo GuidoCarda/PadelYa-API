@@ -16,10 +16,10 @@ namespace padelya_api.Models.Class
         public Teacher Creator { get; set; }
 
         // Navigation property for Players (1 or more)
-        public List<Player> Players { get; set; }
+        public List<Player> Players { get; set; } = new List<Player>();
 
         // Navigation property for Excercises (1 or more)
-        public List<Exercise> Exercises { get; set; }
+        public List<Exercise> Exercises { get; set; } = new List<Exercise>();
 
         // Add methods here as needed
     }

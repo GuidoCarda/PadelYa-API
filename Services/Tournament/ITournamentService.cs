@@ -17,6 +17,7 @@ namespace padelya_api.Services
         Task<TournamentEnrollment?> EnrollPlayerAsync(int tournamentId, TournamentEnrollmentDto enrollmentDto);
         Task<TournamentEnrollmentInitPointDto> EnrollWithPaymentAsync(int tournamentId, TournamentEnrollmentWithPaymentDto enrollmentDto);
         Task<bool> CancelEnrollmentAsync(int tournamentId, int userId);
+        Task<TournamentReportDto> GetTournamentReportAsync(DateTime startDate, DateTime endDate);
 
     }
 }

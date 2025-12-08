@@ -16,7 +16,8 @@ namespace padelya_api.Services
     /// Servicio que se ejecuta periódicamente para actualizar
     /// automáticamente los estados de los torneos según sus fechas.
     /// Este servicio revisa cada hora todos los torneos activos y:
-    /// - Cambia torneos a "Finalizado" cuando pasa la fecha de fin del torneo
+    /// - Cambia de "Abierto para Inscripción" a "En Progreso" cuando termina el período de inscripciones
+    /// - Cambia de "En Progreso" a "Finalizado" cuando pasa la fecha de fin del torneo
     /// </summary>
     public class TournamentStatusUpdateService : BackgroundService
     {
@@ -121,15 +122,19 @@ namespace padelya_api.Services
         {
             var currentStatus = tournament.TournamentStatus;
 
-            // Regla: Si el torneo está en progreso y ya pasó la fecha de fin → cambiar a "Finalizado"
+            // Regla 1: Si el torneo está abierto para inscripción y ya pasó la fecha límite de inscripción → cambiar a "En Progreso"
+            if (now > tournament.EnrollmentEndDate && 
+                currentStatus == TournamentStatus.AbiertoParaInscripcion)
+            {
+                return TournamentStatus.EnProgreso;
+            }
+
+            // Regla 2: Si el torneo está en progreso y ya pasó la fecha de fin → cambiar a "Finalizado"
             if (now > tournament.TournamentEndDate && 
                 currentStatus == TournamentStatus.EnProgreso)
             {
                 return TournamentStatus.Finalizado;
             }
-
-            // NOTA: No cambiamos automáticamente de "Abierto" a "En Progreso"
-            // porque el admin debe generar el bracket primero.
             
             return null; // No hay cambio necesario
         }

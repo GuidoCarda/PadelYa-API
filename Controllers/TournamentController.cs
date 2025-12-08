@@ -425,5 +425,25 @@ namespace padelya_api.Controllers
                 return StatusCode(500, $"Error interno del servidor: {ex.Message}");
             }
         }
+
+        [HttpGet("report")]
+        [Authorize]
+        public async Task<IActionResult> GetTournamentReport([FromQuery] DateTime startDate, [FromQuery] DateTime endDate)
+        {
+            try
+            {
+                if (startDate > endDate)
+                {
+                    return BadRequest("La fecha de inicio no puede ser posterior a la fecha de fin.");
+                }
+
+                var report = await _tournamentService.GetTournamentReportAsync(startDate, endDate);
+                return Ok(report);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error interno del servidor: {ex.Message}");
+            }
+        }
     }
 }

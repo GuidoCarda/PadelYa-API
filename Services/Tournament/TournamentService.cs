@@ -676,5 +676,207 @@ namespace padelya_api.Services
 
             return true;
         }
+
+        public async Task<TournamentReportDto> GetTournamentReportAsync(DateTime startDate, DateTime endDate)
+        {
+            // Obtener todos los torneos en el rango de fechas (excluyendo deleted)
+            var tournaments = await _context.Tournaments
+                .Include(t => t.Enrollments)
+                .ThenInclude(e => e.Couple)
+                .Where(t => t.TournamentStatus != TournamentStatus.Deleted &&
+                           t.TournamentStartDate >= startDate.Date &&
+                           t.TournamentStartDate <= endDate.Date)
+                .ToListAsync();
+
+            // Obtener todas las inscripciones del período
+            var allEnrollments = tournaments.SelectMany(t => t.Enrollments).ToList();
+
+            // Filtrar inscripciones confirmadas
+            var confirmedEnrollments = allEnrollments
+                .Where(e => e.Status == TournamentEnrollmentStatus.Confirmed)
+                .ToList();
+
+            var cancelledEnrollments = allEnrollments
+                .Where(e => e.Status == TournamentEnrollmentStatus.Cancelled)
+                .ToList();
+
+            var rejectedEnrollments = allEnrollments
+                .Where(e => e.Status == TournamentEnrollmentStatus.Rejected)
+                .ToList();
+
+            var pendingEnrollments = allEnrollments
+                .Where(e => e.Status == TournamentEnrollmentStatus.PendingPayment &&
+                           (!e.ExpiresAt.HasValue || e.ExpiresAt.Value > DateTime.UtcNow))
+                .ToList();
+
+            var expiredEnrollments = allEnrollments
+                .Where(e => e.Status == TournamentEnrollmentStatus.PendingPayment &&
+                           e.ExpiresAt.HasValue && e.ExpiresAt.Value <= DateTime.UtcNow)
+                .ToList();
+
+            // Calcular ingresos totales (solo inscripciones confirmadas)
+            var totalRevenue = confirmedEnrollments.Sum(e => 
+                tournaments.First(t => t.Id == e.TournamentId).EnrollmentPrice);
+
+            var totalTournaments = tournaments.Count;
+            var finishedTournaments = tournaments.Count(t => t.TournamentStatus == TournamentStatus.Finalizado);
+            var totalEnrollments = allEnrollments.Count;
+            var confirmedCount = confirmedEnrollments.Count;
+            var cancelledCount = cancelledEnrollments.Count;
+            var rejectedCount = rejectedEnrollments.Count;
+
+            // Calcular tasas
+            var avgRevenuePerTournament = totalTournaments > 0 
+                ? Math.Round(totalRevenue / totalTournaments, 2) 
+                : 0;
+
+            var totalProcessedEnrollments = confirmedCount + cancelledCount + rejectedCount;
+            var conversionRate = totalProcessedEnrollments > 0 
+                ? Math.Round((decimal)confirmedCount / totalProcessedEnrollments * 100, 2) 
+                : 0;
+
+            // Calcular tasa de ocupación (cupos ocupados vs disponibles)
+            var totalQuota = tournaments.Sum(t => t.Quota);
+            var occupancyRate = totalQuota > 0 
+                ? Math.Round((decimal)confirmedCount / totalQuota * 100, 2) 
+                : 0;
+
+            var cancellationRate = totalEnrollments > 0 
+                ? Math.Round((decimal)cancelledCount / totalEnrollments * 100, 2) 
+                : 0;
+
+            var avgEnrollmentsPerTournament = totalTournaments > 0 
+                ? Math.Round((decimal)confirmedCount / totalTournaments, 2) 
+                : 0;
+
+            // Estadísticas principales
+            var statistics = new TournamentStatisticsDto
+            {
+                TotalRevenue = totalRevenue,
+                TotalTournaments = totalTournaments,
+                FinishedTournaments = finishedTournaments,
+                TotalEnrollments = totalEnrollments,
+                ConfirmedEnrollments = confirmedCount,
+                CancelledEnrollments = cancelledCount,
+                RejectedEnrollments = rejectedCount,
+                AverageRevenuePerTournament = avgRevenuePerTournament,
+                ConversionRate = conversionRate,
+                OccupancyRate = occupancyRate,
+                CancellationRate = cancellationRate,
+                AverageEnrollmentsPerTournament = avgEnrollmentsPerTournament,
+                ExpiredEnrollments = expiredEnrollments.Count + cancelledCount
+            };
+
+            // Ingresos diarios (por fecha de inscripción confirmada)
+            var dailyRevenue = confirmedEnrollments
+                .GroupBy(e => e.EnrollmentDate.Date)
+                .Select(g => new DailyTournamentRevenueDto
+                {
+                    Date = g.Key.ToString("yyyy-MM-dd"),
+                    Revenue = g.Sum(e => tournaments.First(t => t.Id == e.TournamentId).EnrollmentPrice),
+                    EnrollmentCount = g.Count()
+                })
+                .OrderBy(d => d.Date)
+                .ToList();
+
+            // Distribución por estado de torneo
+            var statusDistribution = tournaments
+                .GroupBy(t => t.TournamentStatus)
+                .Select(g => new TournamentStatusDistributionDto
+                {
+                    Status = g.Key.ToString(),
+                    Count = g.Count(),
+                    Percentage = totalTournaments > 0 
+                        ? Math.Round((decimal)g.Count() / totalTournaments * 100, 2) 
+                        : 0
+                })
+                .OrderByDescending(s => s.Count)
+                .ToList();
+
+            // Análisis por categoría
+            var categoryAnalysis = tournaments
+                .GroupBy(t => t.Category)
+                .Select(g => new TournamentCategoryAnalysisDto
+                {
+                    Category = g.Key,
+                    TournamentCount = g.Count(),
+                    TotalRevenue = g.Sum(t => 
+                        t.Enrollments.Count(e => e.Status == TournamentEnrollmentStatus.Confirmed) * t.EnrollmentPrice),
+                    TotalEnrollments = g.Sum(t => 
+                        t.Enrollments.Count(e => e.Status == TournamentEnrollmentStatus.Confirmed)),
+                    AverageEnrollmentsPerTournament = g.Count() > 0 
+                        ? Math.Round((decimal)g.Sum(t => 
+                            t.Enrollments.Count(e => e.Status == TournamentEnrollmentStatus.Confirmed)) / g.Count(), 2)
+                        : 0
+                })
+                .OrderBy(c => c.Category)
+                .ToList();
+
+            // Ranking de torneos (Top 10 por inscripciones)
+            var tournamentPopularity = tournaments
+                .Select(t => new TournamentPopularityDto
+                {
+                    TournamentId = t.Id,
+                    TournamentTitle = t.Title,
+                    Category = t.Category,
+                    EnrollmentCount = t.Enrollments.Count(e => e.Status == TournamentEnrollmentStatus.Confirmed),
+                    Revenue = t.Enrollments.Count(e => e.Status == TournamentEnrollmentStatus.Confirmed) * t.EnrollmentPrice,
+                    OccupancyRate = t.Quota > 0 
+                        ? Math.Round((decimal)t.Enrollments.Count(e => e.Status == TournamentEnrollmentStatus.Confirmed) / t.Quota * 100, 2)
+                        : 0,
+                    TournamentStartDate = t.TournamentStartDate
+                })
+                .OrderByDescending(t => t.EnrollmentCount)
+                .ThenByDescending(t => t.Revenue)
+                .Take(10)
+                .ToList();
+
+            // Distribución por estado de inscripción
+            var enrollmentStatusDistribution = new List<EnrollmentStatusDistributionDto>
+            {
+                new EnrollmentStatusDistributionDto
+                {
+                    Status = "Confirmed",
+                    Count = confirmedCount,
+                    Percentage = totalEnrollments > 0 
+                        ? Math.Round((decimal)confirmedCount / totalEnrollments * 100, 2) 
+                        : 0
+                },
+                new EnrollmentStatusDistributionDto
+                {
+                    Status = "Cancelled",
+                    Count = cancelledCount,
+                    Percentage = totalEnrollments > 0 
+                        ? Math.Round((decimal)cancelledCount / totalEnrollments * 100, 2) 
+                        : 0
+                },
+                new EnrollmentStatusDistributionDto
+                {
+                    Status = "Rejected",
+                    Count = rejectedCount,
+                    Percentage = totalEnrollments > 0 
+                        ? Math.Round((decimal)rejectedCount / totalEnrollments * 100, 2) 
+                        : 0
+                },
+                new EnrollmentStatusDistributionDto
+                {
+                    Status = "PendingPayment",
+                    Count = pendingEnrollments.Count,
+                    Percentage = totalEnrollments > 0 
+                        ? Math.Round((decimal)pendingEnrollments.Count / totalEnrollments * 100, 2) 
+                        : 0
+                }
+            }.Where(e => e.Count > 0).ToList();
+
+            return new TournamentReportDto
+            {
+                Statistics = statistics,
+                DailyRevenue = dailyRevenue,
+                StatusDistribution = statusDistribution,
+                CategoryAnalysis = categoryAnalysis,
+                TournamentPopularity = tournamentPopularity,
+                EnrollmentStatusDistribution = enrollmentStatusDistribution
+            };
+        }
     }
 }

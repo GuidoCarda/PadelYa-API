@@ -6,6 +6,7 @@ namespace padelya_api.Services
     public interface ILessonEnrollmentService
     {
         Task<ResponseMessage<LessonEnrollmentResponseDto>> EnrollStudentAsync(LessonEnrollmentCreateDto createDto, int? userId = null);
+        Task<LessonEnrollmentInitPointDto> EnrollWithPaymentAsync(int lessonId);
         Task<ResponseMessage<bool>> CancelEnrollmentAsync(int enrollmentId, int? userId = null);
         Task<ResponseMessage<List<LessonEnrollmentListDto>>> GetEnrollmentsByLessonAsync(int lessonId);
         Task<ResponseMessage<List<LessonEnrollmentResponseDto>>> GetEnrollmentsByStudentAsync(int personId);

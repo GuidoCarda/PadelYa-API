@@ -5,6 +5,7 @@ using padelya_api.models;
 using padelya_api.Models;
 using padelya_api.Models.Lesson;
 using padelya_api.Shared;
+using padelya_api.Constants;
 
 namespace padelya_api.Services
 {
@@ -270,7 +271,8 @@ namespace padelya_api.Services
 
         if (filterDto.AvailableOnly == true)
         {
-          lessonsWithUsers = lessonsWithUsers.Where(x => x.lesson.Enrollments.Count < x.lesson.MaxCapacity);
+          lessonsWithUsers = lessonsWithUsers.Where(x => 
+            x.lesson.Enrollments.Count(e => e.Payment != null && e.Payment.PaymentStatus == PaymentStatus.Approved) < x.lesson.MaxCapacity);
         }
 
         var orderedResults = lessonsWithUsers.OrderBy(x => x.lesson.CourtSlot.Date).ThenBy(x => x.lesson.CourtSlot.StartTime);
@@ -549,6 +551,10 @@ namespace padelya_api.Services
 
     private LessonResponseDto MapToLessonResponseDto(Lesson lesson)
     {
+      // Contar solo inscripciones con pago aprobado
+      var confirmedEnrollments = lesson.Enrollments?.Where(e => 
+        e.Payment != null && e.Payment.PaymentStatus == PaymentStatus.Approved).ToList() ?? new();
+      
       return new LessonResponseDto
       {
         Id = lesson.Id,
@@ -556,7 +562,7 @@ namespace padelya_api.Services
         Description = lesson.Description,
         ClassType = lesson.ClassType,
         MaxCapacity = lesson.MaxCapacity,
-        CurrentEnrollments = lesson.CurrentEnrollments,
+        CurrentEnrollments = confirmedEnrollments.Count,
         CourtSlotId = lesson.CourtSlotId,
         Date = lesson.CourtSlot.Date,
         StartTime = lesson.CourtSlot.StartTime,
@@ -566,17 +572,17 @@ namespace padelya_api.Services
         TeacherId = lesson.TeacherId,
         TeacherName = lesson.Teacher?.Title ?? "Profesor no encontrado",
         TeacherTitle = lesson.Teacher?.Title,
-        Enrollments = lesson.Enrollments?.Select(e => new LessonEnrollmentDto
+        Enrollments = confirmedEnrollments.Select(e => new LessonEnrollmentDto
         {
           Id = e.Id,
           EnrollmentDate = e.EnrollmentDate,
           PersonId = e.PersonId,
           StudentName = e.Person?.Category ?? "Estudiante",
           StudentCategory = e.Person?.Category ?? "",
-          IsPaid = e.Payment != null,
+          IsPaid = e.Payment != null && e.Payment.PaymentStatus == PaymentStatus.Approved,
           PaymentAmount = e.Payment?.Amount,
           PaymentDate = e.Payment?.CreatedAt // Usar CreatedAt como fecha de pago
-        }).ToList() ?? new(),
+        }).ToList(),
         CreatedAt = lesson.CreatedAt,
         UpdatedAt = lesson.UpdatedAt
       };
@@ -597,13 +603,17 @@ namespace padelya_api.Services
         else if (lesson.HasStarted) status = "En Curso";
       }
 
+      // Contar solo inscripciones con pago aprobado
+      var confirmedEnrollments = lesson.Enrollments?.Where(e => 
+        e.Payment != null && e.Payment.PaymentStatus == PaymentStatus.Approved).Count() ?? 0;
+      
       return new LessonListDto
       {
         Id = lesson.Id,
         Price = lesson.Price,
         ClassType = lesson.ClassType,
         MaxCapacity = lesson.MaxCapacity,
-        CurrentEnrollments = lesson.CurrentEnrollments,
+        CurrentEnrollments = confirmedEnrollments,
         Date = lesson.CourtSlot.Date,
         StartTime = lesson.CourtSlot.StartTime,
         EndTime = lesson.CourtSlot.EndTime,

@@ -127,6 +127,7 @@ namespace padelya_api.Services
           await HandleBookingPayment(payment, targetId);
           break;
         case "lesson":
+          await HandleLessonEnrollmentPayment(payment, targetId);
           break;
         case "tournament":
           await HandleTournamentEnrollmentPayment(payment, targetId);
@@ -171,6 +172,16 @@ namespace padelya_api.Services
           throw new ArgumentException($"Invalid enrollment ID: {parts[3]}");
         }
         return new PaymentTarget("tournament", enrollmentId);
+      }
+
+      // Handle format: lesson_{lessonId}_enrollment_{enrollmentId}
+      if (parts.Length == 4 && parts[0] == "lesson" && parts[2] == "enrollment")
+      {
+        if (!int.TryParse(parts[3], out var enrollmentId))
+        {
+          throw new ArgumentException($"Invalid enrollment ID: {parts[3]}");
+        }
+        return new PaymentTarget("lesson", enrollmentId);
       }
 
       // Handle legacy format: {target}_{id}
@@ -337,6 +348,77 @@ namespace padelya_api.Services
         type = LocalPaymentType.Balance;
 
       return type;
+    }
+
+    private async Task HandleLessonEnrollmentPayment(
+      MercadoPago.Resource.Payment.Payment payment,
+      int enrollmentId
+    )
+    {
+      try
+      {
+        var enrollment = await _context.LessonEnrollments
+                .Include(e => e.Lesson)
+                .Include(e => e.Person)
+                .FirstOrDefaultAsync(e => e.Id == enrollmentId);
+
+        if (enrollment is null)
+        {
+          throw new Exception("Lesson enrollment not found");
+        }
+
+        var lessonPrice = enrollment.Lesson.Price;
+        var amountPaid = payment.TransactionAmount ?? 0;
+
+        if (payment.Status == MercadoPago.Resource.Payment.PaymentStatus.Approved)
+        {
+          var personIdString = payment.Metadata?["person_id"] as string;
+          if (string.IsNullOrEmpty(personIdString) || !int.TryParse(personIdString, out int personId))
+            throw new Exception("PersonId not found or invalid");
+
+          var newPayment = new LocalPayment
+          {
+            Amount = payment.TransactionAmount ?? 0,
+            PaymentMethod = payment.PaymentTypeId,
+            PaymentStatus = LocalPaymentStatus.Approved,
+            CreatedAt = payment.DateApproved ?? DateTime.UtcNow,
+            TransactionId = payment.Id.ToString()!,
+            LessonEnrollmentId = enrollmentId,
+            PersonId = personId,
+            PaymentType = LocalPaymentType.Total
+          };
+          _context.Payments.Add(newPayment);
+
+          await _context.SaveChangesAsync();
+          
+          Console.WriteLine($"[Lesson Payment] Enrollment {enrollmentId} confirmed with payment {payment.Id}");
+        }
+
+        if (payment.Status == MercadoPago.Resource.Payment.PaymentStatus.Rejected)
+        {
+          var newPayment = new LocalPayment
+          {
+            Amount = payment.TransactionAmount ?? 0,
+            PaymentMethod = payment.PaymentMethodId,
+            PaymentStatus = LocalPaymentStatus.Rejected,
+            CreatedAt = payment.DateCreated ?? DateTime.UtcNow,
+            TransactionId = payment.Id.ToString()!,
+            LessonEnrollmentId = enrollmentId,
+            PersonId = enrollment.PersonId,
+            PaymentType = LocalPaymentType.Total,
+          };
+          _context.Payments.Add(newPayment);
+
+          await _context.SaveChangesAsync();
+          
+          Console.WriteLine($"[Lesson Payment] Enrollment {enrollmentId} rejected - payment {payment.Id}");
+          // Nota: La limpieza de inscripciones rechazadas se maneja en LessonEnrollmentService
+        }
+      }
+      catch (Exception ex)
+      {
+        Console.WriteLine($"[Lesson Payment Error] {ex.Message}");
+      }
     }
 
     private async Task HandleTournamentEnrollmentPayment(

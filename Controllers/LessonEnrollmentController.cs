@@ -56,6 +56,28 @@ namespace padelya_api.Controllers
         }
 
         /// <summary>
+        /// Inscribir a una clase con pago online (MercadoPago)
+        /// </summary>
+        [HttpPost("{lessonId}/enroll-with-payment")]
+        [RequirePermission("lesson:join")]
+        public async Task<IActionResult> EnrollWithPayment(int lessonId)
+        {
+            try
+            {
+                var result = await _enrollmentService.EnrollWithPaymentAsync(lessonId);
+                return Ok(result);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error interno del servidor: {ex.Message}");
+            }
+        }
+
+        /// <summary>
         /// Cancelar inscripción a una clase
         /// </summary>
         [HttpDelete("{enrollmentId}")]
@@ -219,4 +241,5 @@ namespace padelya_api.Controllers
         }
     }
 }
+
 

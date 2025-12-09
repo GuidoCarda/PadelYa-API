@@ -41,6 +41,12 @@ namespace padelya_api.DTOs.Lesson
         public string StudentCategory { get; set; } = string.Empty;
         public DateTime EnrollmentDate { get; set; }
         public bool IsPaid { get; set; }
+        public string PaymentStatus { get; set; } = "Pendiente";
+    }
+
+    public class LessonEnrollmentInitPointDto
+    {
+        public string init_point { get; set; } = string.Empty;
     }
 }
 

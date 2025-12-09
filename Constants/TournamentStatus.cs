@@ -5,6 +5,7 @@ namespace padelya_api.Constants
         AbiertoParaInscripcion,
         EnProgreso,
         Finalizado,
+        Cancelado,
         Deleted
     }
 }

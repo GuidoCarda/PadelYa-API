@@ -130,15 +130,17 @@ namespace padelya_api.Services
 
         public async Task<Tournament?> CreateTournamentAsync(CreateTournamentDto tournamentDto)
         {
-            if (tournamentDto.EnrollmentEndDate <= tournamentDto.EnrollmentStartDate)
+                // (Nodo 1: Inicio del método)
+            if (tournamentDto.EnrollmentEndDate <= tournamentDto.EnrollmentStartDate) // (Nodo 2: Decisión - Fechas de inscripción válidas)
             {
-                throw new ArgumentException("La fecha de fin de inscripciones debe ser posterior a la de inicio.");
+                throw new ArgumentException("La fecha de fin de inscripciones debe ser posterior a la de inicio."); // (Nodo 3: Excepción - Fechas inválidas)
             }
-            if (tournamentDto.TournamentEndDate <= tournamentDto.TournamentStartDate)
+            if (tournamentDto.TournamentEndDate <= tournamentDto.TournamentStartDate) // (Nodo 4: Decisión - Fechas de torneo válidas)
             {
-                throw new ArgumentException("La fecha de fin del torneo debe ser posterior a la de inicio.");
+                throw new ArgumentException("La fecha de fin del torneo debe ser posterior a la de inicio."); // (Nodo 5: Excepción - Fechas inválidas)
             }
 
+            // (Nodo 6: Creación del torneo)
             var tournament = new Tournament
             {
                 Title = tournamentDto.Title,
@@ -155,14 +157,16 @@ namespace padelya_api.Services
                 TournamentPhases = new List<TournamentPhase>()
             };
 
+           // (Nodo 7: Persistir en BD)
             _context.Tournaments.Add(tournament);
             await _context.SaveChangesAsync();
-            return tournament;
+            return tournament; // (Nodo 8: Retorno del torneo creado)
         }
 
         public async Task<List<TournamentResponseDto>> GetTournamentsAsync()
         {
             await CleanupAllExpiredEnrollmentsAsync();
+            await CheckAndCancelTournamentsWithInsufficientEnrollmentsAsync();
 
             var tournaments = await _context.Tournaments
                 .Include(t => t.Enrollments)           
@@ -246,6 +250,7 @@ namespace padelya_api.Services
         public async Task<TournamentResponseDto?> GetTournamentByIdAsync(int id)
         {
             await CleanupExpiredEnrollmentsAsync(id);
+            await CheckAndCancelTournamentsWithInsufficientEnrollmentsAsync();
 
             var tournament = await _context.Tournaments
                 .Include(t => t.Enrollments)
@@ -263,22 +268,35 @@ namespace padelya_api.Services
 
         public async Task<Tournament?> UpdateTournamentStatusAsync(int id, TournamentStatus newStatus)
         {
-            var tournament = await _context.Tournaments.FindAsync(id);
+            var tournament = await _context.Tournaments
+                .Include(t => t.Enrollments)
+                .FirstOrDefaultAsync(t => t.Id == id);
+            
             if (tournament == null)
             {
                 return null;
             }
 
-        
             if (tournament.TournamentStatus == TournamentStatus.Finalizado)
             {
                 throw new ArgumentException("No se puede cambiar el estado de un torneo que ya está finalizado.");
             }
 
+            // Validación: si se intenta cambiar a "EnProgreso", verificar que haya al menos 4 parejas confirmadas
+            if (newStatus == TournamentStatus.EnProgreso)
+            {
+                var confirmedEnrollmentsCount = tournament.Enrollments
+                    .Count(e => e.Status == TournamentEnrollmentStatus.Confirmed);
+
+                if (confirmedEnrollmentsCount < 4)
+                {
+                    throw new ArgumentException($"No se puede iniciar el torneo. Se requieren al menos 4 parejas inscritas. Actualmente hay {confirmedEnrollmentsCount} pareja(s) confirmada(s).");
+                }
+            }
+
             tournament.TournamentStatus = newStatus;
             await _context.SaveChangesAsync();
             return tournament;
-
         }
 
         public async Task<TournamentEnrollment?> EnrollPlayerAsync(int tournamentId, TournamentEnrollmentDto enrollmentDto)
@@ -630,6 +648,34 @@ namespace padelya_api.Services
                 {
                     enrollment.Status = TournamentEnrollmentStatus.Cancelled;
                 }
+                await _context.SaveChangesAsync();
+            }
+        }
+
+        private async Task CheckAndCancelTournamentsWithInsufficientEnrollmentsAsync()
+        {
+            // Buscar torneos que estén abiertos para inscripción y cuya fecha límite ya haya pasado
+            var expiredTournaments = await _context.Tournaments
+                .Include(t => t.Enrollments)
+                .Where(t => t.TournamentStatus == TournamentStatus.AbiertoParaInscripcion &&
+                           t.EnrollmentEndDate < DateTime.UtcNow)
+                .ToListAsync();
+
+            foreach (var tournament in expiredTournaments)
+            {
+                var confirmedEnrollmentsCount = tournament.Enrollments
+                    .Count(e => e.Status == TournamentEnrollmentStatus.Confirmed);
+
+                // Si hay menos de 4 parejas confirmadas, cancelar el torneo
+                if (confirmedEnrollmentsCount < 4)
+                {
+                    tournament.TournamentStatus = TournamentStatus.Cancelado;
+                    tournament.CurrentPhase = "Cancelado por falta de parejas";
+                }
+            }
+
+            if (expiredTournaments.Any())
+            {
                 await _context.SaveChangesAsync();
             }
         }

@@ -21,7 +21,8 @@ builder.Services.AddCors(options =>
       {
         policy.AllowAnyOrigin()
                 .AllowAnyHeader()
-                .AllowAnyMethod();
+                .AllowAnyMethod()
+                .WithExposedHeaders("*");
       });
 });
 
@@ -127,6 +128,18 @@ if (app.Environment.IsDevelopment())
   app.MapOpenApi();
   app.UseCors("AllowAll");
 }
+
+// Middleware para manejar Private Network Access (PNA)
+app.Use(async (context, next) =>
+{
+  // Agregar header para permitir acceso desde redes públicas a privadas
+  if (context.Request.Headers.ContainsKey("Access-Control-Request-Private-Network"))
+  {
+    context.Response.Headers.Add("Access-Control-Allow-Private-Network", "true");
+  }
+
+  await next();
+});
 
 //app.UseHttpsRedirection();
 

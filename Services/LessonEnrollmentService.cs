@@ -51,7 +51,18 @@ namespace padelya_api.Services
                     return ResponseMessage<LessonEnrollmentResponseDto>.Error("No se puede inscribir a una clase que ya comenzó");
                 }
 
-                if (!lesson.IsAvailable)
+                // Limpiar inscripciones expiradas antes de validar cupos
+                await CleanupExpiredEnrollmentsAsync(createDto.LessonId);
+
+                // Validar cupos disponibles contando solo inscripciones confirmadas
+                // (con pago aprobado o sin requerimiento de pago)
+                var confirmedEnrollmentsCount = await _context.LessonEnrollments
+                    .Include(e => e.Payment)
+                    .Where(e => e.LessonId == createDto.LessonId && 
+                                (e.Payment == null || e.Payment.PaymentStatus == PaymentStatus.Approved))
+                    .CountAsync();
+
+                if (confirmedEnrollmentsCount >= lesson.MaxCapacity)
                 {
                     return ResponseMessage<LessonEnrollmentResponseDto>.Error("La clase está llena, no hay cupos disponibles");
                 }
@@ -63,9 +74,12 @@ namespace padelya_api.Services
                     return ResponseMessage<LessonEnrollmentResponseDto>.NotFound("Persona no encontrada");
                 }
 
-                // Verificar si ya está inscrito
+                // Verificar si ya está inscrito con pago aprobado o sin pago
                 var existingEnrollment = await _context.LessonEnrollments
-                    .FirstOrDefaultAsync(e => e.LessonId == createDto.LessonId && e.PersonId == createDto.PersonId);
+                    .Include(e => e.Payment)
+                    .FirstOrDefaultAsync(e => e.LessonId == createDto.LessonId && 
+                                             e.PersonId == createDto.PersonId &&
+                                             (e.Payment == null || e.Payment.PaymentStatus == PaymentStatus.Approved));
 
                 if (existingEnrollment != null)
                 {
@@ -83,19 +97,22 @@ namespace padelya_api.Services
                 _context.LessonEnrollments.Add(enrollment);
                 await _context.SaveChangesAsync();
 
-                // Si requiere pago, crear el pago (esto puede ser expandido con MercadoPago)
-                if (createDto.RequiresPayment && lesson.Price > 0)
+                // Si requiere pago, crear el pago pendiente (se usará MercadoPago)
+                // Si NO requiere pago, se asume pago manual/efectivo y se crea pago aprobado
+                if (lesson.Price > 0)
                 {
                     var payment = new Payment
                     {
                         Amount = lesson.Price,
-                        PaymentMethod = "pending", // Se actualizará cuando se procese el pago
-                        PaymentStatus = PaymentStatus.Pending,
+                        PaymentMethod = createDto.RequiresPayment ? "pending" : "Efectivo",
+                        PaymentStatus = createDto.RequiresPayment ? PaymentStatus.Pending : PaymentStatus.Approved,
                         PaymentType = PaymentType.Total,
                         LessonEnrollmentId = enrollment.Id,
                         PersonId = createDto.PersonId,
                         CreatedAt = DateTime.UtcNow,
-                        TransactionId = $"LESSON-{enrollment.Id}-{DateTime.UtcNow.Ticks}"
+                        TransactionId = createDto.RequiresPayment 
+                            ? $"LESSON-{enrollment.Id}-{DateTime.UtcNow.Ticks}"
+                            : $"MANUAL-LESSON-{enrollment.Id}-{DateTime.UtcNow.Ticks}"
                     };
 
                     _context.Payments.Add(payment);
@@ -421,7 +438,23 @@ namespace padelya_api.Services
                 {
                     var user = users.FirstOrDefault(u => u.PersonId == e.PersonId);
                     var isPaid = e.Payment != null && e.Payment.PaymentStatus == PaymentStatus.Approved;
-                    var paymentStatus = e.Payment?.PaymentStatus.ToString() ?? "Pendiente";
+                    
+                    // Mapear el estado de pago a español
+                    string paymentStatus;
+                    if (e.Payment == null)
+                    {
+                        paymentStatus = "Pendiente";
+                    }
+                    else
+                    {
+                        paymentStatus = e.Payment.PaymentStatus switch
+                        {
+                            PaymentStatus.Approved => "Pagado",
+                            PaymentStatus.Pending => "Pendiente",
+                            PaymentStatus.Rejected => "Rechazado",
+                            _ => "Pendiente"
+                        };
+                    }
                     
                     return new LessonEnrollmentListDto
                     {

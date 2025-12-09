@@ -126,6 +126,12 @@ namespace padelya_api.Services
             .Reference(cs => cs.Court)
             .LoadAsync();
 
+        await _context.Entry(lesson)
+            .Collection(l => l.Enrollments)
+            .Query()
+            .Include(e => e.Payment)
+            .LoadAsync();
+
         var responseDto = MapToLessonResponseDto(lesson);
         return ResponseMessage<LessonResponseDto>.SuccessResult(responseDto, "Clase creada exitosamente");
       }
@@ -235,6 +241,7 @@ namespace padelya_api.Services
             .Include(l => l.CourtSlot)
                 .ThenInclude(cs => cs.Court)
             .Include(l => l.Enrollments)
+                .ThenInclude(e => e.Payment)
             .AsQueryable();
 
         // Buscar el usuario asociado al teacher a través de PersonId
@@ -272,7 +279,7 @@ namespace padelya_api.Services
         if (filterDto.AvailableOnly == true)
         {
           lessonsWithUsers = lessonsWithUsers.Where(x => 
-            x.lesson.Enrollments.Count(e => e.Payment != null && e.Payment.PaymentStatus == PaymentStatus.Approved) < x.lesson.MaxCapacity);
+            x.lesson.Enrollments.Count(e => e.Payment == null || e.Payment.PaymentStatus == PaymentStatus.Approved) < x.lesson.MaxCapacity);
         }
 
         var orderedResults = lessonsWithUsers.OrderBy(x => x.lesson.CourtSlot.Date).ThenBy(x => x.lesson.CourtSlot.StartTime);
@@ -377,6 +384,12 @@ namespace padelya_api.Services
             .Reference(cs => cs.Court)
             .LoadAsync();
 
+        await _context.Entry(lesson)
+            .Collection(l => l.Enrollments)
+            .Query()
+            .Include(e => e.Payment)
+            .LoadAsync();
+
         var responseDto = MapToLessonResponseDto(lesson);
         return ResponseMessage<LessonResponseDto>.SuccessResult(responseDto, "Clase actualizada exitosamente");
       }
@@ -393,6 +406,7 @@ namespace padelya_api.Services
         var lesson = await _context.Lessons
             .Include(l => l.CourtSlot)
             .Include(l => l.Enrollments)
+                .ThenInclude(e => e.Payment)
             .FirstOrDefaultAsync(l => l.Id == id);
 
         if (lesson == null)
@@ -405,10 +419,14 @@ namespace padelya_api.Services
           return ResponseMessage<bool>.Error("No se puede eliminar una clase que ya ha comenzado");
         }
 
-        if (lesson.Enrollments.Any())
+        // Solo impedir eliminación si hay inscripciones confirmadas (con pago aprobado o sin requerimiento de pago)
+        var hasConfirmedEnrollments = lesson.Enrollments.Any(e => 
+            e.Payment == null || e.Payment.PaymentStatus == PaymentStatus.Approved);
+        
+        if (hasConfirmedEnrollments)
         {
           return ResponseMessage<bool>.Error(
-              "No se puede eliminar una clase que tiene inscripciones. Considere cancelarla en su lugar.");
+              "No se puede eliminar una clase que tiene inscripciones confirmadas. Considere cancelarla en su lugar.");
         }
 
         _context.Lessons.Remove(lesson);
@@ -551,9 +569,9 @@ namespace padelya_api.Services
 
     private LessonResponseDto MapToLessonResponseDto(Lesson lesson)
     {
-      // Contar solo inscripciones con pago aprobado
+      // Contar solo inscripciones confirmadas (con pago aprobado o sin requerimiento de pago)
       var confirmedEnrollments = lesson.Enrollments?.Where(e => 
-        e.Payment != null && e.Payment.PaymentStatus == PaymentStatus.Approved).ToList() ?? new();
+        e.Payment == null || e.Payment.PaymentStatus == PaymentStatus.Approved).ToList() ?? new();
       
       return new LessonResponseDto
       {
@@ -603,9 +621,9 @@ namespace padelya_api.Services
         else if (lesson.HasStarted) status = "En Curso";
       }
 
-      // Contar solo inscripciones con pago aprobado
+      // Contar solo inscripciones confirmadas (con pago aprobado o sin requerimiento de pago)
       var confirmedEnrollments = lesson.Enrollments?.Where(e => 
-        e.Payment != null && e.Payment.PaymentStatus == PaymentStatus.Approved).Count() ?? 0;
+        e.Payment == null || e.Payment.PaymentStatus == PaymentStatus.Approved).Count() ?? 0;
       
       return new LessonListDto
       {

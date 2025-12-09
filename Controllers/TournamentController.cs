@@ -95,6 +95,10 @@ namespace padelya_api.Controllers
 
                 return Ok($"Torneo con ID {id} eliminado correctamente.");
             }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
             catch (Exception ex)
             {
                 return StatusCode(500, $"Error interno del servidor: {ex.Message}");
@@ -156,9 +160,13 @@ namespace padelya_api.Controllers
                 }
                 return Ok(updatedTournament);
             }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Error interno del servidor: {ex.Message}");
+                return StatusCode(500, new { message = $"Error interno del servidor: {ex.Message}" });
             }
         }
 

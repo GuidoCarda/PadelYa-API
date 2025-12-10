@@ -5,6 +5,7 @@ using padelya_api.DTOs.Repair;
 using padelya_api.Models;
 using padelya_api.Models.Repair;
 using padelya_api.Models.Repair.States;
+using padelya_api.Services.Email;
 
 namespace padelya_api.Services
 {
@@ -14,18 +15,21 @@ namespace padelya_api.Services
     private readonly ICourtSlotService _courtSlotService;
     private readonly IConfiguration _configuration;
     private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly IEmailNotificationService _emailNotificationService;
 
     public RepairService(
         PadelYaDbContext context,
         ICourtSlotService courtSlotService,
         IConfiguration configuration,
-        IHttpContextAccessor httpContextAccessor
+        IHttpContextAccessor httpContextAccessor,
+        IEmailNotificationService emailNotificationService
     )
     {
       _context = context;
       _configuration = configuration;
       _courtSlotService = courtSlotService;
       _httpContextAccessor = httpContextAccessor;
+      _emailNotificationService = emailNotificationService;
     }
 
     public async Task<IEnumerable<Repair>> GetAllAsync(
@@ -271,10 +275,12 @@ namespace padelya_api.Services
               throw new InvalidOperationException(
                 $"Invalid status transition from {repair.Status} to {newStatus}");
             }
-
+            var previousStatus = repair.Status;
             // Advance state and update status enum
             repair.AdvanceRepairProcess();
             repair.Status = newStatus;
+
+            await NotifyCustomerStatusChangeAsync(repair, previousStatus);
 
             // Set timestamps based on status
             if (newStatus == RepairStatus.ReadyForPickup)
@@ -365,7 +371,7 @@ namespace padelya_api.Services
       }
 
       repair.InitializeState();
-
+      var previousStatus = repair.Status;
       if (newStatus == RepairStatus.Cancelled)
       {
         repair.CancelRepair();
@@ -382,6 +388,9 @@ namespace padelya_api.Services
       }
 
       repair.AdvanceRepairProcess();
+
+      await NotifyCustomerStatusChangeAsync(repair, previousStatus);
+
       LogRepairAuditAsync(repair.Id, RepairAuditAction.StatusAdvanced, repair.Status, newStatus);
       await _context.SaveChangesAsync();
       return repair;
@@ -469,6 +478,27 @@ namespace padelya_api.Services
         Timestamp = DateTime.UtcNow,
         UserId = userId,
       });
+    }
+
+    private async Task NotifyCustomerStatusChangeAsync(Repair repair, RepairStatus previousStatus)
+    {
+      try
+      {
+        if (repair.Status == RepairStatus.ReadyForPickup)
+        {
+          Console.WriteLine($"Customer notified: Repair {repair.Id} is ready for pickup! Email: {repair.Person.Email}");
+          await _emailNotificationService.SendRepairReadyForPickupAsync(repair);
+        }
+        else if (repair.Status == RepairStatus.Cancelled)
+        {
+          Console.WriteLine($"Customer notified: Repair {repair.Id} has been cancelled! Email: {repair.Person.Email}");
+          // await _emailNotificationService.SendRepairCancellationAsync(repair);
+        }
+      }
+      catch (Exception ex)
+      {
+        Console.WriteLine($"Error notifying customer: {ex.Message}");
+      }
     }
   }
 }

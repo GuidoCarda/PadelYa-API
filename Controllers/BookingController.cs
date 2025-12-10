@@ -60,6 +60,7 @@ namespace padelya_api.Controllers
       }
     }
 
+    [RequirePermission(Permissions.Booking.Create)]
     [HttpPost("admin")]
     public async Task<IActionResult> CreateWithPayment([FromBody] BookingCreateDto dto)
     {
@@ -94,7 +95,7 @@ namespace padelya_api.Controllers
       }
     }
 
-
+    [RequirePermission(Permissions.Booking.Make)]
     [HttpPost]
     public async Task<IActionResult> ReserveWithPayment([FromBody] BookingReserveWithPaymentDto dto)
     {
@@ -128,6 +129,7 @@ namespace padelya_api.Controllers
       }
     }
 
+    [RequirePermission(Permissions.Booking.Edit)]
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(int id, [FromBody] BookingUpdateDto dto)
     {
@@ -157,6 +159,7 @@ namespace padelya_api.Controllers
       }
     }
 
+    [RequirePermission(Permissions.Booking.Cancel)]
     [HttpPost("{id}/cancel-expired")]
     public async Task<IActionResult> CancelExpired(int id)
     {
@@ -174,7 +177,7 @@ namespace padelya_api.Controllers
       }
     }
 
-
+    [RequirePermission(Permissions.Booking.Cancel)]
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id, string? cancelledBy = "admin")
     {
@@ -192,7 +195,7 @@ namespace padelya_api.Controllers
       }
     }
 
-
+    [RequirePermission(Permissions.Booking.Cancel)]
     [HttpPatch("{id}/cancel")]
     public async Task<IActionResult> CancelBooking(int id,
     [FromBody] CancelBookingDto dto)
@@ -211,6 +214,7 @@ namespace padelya_api.Controllers
       }
     }
 
+    [RequirePermission(Permissions.Booking.MarkPaid)]
     [HttpPost("{id}/payment")]
     public async Task<IActionResult> RegisterPayment(int id, [FromBody] RegisterPaymentDto dto)
     {
@@ -228,6 +232,7 @@ namespace padelya_api.Controllers
       }
     }
 
+    [RequireAnyPermission(Permissions.Booking.View, Permissions.Booking.ViewOwn)]
     [HttpGet("availability")]
     public async Task<IActionResult> GetDailyAvailability([FromQuery] string date)
     {
@@ -283,6 +288,7 @@ namespace padelya_api.Controllers
       }
     }
 
+    [RequirePermission(Permissions.Booking.View)]
     [HttpGet("report")]
     public async Task<IActionResult> GetBookingReport(
       [FromQuery] string startDate,

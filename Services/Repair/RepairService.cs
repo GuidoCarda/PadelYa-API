@@ -321,7 +321,7 @@ namespace padelya_api.Services
     }
 
 
-    public async Task<Repair> CancelAsync(int repairId)
+    public async Task<Repair> CancelAsync(int repairId, CancelRepairDto cancellationDto)
     {
       var repair = await _context.Repairs
           .Include(r => r.Racket)
@@ -340,7 +340,7 @@ namespace padelya_api.Services
       {
         repair.CancelRepair();
         repair.State.NotifyCustomer(repair.Racket);
-        LogRepairAuditAsync(repair.Id, RepairAuditAction.Cancelled);
+        LogRepairAuditAsync(repair.Id, RepairAuditAction.Cancelled, reason: cancellationDto.Reason);
         await _context.SaveChangesAsync();
         return repair;
       }
@@ -463,7 +463,8 @@ namespace padelya_api.Services
       int repairId,
       RepairAuditAction action,
       RepairStatus? oldStatus = null,
-      RepairStatus? newStatus = null
+      RepairStatus? newStatus = null,
+      string? reason = null
     )
     {
 
@@ -477,6 +478,7 @@ namespace padelya_api.Services
         NewStatus = newStatus,
         Timestamp = DateTime.UtcNow,
         UserId = userId,
+        Notes = reason
       });
     }
 

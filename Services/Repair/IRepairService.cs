@@ -12,7 +12,7 @@ namespace padelya_api.Services
     Task<Repair> CreateAsync(CreateRepairDto dto);
     Task<Repair> UpdateAsync(int id, UpdateRepairDto dto);
     Task<Repair> UpdateStatusAsync(int id, UpdateStatusDto dto);
-    Task<Repair> CancelAsync(int id);
+    Task<Repair> CancelAsync(int id, CancelRepairDto cancellationDto);
     Task<Repair> RegisterPaymentAsync(int id, RegisterRepairPaymentDto dto);
   }
 }

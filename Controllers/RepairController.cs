@@ -116,11 +116,11 @@ namespace padelya_api.Controllers
     }
 
     [HttpPatch("{id}/cancel")]
-    public async Task<IActionResult> Cancel(int id)
+    public async Task<IActionResult> Cancel(int id, [FromBody] CancelRepairDto cancellationDto)
     {
       try
       {
-        var repair = await _repairService.CancelAsync(id);
+        var repair = await _repairService.CancelAsync(id, cancellationDto);
         if (repair == null)
           return NotFound(ResponseMessage<Repair>
             .NotFound($"Reparacion con ID {id} no encontrada"));

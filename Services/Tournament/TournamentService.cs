@@ -13,6 +13,7 @@ using padelya_api.Models;
 using MercadoPago.Config;
 using MercadoPago.Client.Preference;
 using MercadoPago.Resource.Preference;
+using System.Text.Json;
 
 namespace padelya_api.Services
 {
@@ -60,7 +61,9 @@ namespace padelya_api.Services
       };
     }
 
-    private async Task<TournamentResponseDto> MapTournamentToDto(Models.Tournament.Tournament tournament)
+    private TournamentResponseDto MapTournamentToDto(
+      Models.Tournament.Tournament tournament, Dictionary<int, User> allUsers
+      )
     {
       var activeEnrollments = tournament.Enrollments?
           .Where(e => e.Status == TournamentEnrollmentStatus.Confirmed ||
@@ -68,30 +71,21 @@ namespace padelya_api.Services
                       e.ExpiresAt.HasValue && e.ExpiresAt.Value > DateTime.UtcNow))
           .ToList() ?? new List<TournamentEnrollment>();
 
-      var allPlayerIds = activeEnrollments
-          .SelectMany(e => e.Couple.Players.Select(p => p.Id))
-          .Distinct()
-          .ToList();
-
-      var allUsers = await _context.Users
-          .Include(u => u.Person)
-          .Where(u => u.Person != null && allPlayerIds.Contains(u.Person.Id))
-          .ToListAsync();
 
       var enrollmentsDto = activeEnrollments.Select(enrollment =>
       {
         var playersDto = enrollment.Couple.Players.Select(player =>
-              {
-                var user = allUsers.FirstOrDefault(u => u.Person?.Id == player.Id);
-                return new PlayerResponseDto
-                {
-                  Id = player.Id,
-                  Name = user?.Name ?? "",
-                  Surname = user?.Surname ?? "",
-                  Email = user?.Email ?? "",
-                  Category = player.Category ?? ""
-                };
-              }).ToList();
+          {
+            allUsers.TryGetValue(player.Id, out var user);
+            return new PlayerResponseDto
+            {
+              Id = player.Id,
+              Name = user?.Name ?? "",
+              Surname = user?.Surname ?? "",
+              Email = user?.Email ?? "",
+              Category = player.Category ?? ""
+            };
+          }).ToList();
 
         return new TournamentEnrollmentResponseDto
         {
@@ -108,7 +102,6 @@ namespace padelya_api.Services
           }
         };
       }).ToList() ?? new List<TournamentEnrollmentResponseDto>();
-
 
       return new TournamentResponseDto
       {
@@ -172,16 +165,27 @@ namespace padelya_api.Services
           .Include(t => t.Enrollments)
           .ThenInclude(e => e.Couple)
           .ThenInclude(c => c.Players)
+          .AsSplitQuery()
           .Where(t => t.TournamentStatus != TournamentStatus.Deleted)
           .OrderByDescending(t => t.TournamentStartDate)
           .ToListAsync();
 
+      var allPlayerIds = tournaments
+        .SelectMany(t => t.Enrollments ?? new List<TournamentEnrollment>())
+        .SelectMany(e => e.Couple?.Players?.Select(p => p.Id) ?? new List<int>())
+        .Distinct()
+        .ToList();
+
+      var allUsers = await _context.Users
+          .Include(u => u.Person)
+          .Where(u => u.Person != null && allPlayerIds.Contains(u.Person.Id))
+          .ToDictionaryAsync(u => u.Person!.Id, u => u);
+
       var tournamentsDto = new List<TournamentResponseDto>();
       foreach (var tournament in tournaments)
       {
-        tournamentsDto.Add(await MapTournamentToDto(tournament));
+        tournamentsDto.Add(MapTournamentToDto(tournament, allUsers));
       }
-
       return tournamentsDto;
     }
 
@@ -218,6 +222,7 @@ namespace padelya_api.Services
       {
         throw new ArgumentException("Solo se pueden actualizar torneos que están abiertos para inscripción.");
       }
+
 
       if (updateDto.Title != null)
         tournament.Title = updateDto.Title;
@@ -258,12 +263,22 @@ namespace padelya_api.Services
                   .ThenInclude(c => c.Players)
           .FirstOrDefaultAsync(t => t.Id == id);
 
+
       if (tournament == null)
       {
         return null;
       }
 
-      return await MapTournamentToDto(tournament);
+      var allPlayerIds = tournament.Enrollments?.SelectMany(e => e.Couple?.Players?.Select(p => p.Id) ?? new List<int>())
+        .Distinct()
+        .ToList();
+
+      var allUsers = await _context.Users
+          .Include(u => u.Person)
+          .Where(u => u.Person != null && allPlayerIds.Contains(u.Person.Id))
+          .ToDictionaryAsync(u => u.Person.Id, u => u);
+
+      return MapTournamentToDto(tournament, allUsers);
     }
 
     public async Task<Tournament?> UpdateTournamentStatusAsync(int id, TournamentStatus newStatus)

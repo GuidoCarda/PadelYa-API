@@ -5,6 +5,7 @@ using padelya_api.DTOs.Repair;
 using padelya_api.Models;
 using padelya_api.Models.Repair;
 using padelya_api.Models.Repair.States;
+using padelya_api.Services.Email;
 
 namespace padelya_api.Services
 {
@@ -14,21 +15,24 @@ namespace padelya_api.Services
     private readonly ICourtSlotService _courtSlotService;
     private readonly IConfiguration _configuration;
     private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly IEmailNotificationService _emailNotificationService;
 
     public RepairService(
         PadelYaDbContext context,
         ICourtSlotService courtSlotService,
         IConfiguration configuration,
-        IHttpContextAccessor httpContextAccessor
+        IHttpContextAccessor httpContextAccessor,
+        IEmailNotificationService emailNotificationService
     )
     {
       _context = context;
       _configuration = configuration;
       _courtSlotService = courtSlotService;
       _httpContextAccessor = httpContextAccessor;
+      _emailNotificationService = emailNotificationService;
     }
 
-    public async Task<IEnumerable<Repair>> GetAllAsync(
+    public async Task<IEnumerable<RepairResponseDto>> GetAllAsync(
       string? email = null,
       string? status = null,
       string? startDate = null,
@@ -39,6 +43,7 @@ namespace padelya_api.Services
         .Include(r => r.Racket)
         .Include(r => r.Payment)
         .Include(r => r.Person)
+        .Include(r => r.Audits)
         .AsQueryable();
 
       if (!string.IsNullOrEmpty(email))
@@ -86,23 +91,38 @@ namespace padelya_api.Services
 
       var repairs = await query.ToListAsync();
 
-      return repairs.Select(r => new Repair
+      return repairs.Select(r => new RepairResponseDto
       {
         Id = r.Id,
-        PersonId = r.PersonId,
-        RacketId = r.RacketId,
-        Racket = r.Racket,
-        Person = r.Person,
-        Payment = r.Payment,
-        PaymentId = r.PaymentId,
-        Price = r.Price,
-        DamageDescription = r.DamageDescription,
-        RepairNotes = r.RepairNotes,
-        Status = r.Status,
         CreatedAt = r.CreatedAt,
         FinishedAt = r.FinishedAt,
         DeliveredAt = r.DeliveredAt,
         EstimatedCompletionTime = r.EstimatedCompletionTime,
+        Price = r.Price,
+        DamageDescription = r.DamageDescription,
+        RepairNotes = r.RepairNotes,
+        Status = r.Status,
+        RacketId = r.RacketId,
+        Racket = r.Racket,
+        PersonId = r.PersonId,
+        Person = r.Person,
+        PaymentId = r.PaymentId,
+        Payment = r.Payment,
+        // Get cancellation reason from the Cancelled audit entry
+        CancellationReason = r.Status == RepairStatus.Cancelled
+            ? r.Audits.FirstOrDefault(a => a.Action == RepairAuditAction.Cancelled)?.Notes
+            : null,
+        // Build status history from audits
+        StatusHistory = r.Audits
+            .Where(a => a.NewStatus.HasValue)
+            .OrderBy(a => a.Timestamp)
+            .Select(a => new StatusHistoryDto
+            {
+              Status = a.NewStatus!.Value,
+              Timestamp = a.Timestamp,
+              Action = a.Action
+            })
+            .ToList()
       }).ToList();
     }
 
@@ -116,7 +136,7 @@ namespace padelya_api.Services
         .FirstOrDefaultAsync(r => r.Id == id);
     }
 
-    public async Task<IEnumerable<Repair>> GetMyRepairsAsync()
+    public async Task<IEnumerable<RepairResponseDto>> GetMyRepairsAsync()
     {
       var personId = GetCurrentPersonId();
 
@@ -124,11 +144,44 @@ namespace padelya_api.Services
         .Include(r => r.Racket)
         .Include(r => r.Payment)
         .Include(r => r.Person)
+        .Include(r => r.Audits)
         .Where(r => r.PersonId == personId)
         .OrderByDescending(r => r.CreatedAt)
         .ToListAsync();
 
-      return repairs;
+      return repairs.Select(r => new RepairResponseDto
+      {
+        Id = r.Id,
+        CreatedAt = r.CreatedAt,
+        FinishedAt = r.FinishedAt,
+        DeliveredAt = r.DeliveredAt,
+        EstimatedCompletionTime = r.EstimatedCompletionTime,
+        Price = r.Price,
+        DamageDescription = r.DamageDescription,
+        RepairNotes = r.RepairNotes,
+        Status = r.Status,
+        RacketId = r.RacketId,
+        Racket = r.Racket,
+        PersonId = r.PersonId,
+        Person = r.Person,
+        PaymentId = r.PaymentId,
+        Payment = r.Payment,
+        // Get cancellation reason from the Cancelled audit entry
+        CancellationReason = r.Status == RepairStatus.Cancelled
+            ? r.Audits.FirstOrDefault(a => a.Action == RepairAuditAction.Cancelled)?.Notes
+            : null,
+        // Build status history from audits
+        StatusHistory = r.Audits
+            .Where(a => a.NewStatus.HasValue)
+            .OrderBy(a => a.Timestamp)
+            .Select(a => new StatusHistoryDto
+            {
+              Status = a.NewStatus!.Value,
+              Timestamp = a.Timestamp,
+              Action = a.Action
+            })
+            .ToList()
+      }).ToList();
     }
 
     private int GetCurrentPersonId()
@@ -271,10 +324,12 @@ namespace padelya_api.Services
               throw new InvalidOperationException(
                 $"Invalid status transition from {repair.Status} to {newStatus}");
             }
-
+            var previousStatus = repair.Status;
             // Advance state and update status enum
             repair.AdvanceRepairProcess();
             repair.Status = newStatus;
+
+            await NotifyCustomerStatusChangeAsync(repair, previousStatus);
 
             // Set timestamps based on status
             if (newStatus == RepairStatus.ReadyForPickup)
@@ -315,7 +370,7 @@ namespace padelya_api.Services
     }
 
 
-    public async Task<Repair> CancelAsync(int repairId)
+    public async Task<Repair> CancelAsync(int repairId, CancelRepairDto cancellationDto)
     {
       var repair = await _context.Repairs
           .Include(r => r.Racket)
@@ -334,7 +389,7 @@ namespace padelya_api.Services
       {
         repair.CancelRepair();
         repair.State.NotifyCustomer(repair.Racket);
-        LogRepairAuditAsync(repair.Id, RepairAuditAction.Cancelled);
+        LogRepairAuditAsync(repair.Id, RepairAuditAction.Cancelled, reason: cancellationDto.Reason);
         await _context.SaveChangesAsync();
         return repair;
       }
@@ -365,7 +420,7 @@ namespace padelya_api.Services
       }
 
       repair.InitializeState();
-
+      var previousStatus = repair.Status;
       if (newStatus == RepairStatus.Cancelled)
       {
         repair.CancelRepair();
@@ -382,6 +437,9 @@ namespace padelya_api.Services
       }
 
       repair.AdvanceRepairProcess();
+
+      await NotifyCustomerStatusChangeAsync(repair, previousStatus);
+
       LogRepairAuditAsync(repair.Id, RepairAuditAction.StatusAdvanced, repair.Status, newStatus);
       await _context.SaveChangesAsync();
       return repair;
@@ -454,7 +512,8 @@ namespace padelya_api.Services
       int repairId,
       RepairAuditAction action,
       RepairStatus? oldStatus = null,
-      RepairStatus? newStatus = null
+      RepairStatus? newStatus = null,
+      string? reason = null
     )
     {
 
@@ -468,7 +527,29 @@ namespace padelya_api.Services
         NewStatus = newStatus,
         Timestamp = DateTime.UtcNow,
         UserId = userId,
+        Notes = reason
       });
+    }
+
+    private async Task NotifyCustomerStatusChangeAsync(Repair repair, RepairStatus previousStatus)
+    {
+      try
+      {
+        if (repair.Status == RepairStatus.ReadyForPickup)
+        {
+          Console.WriteLine($"Customer notified: Repair {repair.Id} is ready for pickup! Email: {repair.Person.Email}");
+          await _emailNotificationService.SendRepairReadyForPickupAsync(repair);
+        }
+        else if (repair.Status == RepairStatus.Cancelled)
+        {
+          Console.WriteLine($"Customer notified: Repair {repair.Id} has been cancelled! Email: {repair.Person.Email}");
+          // await _emailNotificationService.SendRepairCancellationAsync(repair);
+        }
+      }
+      catch (Exception ex)
+      {
+        Console.WriteLine($"Error notifying customer: {ex.Message}");
+      }
     }
   }
 }

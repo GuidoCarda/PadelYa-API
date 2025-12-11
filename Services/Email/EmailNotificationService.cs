@@ -1,7 +1,9 @@
 using padelya_api.Models;
+using padelya_api.Models.Repair;
 using padelya_api.Services.Email.Templates.Auth;
 using padelya_api.Services.Email.Templates.Booking;
 using padelya_api.Services.Email.Templates.Ecommerce;
+using padelya_api.Services.Email.Templates.Repair;
 
 namespace padelya_api.Services.Email;
 
@@ -113,6 +115,32 @@ public class EmailNotificationService : IEmailNotificationService
     {
       _logger.LogError(ex, "Error enviando email de cancelación de reserva a {Email}", booking.Person.Email);
       // No relanzamos la excepción para no afectar el flujo de cancelación
+    }
+  }
+
+  public async Task SendRepairReadyForPickupAsync(Repair repair)
+  {
+    try
+    {
+      var template = new RepairReadyForPickupTemplate();
+      var data = new RepairReadyForPickupData(
+          UserName: repair.Person.Name,
+          RacketBrand: repair.Racket.Brand,
+          RacketModel: repair.Racket.Model,
+          RepairCode: repair.Id.ToString(),
+          DamageDescription: repair.DamageDescription,
+          Price: repair.Price,
+          RepairNotes: repair.RepairNotes
+      );
+
+      await _emailService.SendTemplatedEmailAsync(repair.Person.Email, template, data);
+      _logger.LogInformation("Email de reparación lista para pickup enviado a {Email} para reparación {RepairId}",
+          repair.Person.Email, repair.Id);
+    }
+    catch (Exception ex)
+    {
+      _logger.LogError(ex, "Error enviando email de reparación lista para pickup a {Email}", repair.Person.Email);
+      throw;
     }
   }
 

@@ -33,6 +33,9 @@ namespace padelya_api.Models.Repair
     public int? PaymentId { get; set; }
     public Payment? Payment { get; set; }
 
+    // Audit trail navigation property
+    public ICollection<RepairAudit> Audits { get; set; } = new List<RepairAudit>();
+
     public void AdvanceRepairProcess() => State.AdvanceState(this);
     public void CancelRepair() => State.CancelRepair(this);
     public string GetCurrentStatus() => State.GetStatusName();

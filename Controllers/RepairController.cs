@@ -33,12 +33,12 @@ namespace padelya_api.Controllers
         var repairs = await _repairService
           .GetAllAsync(email, status, startDate, endDate);
 
-        return Ok(ResponseMessage<IEnumerable<Repair>>
+        return Ok(ResponseMessage<IEnumerable<RepairResponseDto>>
           .SuccessResult(repairs, "Reparaciones obtenidas correctamente"));
       }
       catch (Exception ex)
       {
-        return BadRequest(ResponseMessage<IEnumerable<Repair>>.Error($"Error al obtener reparaciones: {ex.Message}"));
+        return BadRequest(ResponseMessage<IEnumerable<RepairResponseDto>>.Error($"Error al obtener reparaciones: {ex.Message}"));
       }
     }
 
@@ -68,17 +68,17 @@ namespace padelya_api.Controllers
       try
       {
         var repairs = await _repairService.GetMyRepairsAsync();
-        return Ok(ResponseMessage<IEnumerable<Repair>>
+        return Ok(ResponseMessage<IEnumerable<RepairResponseDto>>
           .SuccessResult(repairs, "Reparaciones obtenidas correctamente"));
       }
       catch (InvalidOperationException ex)
       {
-        return BadRequest(ResponseMessage<IEnumerable<Repair>>
+        return BadRequest(ResponseMessage<IEnumerable<RepairResponseDto>>
           .Error(ex.Message));
       }
       catch (Exception ex)
       {
-        return BadRequest(ResponseMessage<IEnumerable<Repair>>
+        return BadRequest(ResponseMessage<IEnumerable<RepairResponseDto>>
           .Error($"Error al obtener reparaciones: {ex.Message}"));
       }
     }

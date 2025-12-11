@@ -459,7 +459,7 @@ namespace padelya_api.Data
       // RepairAudit - Repair (Many-to-One)
       modelBuilder.Entity<RepairAudit>()
           .HasOne(ra => ra.Repair)
-          .WithMany()
+          .WithMany(r => r.Audits)
           .HasForeignKey(ra => ra.RepairId)
           .OnDelete(DeleteBehavior.Restrict);
 

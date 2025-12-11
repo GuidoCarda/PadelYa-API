@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using padelya_api.Data;
 
@@ -11,9 +12,11 @@ using padelya_api.Data;
 namespace padelya_api.Migrations
 {
     [DbContext(typeof(PadelYaDbContext))]
-    partial class PadelYaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251211171150_AddRepairNavigationToAudit")]
+    partial class AddRepairNavigationToAudit
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -34,7 +37,7 @@ namespace padelya_api.Migrations
 
                     b.HasIndex("PlayersId");
 
-                    b.ToTable("CouplePlayer", (string)null);
+                    b.ToTable("CouplePlayer");
                 });
 
             modelBuilder.Entity("CourtSlot", b =>
@@ -68,7 +71,7 @@ namespace padelya_api.Migrations
 
                     b.HasIndex("CourtId");
 
-                    b.ToTable("CourtSlots", (string)null);
+                    b.ToTable("CourtSlots");
 
                     b.HasData(
                         new
@@ -132,7 +135,7 @@ namespace padelya_api.Migrations
 
                     b.HasIndex("PersonId");
 
-                    b.ToTable("LessonEnrollments", (string)null);
+                    b.ToTable("LessonEnrollments");
                 });
 
             modelBuilder.Entity("RolCompositePermission", b =>
@@ -147,7 +150,7 @@ namespace padelya_api.Migrations
 
                     b.HasIndex("RoleId");
 
-                    b.ToTable("RolCompositePermission", (string)null);
+                    b.ToTable("RolCompositePermission");
 
                     b.HasData(
                         new
@@ -644,7 +647,7 @@ namespace padelya_api.Migrations
 
                     b.HasIndex("RoutineId");
 
-                    b.ToTable("RoutineExercise", (string)null);
+                    b.ToTable("RoutineExercise");
                 });
 
             modelBuilder.Entity("RoutinePlayer", b =>
@@ -659,7 +662,7 @@ namespace padelya_api.Migrations
 
                     b.HasIndex("RoutineId");
 
-                    b.ToTable("RoutinePlayer", (string)null);
+                    b.ToTable("RoutinePlayer");
                 });
 
             modelBuilder.Entity("padelya_api.Models.Annual.AnnualTable", b =>
@@ -690,7 +693,7 @@ namespace padelya_api.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("AnnualTables", (string)null);
+                    b.ToTable("AnnualTables");
                 });
 
             modelBuilder.Entity("padelya_api.Models.Annual.RankingEntry", b =>
@@ -741,7 +744,7 @@ namespace padelya_api.Migrations
 
                     b.HasIndex("AnnualTableId");
 
-                    b.ToTable("RankingEntries", (string)null);
+                    b.ToTable("RankingEntries");
                 });
 
             modelBuilder.Entity("padelya_api.Models.Annual.RankingTrace", b =>
@@ -796,7 +799,7 @@ namespace padelya_api.Migrations
 
                     b.HasIndex("RankingEntryId");
 
-                    b.ToTable("RankingTraces", (string)null);
+                    b.ToTable("RankingTraces");
                 });
 
             modelBuilder.Entity("padelya_api.Models.Annual.ScoringRule", b =>
@@ -835,7 +838,7 @@ namespace padelya_api.Migrations
 
                     b.HasIndex("AnnualTableId");
 
-                    b.ToTable("ScoringRules", (string)null);
+                    b.ToTable("ScoringRules");
                 });
 
             modelBuilder.Entity("padelya_api.Models.Booking", b =>
@@ -875,7 +878,7 @@ namespace padelya_api.Migrations
 
                     b.HasIndex("PersonId");
 
-                    b.ToTable("Bookings", (string)null);
+                    b.ToTable("Bookings");
 
                     b.HasData(
                         new
@@ -969,7 +972,7 @@ namespace padelya_api.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Challenges", (string)null);
+                    b.ToTable("Challenges");
                 });
 
             modelBuilder.Entity("padelya_api.Models.Class.Exercise", b =>
@@ -994,7 +997,7 @@ namespace padelya_api.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Exercises", (string)null);
+                    b.ToTable("Exercises");
                 });
 
             modelBuilder.Entity("padelya_api.Models.Class.Routine", b =>
@@ -1023,7 +1026,7 @@ namespace padelya_api.Migrations
 
                     b.HasIndex("CreatorId");
 
-                    b.ToTable("Routines", (string)null);
+                    b.ToTable("Routines");
                 });
 
             modelBuilder.Entity("padelya_api.Models.Class.Stats", b =>
@@ -1078,7 +1081,7 @@ namespace padelya_api.Migrations
 
                     b.HasIndex("RecordedByTeacherId");
 
-                    b.ToTable("Stats", (string)null);
+                    b.ToTable("Stats");
                 });
 
             modelBuilder.Entity("padelya_api.Models.Complex", b =>
@@ -1105,7 +1108,7 @@ namespace padelya_api.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Complex", (string)null);
+                    b.ToTable("Complex");
 
                     b.HasData(
                         new
@@ -1153,7 +1156,7 @@ namespace padelya_api.Migrations
 
                     b.HasIndex("ComplexId");
 
-                    b.ToTable("Courts", (string)null);
+                    b.ToTable("Courts");
 
                     b.HasData(
                         new
@@ -1202,7 +1205,7 @@ namespace padelya_api.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Categories", (string)null);
+                    b.ToTable("Categories");
                 });
 
             modelBuilder.Entity("padelya_api.Models.Ecommerce.Order", b =>
@@ -1235,7 +1238,7 @@ namespace padelya_api.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Orders", (string)null);
+                    b.ToTable("Orders");
                 });
 
             modelBuilder.Entity("padelya_api.Models.Ecommerce.OrderItem", b =>
@@ -1269,7 +1272,7 @@ namespace padelya_api.Migrations
 
                     b.HasIndex("ProductId");
 
-                    b.ToTable("OrderItems", (string)null);
+                    b.ToTable("OrderItems");
                 });
 
             modelBuilder.Entity("padelya_api.Models.Ecommerce.Product", b =>
@@ -1317,7 +1320,7 @@ namespace padelya_api.Migrations
 
                     b.HasIndex("CategoryId");
 
-                    b.ToTable("Products", (string)null);
+                    b.ToTable("Products");
                 });
 
             modelBuilder.Entity("padelya_api.Models.Lesson.ClassType", b =>
@@ -1349,7 +1352,7 @@ namespace padelya_api.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("ClassTypes", (string)null);
+                    b.ToTable("ClassTypes");
                 });
 
             modelBuilder.Entity("padelya_api.Models.Lesson.LessonAttendance", b =>
@@ -1387,7 +1390,7 @@ namespace padelya_api.Migrations
 
                     b.HasIndex("RecordedByTeacherId");
 
-                    b.ToTable("LessonAttendances", (string)null);
+                    b.ToTable("LessonAttendances");
                 });
 
             modelBuilder.Entity("padelya_api.Models.Lesson.LessonRoutineAssignment", b =>
@@ -1424,7 +1427,7 @@ namespace padelya_api.Migrations
                     b.HasIndex("LessonId", "PersonId")
                         .IsUnique();
 
-                    b.ToTable("LessonRoutineAssignments", (string)null);
+                    b.ToTable("LessonRoutineAssignments");
                 });
 
             modelBuilder.Entity("padelya_api.Models.LoginAudit", b =>
@@ -1460,7 +1463,7 @@ namespace padelya_api.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("LoginAudits", (string)null);
+                    b.ToTable("LoginAudits");
                 });
 
             modelBuilder.Entity("padelya_api.Models.Module", b =>
@@ -1480,7 +1483,7 @@ namespace padelya_api.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Modules", (string)null);
+                    b.ToTable("Modules");
 
                     b.HasData(
                         new
@@ -1577,7 +1580,7 @@ namespace padelya_api.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Notifications", (string)null);
+                    b.ToTable("Notifications");
                 });
 
             modelBuilder.Entity("padelya_api.Models.Payment", b =>
@@ -1634,7 +1637,7 @@ namespace padelya_api.Migrations
                         .IsUnique()
                         .HasFilter("[TournamentEnrollmentId] IS NOT NULL");
 
-                    b.ToTable("Payments", (string)null);
+                    b.ToTable("Payments");
                 });
 
             modelBuilder.Entity("padelya_api.Models.PermissionComponent", b =>
@@ -1656,7 +1659,7 @@ namespace padelya_api.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("PermissionComponents", (string)null);
+                    b.ToTable("PermissionComponents");
 
                     b.HasDiscriminator<string>("PermissionType").HasValue("PermissionComponent");
 
@@ -1701,7 +1704,7 @@ namespace padelya_api.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Persons", (string)null);
+                    b.ToTable("Persons");
 
                     b.HasDiscriminator<string>("PersonType").HasValue("Person");
 
@@ -1730,7 +1733,7 @@ namespace padelya_api.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Rackets", (string)null);
+                    b.ToTable("Rackets");
                 });
 
             modelBuilder.Entity("padelya_api.Models.Repair.Repair", b =>
@@ -1789,7 +1792,7 @@ namespace padelya_api.Migrations
 
                     b.HasIndex("RacketId");
 
-                    b.ToTable("Repairs", (string)null);
+                    b.ToTable("Repairs");
                 });
 
             modelBuilder.Entity("padelya_api.Models.Repair.RepairAudit", b =>
@@ -1831,7 +1834,7 @@ namespace padelya_api.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("RepairAudits", (string)null);
+                    b.ToTable("RepairAudits");
                 });
 
             modelBuilder.Entity("padelya_api.Models.Tournament.Couple", b =>
@@ -1848,7 +1851,7 @@ namespace padelya_api.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Couples", (string)null);
+                    b.ToTable("Couples");
                 });
 
             modelBuilder.Entity("padelya_api.Models.Tournament.Tournament", b =>
@@ -1895,7 +1898,7 @@ namespace padelya_api.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Tournaments", (string)null);
+                    b.ToTable("Tournaments");
                 });
 
             modelBuilder.Entity("padelya_api.Models.Tournament.TournamentBracket", b =>
@@ -1913,7 +1916,7 @@ namespace padelya_api.Migrations
 
                     b.HasIndex("PhaseId");
 
-                    b.ToTable("TournamentBrackets", (string)null);
+                    b.ToTable("TournamentBrackets");
                 });
 
             modelBuilder.Entity("padelya_api.Models.Tournament.TournamentEnrollment", b =>
@@ -1954,7 +1957,7 @@ namespace padelya_api.Migrations
 
                     b.HasIndex("TournamentId");
 
-                    b.ToTable("TournamentEnrollments", (string)null);
+                    b.ToTable("TournamentEnrollments");
                 });
 
             modelBuilder.Entity("padelya_api.Models.Tournament.TournamentMatch", b =>
@@ -2002,7 +2005,7 @@ namespace padelya_api.Migrations
 
                     b.HasIndex("WinnerCoupleId");
 
-                    b.ToTable("TournamentMatches", (string)null);
+                    b.ToTable("TournamentMatches");
                 });
 
             modelBuilder.Entity("padelya_api.Models.Tournament.TournamentPhase", b =>
@@ -2033,7 +2036,7 @@ namespace padelya_api.Migrations
 
                     b.HasIndex("TournamentId");
 
-                    b.ToTable("TournamentPhases", (string)null);
+                    b.ToTable("TournamentPhases");
                 });
 
             modelBuilder.Entity("padelya_api.Models.User", b =>
@@ -2092,7 +2095,7 @@ namespace padelya_api.Migrations
 
                     b.HasIndex("StatusId");
 
-                    b.ToTable("Users", (string)null);
+                    b.ToTable("Users");
 
                     b.HasData(
                         new
@@ -2175,7 +2178,7 @@ namespace padelya_api.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("UserStatuses", (string)null);
+                    b.ToTable("UserStatuses");
 
                     b.HasData(
                         new
@@ -2235,7 +2238,7 @@ namespace padelya_api.Migrations
 
                     b.HasIndex("TeacherId");
 
-                    b.ToTable("Lessons", (string)null);
+                    b.ToTable("Lessons");
                 });
 
             modelBuilder.Entity("padelya_api.Models.RolComposite", b =>

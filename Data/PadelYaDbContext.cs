@@ -80,6 +80,7 @@ namespace padelya_api.Data
     //Ecommerce
     public DbSet<Category> Categories { get; set; }
     public DbSet<Product> Products { get; set; }
+    public DbSet<ProductImage> ProductImages { get; set; }
     public DbSet<Order> Orders { get; set; }
     public DbSet<OrderItem> OrderItems { get; set; }
 
@@ -512,7 +513,8 @@ namespace padelya_api.Data
           new Module { Id = 8, Name = "feedback", DisplayName = "Comentarios" },
           new Module { Id = 9, Name = "repair", DisplayName = "Reparaciones" },
           new Module { Id = 10, Name = "ranking", DisplayName = "Ranking" },
-          new Module { Id = 11, Name = "report", DisplayName = "Reportes" }
+          new Module { Id = 11, Name = "report", DisplayName = "Reportes" },
+          new Module { Id = 12, Name = "ecommerce", DisplayName = "Tienda" }
       );
 
       // 2. SimplePermissions
@@ -600,7 +602,30 @@ namespace padelya_api.Data
           // Report permissions (ModuleId = 11 for reports)
           new { Id = 63, Name = "report:view", ModuleId = 11, PermissionType = "Simple", DisplayName = "Ver reportes", Description = "Permite ver reportes", RequiredEntity = (RequiredEntityType?)null },
 
-          new { Id = 64, Name = "lesson:view", ModuleId = 6, PermissionType = "Simple", DisplayName = "Ver clases", Description = "Permite ver clases", RequiredEntity = (RequiredEntityType?)RequiredEntityType.Player }
+          new { Id = 64, Name = "lesson:view", ModuleId = 6, PermissionType = "Simple", DisplayName = "Ver clases", Description = "Permite ver clases", RequiredEntity = (RequiredEntityType?)RequiredEntityType.Player },
+
+          // Ecommerce permissions (ModuleId = 12 for ecommerce)
+          // Product permissions (Admin)
+          new { Id = 65, Name = "product:create", ModuleId = 12, PermissionType = "Simple", DisplayName = "Crear producto", Description = "Permite crear nuevos productos en el catálogo", RequiredEntity = (RequiredEntityType?)null },
+          new { Id = 66, Name = "product:edit", ModuleId = 12, PermissionType = "Simple", DisplayName = "Editar producto", Description = "Permite editar productos existentes", RequiredEntity = (RequiredEntityType?)null },
+          new { Id = 67, Name = "product:delete", ModuleId = 12, PermissionType = "Simple", DisplayName = "Eliminar producto", Description = "Permite eliminar productos del catálogo", RequiredEntity = (RequiredEntityType?)null },
+          new { Id = 68, Name = "product:view", ModuleId = 12, PermissionType = "Simple", DisplayName = "Ver productos", Description = "Permite ver el catálogo de productos", RequiredEntity = (RequiredEntityType?)null },
+          // Category permissions (Admin)
+          new { Id = 69, Name = "category:create", ModuleId = 12, PermissionType = "Simple", DisplayName = "Crear categoría", Description = "Permite crear nuevas categorías", RequiredEntity = (RequiredEntityType?)null },
+          new { Id = 70, Name = "category:edit", ModuleId = 12, PermissionType = "Simple", DisplayName = "Editar categoría", Description = "Permite editar categorías existentes", RequiredEntity = (RequiredEntityType?)null },
+          new { Id = 71, Name = "category:delete", ModuleId = 12, PermissionType = "Simple", DisplayName = "Eliminar categoría", Description = "Permite eliminar categorías", RequiredEntity = (RequiredEntityType?)null },
+          new { Id = 72, Name = "category:view", ModuleId = 12, PermissionType = "Simple", DisplayName = "Ver categorías", Description = "Permite ver todas las categorías", RequiredEntity = (RequiredEntityType?)null },
+          // Order permissions (Admin)
+          new { Id = 73, Name = "order:view_all", ModuleId = 12, PermissionType = "Simple", DisplayName = "Ver todos los pedidos", Description = "Permite ver todos los pedidos de clientes", RequiredEntity = (RequiredEntityType?)null },
+          new { Id = 74, Name = "order:update_status", ModuleId = 12, PermissionType = "Simple", DisplayName = "Actualizar estado de pedido", Description = "Permite cambiar el estado de un pedido", RequiredEntity = (RequiredEntityType?)null },
+          // Order permissions (User)
+          new { Id = 75, Name = "order:view_own", ModuleId = 12, PermissionType = "Simple", DisplayName = "Ver pedidos propios", Description = "Permite ver el historial de pedidos propios", RequiredEntity = (RequiredEntityType?)RequiredEntityType.Player },
+          new { Id = 76, Name = "order:create", ModuleId = 12, PermissionType = "Simple", DisplayName = "Realizar compra", Description = "Permite realizar una compra (checkout)", RequiredEntity = (RequiredEntityType?)RequiredEntityType.Player },
+          // Cart permissions (User)
+          new { Id = 77, Name = "cart:add", ModuleId = 12, PermissionType = "Simple", DisplayName = "Agregar al carrito", Description = "Permite agregar productos al carrito", RequiredEntity = (RequiredEntityType?)RequiredEntityType.Player },
+          new { Id = 78, Name = "cart:remove", ModuleId = 12, PermissionType = "Simple", DisplayName = "Eliminar del carrito", Description = "Permite quitar productos del carrito", RequiredEntity = (RequiredEntityType?)RequiredEntityType.Player },
+          new { Id = 79, Name = "cart:update", ModuleId = 12, PermissionType = "Simple", DisplayName = "Modificar carrito", Description = "Permite cambiar cantidades en el carrito", RequiredEntity = (RequiredEntityType?)RequiredEntityType.Player },
+          new { Id = 80, Name = "cart:view", ModuleId = 12, PermissionType = "Simple", DisplayName = "Ver carrito", Description = "Permite ver el carrito de compras", RequiredEntity = (RequiredEntityType?)RequiredEntityType.Player }
 
 
         );
@@ -673,6 +698,22 @@ namespace padelya_api.Data
           new { RoleId = 100, PermissionComponentId = 60 },
           new { RoleId = 100, PermissionComponentId = 62 },
           new { RoleId = 100, PermissionComponentId = 63 },
+          new { RoleId = 100, PermissionComponentId = 65 }, // product:create
+          new { RoleId = 100, PermissionComponentId = 66 }, // product:edit
+          new { RoleId = 100, PermissionComponentId = 67 }, // product:delete
+          new { RoleId = 100, PermissionComponentId = 68 }, // product:view
+          new { RoleId = 100, PermissionComponentId = 69 }, // category:create
+          new { RoleId = 100, PermissionComponentId = 70 }, // category:edit
+          new { RoleId = 100, PermissionComponentId = 71 }, // category:delete
+          new { RoleId = 100, PermissionComponentId = 72 }, // category:view
+          new { RoleId = 100, PermissionComponentId = 73 }, // order:view_all
+          new { RoleId = 100, PermissionComponentId = 74 }, // order:update_status
+          new { RoleId = 100, PermissionComponentId = 75 }, // order:view_own
+          new { RoleId = 100, PermissionComponentId = 76 }, // order:create
+          new { RoleId = 100, PermissionComponentId = 77 }, // cart:add
+          new { RoleId = 100, PermissionComponentId = 78 }, // cart:remove
+          new { RoleId = 100, PermissionComponentId = 79 }, // cart:update
+          new { RoleId = 100, PermissionComponentId = 80 }, // cart:view
 
           // Teacher: permisos específico
 
@@ -721,7 +762,16 @@ namespace padelya_api.Data
           new { RoleId = 102, PermissionComponentId = 37 }, // routine:view
           new { RoleId = 102, PermissionComponentId = 42 }, // feedback:view
           new { RoleId = 102, PermissionComponentId = 13 }, // tournament:view
-          new { RoleId = 102, PermissionComponentId = 14 }  // tournament:join
+          new { RoleId = 102, PermissionComponentId = 14 }, // tournament:join
+          // Ecommerce permissions for Player
+          new { RoleId = 102, PermissionComponentId = 68 }, // product:view (RF1 - Ver catálogo)
+          new { RoleId = 102, PermissionComponentId = 72 }, // category:view
+          new { RoleId = 102, PermissionComponentId = 75 }, // order:view_own (RF6 - Historial de pedidos)
+          new { RoleId = 102, PermissionComponentId = 76 }, // order:create (RF5 - Realizar compra)
+          new { RoleId = 102, PermissionComponentId = 77 }, // cart:add (RF2 - Agregar al carrito)
+          new { RoleId = 102, PermissionComponentId = 78 }, // cart:remove (RF3 - Eliminar del carrito)
+          new { RoleId = 102, PermissionComponentId = 79 }, // cart:update (RF4 - Modificar cantidad)
+          new { RoleId = 102, PermissionComponentId = 80 }  // cart:view
       );
 
       modelBuilder.Entity<UserStatus>().HasData(
@@ -934,6 +984,20 @@ namespace padelya_api.Data
           .HasForeignKey(p => p.CategoryId)
           .OnDelete(DeleteBehavior.Restrict);
 
+      // Product - ProductImage relationship
+      modelBuilder.Entity<ProductImage>()
+          .HasKey(pi => pi.Id);
+
+      modelBuilder.Entity<ProductImage>()
+          .HasOne(pi => pi.Product)
+          .WithMany(p => p.Images)
+          .HasForeignKey(pi => pi.ProductId)
+          .OnDelete(DeleteBehavior.Cascade);
+
+      modelBuilder.Entity<ProductImage>()
+          .Property(pi => pi.CreatedAt)
+          .HasDefaultValueSql("GETUTCDATE()");
+
       // Order Configuration
       modelBuilder.Entity<Order>()
           .HasKey(o => o.Id);
@@ -982,6 +1046,45 @@ namespace padelya_api.Data
           .WithMany()
           .HasForeignKey(oi => oi.ProductId)
           .OnDelete(DeleteBehavior.Restrict);
+
+      // Ecommerce Seeding
+      modelBuilder.Entity<Category>().HasData(
+          new Category
+          {
+            Id = 1,
+            Name = "Paletas",
+            Description = "Paletas de pádel de diferentes marcas y modelos",
+            IsActive = true
+          },
+          new Category
+          {
+            Id = 2,
+            Name = "Pelotas",
+            Description = "Pelotas de pádel profesionales y para entrenamiento",
+            IsActive = true
+          },
+          new Category
+          {
+            Id = 3,
+            Name = "Indumentaria",
+            Description = "Ropa deportiva para pádel",
+            IsActive = true
+          },
+          new Category
+          {
+            Id = 4,
+            Name = "Accesorios",
+            Description = "Accesorios y complementos para pádel",
+            IsActive = true
+          },
+          new Category
+          {
+            Id = 5,
+            Name = "Calzado",
+            Description = "Zapatillas específicas para pádel",
+            IsActive = true
+          }
+      );
 
       #endregion
     }

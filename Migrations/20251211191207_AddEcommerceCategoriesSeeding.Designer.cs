@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using padelya_api.Data;
 
@@ -11,9 +12,11 @@ using padelya_api.Data;
 namespace padelya_api.Migrations
 {
     [DbContext(typeof(PadelYaDbContext))]
-    partial class PadelYaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251211191207_AddEcommerceCategoriesSeeding")]
+    partial class AddEcommerceCategoriesSeeding
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -438,46 +441,6 @@ namespace padelya_api.Migrations
                         new
                         {
                             PermissionComponentId = 63,
-                            RoleId = 100
-                        },
-                        new
-                        {
-                            PermissionComponentId = 65,
-                            RoleId = 100
-                        },
-                        new
-                        {
-                            PermissionComponentId = 66,
-                            RoleId = 100
-                        },
-                        new
-                        {
-                            PermissionComponentId = 67,
-                            RoleId = 100
-                        },
-                        new
-                        {
-                            PermissionComponentId = 68,
-                            RoleId = 100
-                        },
-                        new
-                        {
-                            PermissionComponentId = 69,
-                            RoleId = 100
-                        },
-                        new
-                        {
-                            PermissionComponentId = 70,
-                            RoleId = 100
-                        },
-                        new
-                        {
-                            PermissionComponentId = 71,
-                            RoleId = 100
-                        },
-                        new
-                        {
-                            PermissionComponentId = 72,
                             RoleId = 100
                         },
                         new
@@ -1397,39 +1360,6 @@ namespace padelya_api.Migrations
                     b.ToTable("Products");
                 });
 
-            modelBuilder.Entity("padelya_api.Models.Ecommerce.ProductImage", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETUTCDATE()");
-
-                    b.Property<int>("DisplayOrder")
-                        .HasColumnType("int");
-
-                    b.Property<string>("ImageUrl")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("IsPrimary")
-                        .HasColumnType("bit");
-
-                    b.Property<int>("ProductId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ProductId");
-
-                    b.ToTable("ProductImages");
-                });
-
             modelBuilder.Entity("padelya_api.Models.Lesson.ClassType", b =>
                 {
                     b.Property<int>("Id")
@@ -1658,12 +1588,6 @@ namespace padelya_api.Migrations
                             Id = 11,
                             DisplayName = "Reportes",
                             Name = "report"
-                        },
-                        new
-                        {
-                            Id = 12,
-                            DisplayName = "Tienda",
-                            Name = "ecommerce"
                         });
                 });
 
@@ -2968,78 +2892,6 @@ namespace padelya_api.Migrations
                             DisplayName = "Ver clases",
                             ModuleId = 6,
                             RequiredEntity = "Player"
-                        },
-                        new
-                        {
-                            Id = 65,
-                            Name = "product:create",
-                            PermissionType = "Simple",
-                            Description = "Permite crear nuevos productos en el catálogo",
-                            DisplayName = "Crear producto",
-                            ModuleId = 12
-                        },
-                        new
-                        {
-                            Id = 66,
-                            Name = "product:edit",
-                            PermissionType = "Simple",
-                            Description = "Permite editar productos existentes",
-                            DisplayName = "Editar producto",
-                            ModuleId = 12
-                        },
-                        new
-                        {
-                            Id = 67,
-                            Name = "product:delete",
-                            PermissionType = "Simple",
-                            Description = "Permite eliminar productos del catálogo",
-                            DisplayName = "Eliminar producto",
-                            ModuleId = 12
-                        },
-                        new
-                        {
-                            Id = 68,
-                            Name = "product:view",
-                            PermissionType = "Simple",
-                            Description = "Permite ver todos los productos",
-                            DisplayName = "Ver productos",
-                            ModuleId = 12
-                        },
-                        new
-                        {
-                            Id = 69,
-                            Name = "category:create",
-                            PermissionType = "Simple",
-                            Description = "Permite crear nuevas categorías",
-                            DisplayName = "Crear categoría",
-                            ModuleId = 12
-                        },
-                        new
-                        {
-                            Id = 70,
-                            Name = "category:edit",
-                            PermissionType = "Simple",
-                            Description = "Permite editar categorías existentes",
-                            DisplayName = "Editar categoría",
-                            ModuleId = 12
-                        },
-                        new
-                        {
-                            Id = 71,
-                            Name = "category:delete",
-                            PermissionType = "Simple",
-                            Description = "Permite eliminar categorías",
-                            DisplayName = "Eliminar categoría",
-                            ModuleId = 12
-                        },
-                        new
-                        {
-                            Id = 72,
-                            Name = "category:view",
-                            PermissionType = "Simple",
-                            Description = "Permite ver todas las categorías",
-                            DisplayName = "Ver categorías",
-                            ModuleId = 12
                         });
                 });
 
@@ -3360,17 +3212,6 @@ namespace padelya_api.Migrations
                     b.Navigation("Category");
                 });
 
-            modelBuilder.Entity("padelya_api.Models.Ecommerce.ProductImage", b =>
-                {
-                    b.HasOne("padelya_api.Models.Ecommerce.Product", "Product")
-                        .WithMany("Images")
-                        .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Product");
-                });
-
             modelBuilder.Entity("padelya_api.Models.Lesson.LessonAttendance", b =>
                 {
                     b.HasOne("padelya_api.models.Lesson", "Lesson")
@@ -3678,11 +3519,6 @@ namespace padelya_api.Migrations
             modelBuilder.Entity("padelya_api.Models.Ecommerce.Order", b =>
                 {
                     b.Navigation("OrderItems");
-                });
-
-            modelBuilder.Entity("padelya_api.Models.Ecommerce.Product", b =>
-                {
-                    b.Navigation("Images");
                 });
 
             modelBuilder.Entity("padelya_api.Models.Module", b =>

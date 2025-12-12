@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using padelya_api.Data;
 
@@ -11,9 +12,11 @@ using padelya_api.Data;
 namespace padelya_api.Migrations
 {
     [DbContext(typeof(PadelYaDbContext))]
-    partial class PadelYaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251211193119_AddProductImagesSupport")]
+    partial class AddProductImagesSupport
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -438,46 +441,6 @@ namespace padelya_api.Migrations
                         new
                         {
                             PermissionComponentId = 63,
-                            RoleId = 100
-                        },
-                        new
-                        {
-                            PermissionComponentId = 65,
-                            RoleId = 100
-                        },
-                        new
-                        {
-                            PermissionComponentId = 66,
-                            RoleId = 100
-                        },
-                        new
-                        {
-                            PermissionComponentId = 67,
-                            RoleId = 100
-                        },
-                        new
-                        {
-                            PermissionComponentId = 68,
-                            RoleId = 100
-                        },
-                        new
-                        {
-                            PermissionComponentId = 69,
-                            RoleId = 100
-                        },
-                        new
-                        {
-                            PermissionComponentId = 70,
-                            RoleId = 100
-                        },
-                        new
-                        {
-                            PermissionComponentId = 71,
-                            RoleId = 100
-                        },
-                        new
-                        {
-                            PermissionComponentId = 72,
                             RoleId = 100
                         },
                         new
@@ -1658,12 +1621,6 @@ namespace padelya_api.Migrations
                             Id = 11,
                             DisplayName = "Reportes",
                             Name = "report"
-                        },
-                        new
-                        {
-                            Id = 12,
-                            DisplayName = "Tienda",
-                            Name = "ecommerce"
                         });
                 });
 
@@ -2968,78 +2925,6 @@ namespace padelya_api.Migrations
                             DisplayName = "Ver clases",
                             ModuleId = 6,
                             RequiredEntity = "Player"
-                        },
-                        new
-                        {
-                            Id = 65,
-                            Name = "product:create",
-                            PermissionType = "Simple",
-                            Description = "Permite crear nuevos productos en el catálogo",
-                            DisplayName = "Crear producto",
-                            ModuleId = 12
-                        },
-                        new
-                        {
-                            Id = 66,
-                            Name = "product:edit",
-                            PermissionType = "Simple",
-                            Description = "Permite editar productos existentes",
-                            DisplayName = "Editar producto",
-                            ModuleId = 12
-                        },
-                        new
-                        {
-                            Id = 67,
-                            Name = "product:delete",
-                            PermissionType = "Simple",
-                            Description = "Permite eliminar productos del catálogo",
-                            DisplayName = "Eliminar producto",
-                            ModuleId = 12
-                        },
-                        new
-                        {
-                            Id = 68,
-                            Name = "product:view",
-                            PermissionType = "Simple",
-                            Description = "Permite ver todos los productos",
-                            DisplayName = "Ver productos",
-                            ModuleId = 12
-                        },
-                        new
-                        {
-                            Id = 69,
-                            Name = "category:create",
-                            PermissionType = "Simple",
-                            Description = "Permite crear nuevas categorías",
-                            DisplayName = "Crear categoría",
-                            ModuleId = 12
-                        },
-                        new
-                        {
-                            Id = 70,
-                            Name = "category:edit",
-                            PermissionType = "Simple",
-                            Description = "Permite editar categorías existentes",
-                            DisplayName = "Editar categoría",
-                            ModuleId = 12
-                        },
-                        new
-                        {
-                            Id = 71,
-                            Name = "category:delete",
-                            PermissionType = "Simple",
-                            Description = "Permite eliminar categorías",
-                            DisplayName = "Eliminar categoría",
-                            ModuleId = 12
-                        },
-                        new
-                        {
-                            Id = 72,
-                            Name = "category:view",
-                            PermissionType = "Simple",
-                            Description = "Permite ver todas las categorías",
-                            DisplayName = "Ver categorías",
-                            ModuleId = 12
                         });
                 });
 

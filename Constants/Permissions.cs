@@ -79,5 +79,37 @@ namespace padelya_api.Constants
       public const string View = "ranking:view";
       public const string Manage = "ranking:manage";
     }
+
+    public static class Product
+    {
+      public const string Create = "product:create";
+      public const string Edit = "product:edit";
+      public const string Delete = "product:delete";
+      public const string View = "product:view";
+    }
+
+    public static class Category
+    {
+      public const string Create = "category:create";
+      public const string Edit = "category:edit";
+      public const string Delete = "category:delete";
+      public const string View = "category:view";
+    }
+
+    public static class Order
+    {
+      public const string ViewAll = "order:view_all";
+      public const string UpdateStatus = "order:update_status";
+      public const string ViewOwn = "order:view_own";
+      public const string Create = "order:create";
+    }
+
+    public static class Cart
+    {
+      public const string Add = "cart:add";
+      public const string Remove = "cart:remove";
+      public const string Update = "cart:update";
+      public const string View = "cart:view";
+    }
   }
 }

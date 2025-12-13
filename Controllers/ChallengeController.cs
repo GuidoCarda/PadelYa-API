@@ -92,6 +92,15 @@ namespace padelya_api.Controllers
             return Ok(list);
         }
 
+        [HttpGet("all")]
+        [Microsoft.AspNetCore.Authorization.Authorize]
+        [padelya_api.Attributes.RequirePermission("ranking:manage")]
+        public async Task<IActionResult> GetAll([FromQuery] int? year = null)
+        {
+            var list = await _service.GetAllChallengesAsync(year);
+            return Ok(list);
+        }
+
         [HttpPut("{id}/validate")]
         [Microsoft.AspNetCore.Authorization.Authorize]
         [padelya_api.Attributes.RequirePermission("ranking:manage")]

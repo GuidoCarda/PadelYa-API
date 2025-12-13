@@ -50,6 +50,13 @@ namespace padelya_api.Controllers
             return Ok(rankingBasic);
         }
 
+        [HttpGet("status")]
+        public async Task<IActionResult> GetStatus([FromQuery] int year)
+        {
+            var status = await _service.GetStatusAsync(year);
+            return Ok(new { status });
+        }
+
         [HttpGet("statistics")]
         public async Task<IActionResult> GetStatistics([FromQuery] int year)
         {
@@ -58,6 +65,8 @@ namespace padelya_api.Controllers
         }
 
         [HttpPatch("status")]
+        [Microsoft.AspNetCore.Authorization.Authorize]
+        [padelya_api.Attributes.RequirePermission("ranking:manage")]
         public async Task<IActionResult> UpdateStatus([FromQuery] int year, [FromBody] AnnualTableStatus status)
         {
             var table = await _service.UpdateStatusAsync(year, status);

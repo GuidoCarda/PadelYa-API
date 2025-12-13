@@ -8,6 +8,7 @@ namespace padelya_api.Services.Annual
     public interface IAnnualTableService
     {
         Task<AnnualTable> GetOrCreateForYearAsync(int year);
+        Task<AnnualTableStatus> GetStatusAsync(int year);
         Task<List<RankingEntry>> GetRankingAsync(int year, int? playerId = null, string? from = null, string? to = null);
         Task<List<RankingEntryDto>> GetRankingWithNamesAsync(int year, int? playerId = null, string? from = null, string? to = null);
         Task<AnnualTableStatisticsDto> GetStatisticsAsync(int year);

@@ -26,11 +26,14 @@ namespace padelya_api.Services.Annual
                 _context.AnnualTables.Add(table);
                 await _context.SaveChangesAsync();
 
-                // Seed default scoring rules
+                // Seed default scoring rules con configuraciones por defecto
+                var defaultChallengeConfig = System.Text.Json.JsonSerializer.Serialize(new DTOs.Annual.ChallengeScoringConfiguration());
+                var defaultTournamentConfig = System.Text.Json.JsonSerializer.Serialize(new DTOs.Annual.TournamentScoringConfiguration());
+                
                 var defaultRules = new List<ScoringRule>
                 {
-                    new ScoringRule { AnnualTableId = table.Id, Source = ScoringSource.Challenge, BasePoints = 20, Multiplier = 1.0f, MaxPoints = null, IsActive = true },
-                    new ScoringRule { AnnualTableId = table.Id, Source = ScoringSource.Tournament, BasePoints = 50, Multiplier = 1.0f, MaxPoints = null, IsActive = true },
+                    new ScoringRule { AnnualTableId = table.Id, Source = ScoringSource.Challenge, BasePoints = 20, Multiplier = 1.0f, MaxPoints = null, IsActive = true, ConfigurationJson = defaultChallengeConfig },
+                    new ScoringRule { AnnualTableId = table.Id, Source = ScoringSource.Tournament, BasePoints = 50, Multiplier = 1.0f, MaxPoints = null, IsActive = true, ConfigurationJson = defaultTournamentConfig },
                     new ScoringRule { AnnualTableId = table.Id, Source = ScoringSource.Class, BasePoints = 5, Multiplier = 1.0f, MaxPoints = 10, IsActive = true },
                     new ScoringRule { AnnualTableId = table.Id, Source = ScoringSource.MatchWin, BasePoints = 10, Multiplier = 1.0f, MaxPoints = null, IsActive = true },
                     new ScoringRule { AnnualTableId = table.Id, Source = ScoringSource.MatchLoss, BasePoints = 2, Multiplier = 1.0f, MaxPoints = null, IsActive = true },
@@ -153,6 +156,12 @@ namespace padelya_api.Services.Annual
             return statistics;
         }
 
+        public async Task<AnnualTableStatus> GetStatusAsync(int year)
+        {
+            var table = await GetOrCreateForYearAsync(year);
+            return table.Status;
+        }
+
         public async Task<AnnualTable> UpdateStatusAsync(int year, AnnualTableStatus status)
         {
             var table = await GetOrCreateForYearAsync(year);
@@ -188,7 +197,8 @@ namespace padelya_api.Services.Annual
                     MaxPoints = r.MaxPoints,
                     IsActive = r.IsActive,
                     CreatedAt = r.CreatedAt,
-                    DeactivatedAt = r.DeactivatedAt
+                    DeactivatedAt = r.DeactivatedAt,
+                    ConfigurationJson = r.ConfigurationJson
                 })
                 .ToListAsync();
             return rules;
@@ -214,7 +224,8 @@ namespace padelya_api.Services.Annual
                 MaxPoints = r.MaxPoints,
                 IsActive = r.IsActive,
                 CreatedAt = r.CreatedAt,
-                DeactivatedAt = r.DeactivatedAt
+                DeactivatedAt = r.DeactivatedAt,
+                ConfigurationJson = r.ConfigurationJson
             }).ToList();
             
             await _context.ScoringRules.AddRangeAsync(newRules);
@@ -236,7 +247,8 @@ namespace padelya_api.Services.Annual
                 MaxPoints = r.MaxPoints,
                 IsActive = r.IsActive,
                 CreatedAt = r.CreatedAt,
-                DeactivatedAt = r.DeactivatedAt
+                DeactivatedAt = r.DeactivatedAt,
+                ConfigurationJson = r.ConfigurationJson
             }).ToList();
         }
 

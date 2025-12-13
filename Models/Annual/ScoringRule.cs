@@ -18,6 +18,13 @@ namespace padelya_api.Models.Annual
         public bool IsActive { get; set; } = true;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? DeactivatedAt { get; set; }
+
+        /// <summary>
+        /// Configuración adicional en formato JSON para estrategias específicas
+        /// Ej: Para Challenge: { "top5Bonus": 1.5, "top10Bonus": 1.3, "top20Bonus": 1.15 }
+        /// Ej: Para Tournament: { "1ra": 2.0, "2da": 1.5, "3ra": 1.2, "4ta": 1.0, "5ta": 0.8 }
+        /// </summary>
+        public string? ConfigurationJson { get; set; }
     }
 }
 

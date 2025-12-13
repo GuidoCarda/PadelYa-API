@@ -6,6 +6,7 @@ using padelya_api.Models.Challenge;
 using padelya_api.Services.Notification;
 using padelya_api.Models.Notification;
 using padelya_api.Models;
+using padelya_api.Services.Annual.Scoring;
 
 namespace padelya_api.Services.Annual
 {
@@ -14,12 +15,14 @@ namespace padelya_api.Services.Annual
         private readonly PadelYaDbContext _context;
         private readonly IAnnualTableService _annualService;
         private readonly INotificationService _notification;
+        private readonly IScoringService _scoringService;
 
-        public ChallengeService(PadelYaDbContext context, IAnnualTableService annualService, INotificationService notification)
+        public ChallengeService(PadelYaDbContext context, IAnnualTableService annualService, INotificationService notification, IScoringService scoringService)
         {
             _context = context;
             _annualService = annualService;
             _notification = notification;
+            _scoringService = scoringService;
         }
 
         public async Task<Challenge> CreateAsync(int year, CreateChallengeDto dto)
@@ -28,6 +31,27 @@ namespace padelya_api.Services.Annual
             if (table.Status != AnnualTableStatus.Active)
             {
                 throw new InvalidOperationException("La tabla anual no está activa.");
+            }
+
+            // Validar que los jugadores existan
+            var playerIds = new[] { dto.RequesterPlayerId, dto.RequesterPartnerPlayerId, dto.TargetPlayerId, dto.TargetPartnerPlayerId };
+            var validPlayers = await _context.Players
+                .Where(p => playerIds.Contains(p.Id))
+                .Select(p => p.Id)
+                .ToListAsync();
+
+            if (validPlayers.Count != playerIds.Length)
+            {
+                throw new InvalidOperationException("Uno o más jugadores no existen.");
+            }
+
+            // Validar que no se desafíe a sí mismo
+            if (dto.RequesterPlayerId == dto.TargetPlayerId || 
+                dto.RequesterPlayerId == dto.TargetPartnerPlayerId ||
+                dto.RequesterPartnerPlayerId == dto.TargetPlayerId ||
+                dto.RequesterPartnerPlayerId == dto.TargetPartnerPlayerId)
+            {
+                throw new InvalidOperationException("No puedes desafiar a tu propia pareja.");
             }
 
             var ranking = await _context.RankingEntries
@@ -57,9 +81,16 @@ namespace padelya_api.Services.Annual
             _context.Add(challenge);
             await _context.SaveChangesAsync();
 
-            // Notificar a jugadores target (suponiendo UserId == PlayerId para simplificar)
-            await _notification.SendAsync(challenge.TargetPlayerId, NotificationType.ChallengeCreated, new { challengeId = challenge.Id });
-            await _notification.SendAsync(challenge.TargetPartnerPlayerId, NotificationType.ChallengeCreated, new { challengeId = challenge.Id });
+            // Notificar a jugadores target - buscar UserId basado en PersonId
+            var targetUsers = await _context.Users
+                .Where(u => u.PersonId == challenge.TargetPlayerId || u.PersonId == challenge.TargetPartnerPlayerId)
+                .Select(u => u.Id)
+                .ToListAsync();
+
+            foreach (var userId in targetUsers)
+            {
+                await _notification.SendAsync(userId, NotificationType.ChallengeCreated, new { challengeId = challenge.Id });
+            }
             return challenge;
         }
 
@@ -75,9 +106,16 @@ namespace padelya_api.Services.Annual
             challenge.RespondedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
 
-            // Notificar a solicitantes
-            await _notification.SendAsync(challenge.RequesterPlayerId, NotificationType.ChallengeResponded, new { challengeId = id, accept });
-            await _notification.SendAsync(challenge.RequesterPartnerPlayerId, NotificationType.ChallengeResponded, new { challengeId = id, accept });
+            // Notificar a solicitantes - buscar UserId basado en PersonId
+            var requesterUsers = await _context.Users
+                .Where(u => u.PersonId == challenge.RequesterPlayerId || u.PersonId == challenge.RequesterPartnerPlayerId)
+                .Select(u => u.Id)
+                .ToListAsync();
+
+            foreach (var userId in requesterUsers)
+            {
+                await _notification.SendAsync(userId, NotificationType.ChallengeResponded, new { challengeId = id, accept });
+            }
             return challenge;
         }
 
@@ -96,6 +134,23 @@ namespace padelya_api.Services.Annual
                 throw new InvalidOperationException("La tabla anual no está activa.");
             }
 
+            // Validar que el ganador sea uno de los participantes
+            var isRequesterWinner = (dto.WinnerPlayerId == challenge.RequesterPlayerId && dto.WinnerPartnerPlayerId == challenge.RequesterPartnerPlayerId) ||
+                                   (dto.WinnerPlayerId == challenge.RequesterPartnerPlayerId && dto.WinnerPartnerPlayerId == challenge.RequesterPlayerId);
+            var isTargetWinner = (dto.WinnerPlayerId == challenge.TargetPlayerId && dto.WinnerPartnerPlayerId == challenge.TargetPartnerPlayerId) ||
+                                (dto.WinnerPlayerId == challenge.TargetPartnerPlayerId && dto.WinnerPartnerPlayerId == challenge.TargetPlayerId);
+
+            if (!isRequesterWinner && !isTargetWinner)
+            {
+                throw new InvalidOperationException("El ganador debe ser una de las parejas participantes del desafío.");
+            }
+
+            // Validar formato de sets (básico)
+            if (string.IsNullOrWhiteSpace(dto.Sets))
+            {
+                throw new InvalidOperationException("El resultado de los sets es requerido.");
+            }
+
             challenge.Sets = dto.Sets;
             challenge.WinnerPlayerId = dto.WinnerPlayerId;
             challenge.WinnerPartnerPlayerId = dto.WinnerPartnerPlayerId;
@@ -108,7 +163,35 @@ namespace padelya_api.Services.Annual
                 .Where(r => r.AnnualTableId == table.Id && r.Source == ScoringSource.Challenge && r.IsActive)
                 .FirstOrDefaultAsync();
 
-            var points = rule != null ? (int)(rule.BasePoints * rule.Multiplier) : 0;
+            // Obtener ranking actualizado para calcular posiciones
+            var ranking = await _annualService.GetRankingAsync(challenge.Year);
+            var rankingOrdered = ranking
+                .OrderByDescending(r => r.PointsTotal)
+                .ToList();
+            
+            var rankingWithPositions = rankingOrdered
+                .Select((r, index) => new { PlayerId = r.PlayerId, Position = index + 1 })
+                .ToList();
+
+            // Determinar quién es el rival (el perdedor) - reutilizar isRequesterWinner ya calculado arriba
+            var rivalPlayerId = isRequesterWinner ? challenge.TargetPlayerId : challenge.RequesterPlayerId;
+            var winnerPlayerId = isRequesterWinner ? challenge.RequesterPlayerId : challenge.TargetPlayerId;
+
+            // Obtener posiciones
+            var rivalPosition = rankingWithPositions.FirstOrDefault(r => r.PlayerId == rivalPlayerId)?.Position ?? 999;
+            var winnerPosition = rankingWithPositions.FirstOrDefault(r => r.PlayerId == winnerPlayerId)?.Position ?? 999;
+
+            // Calcular puntos usando Strategy con contexto
+            var scoringContext = new ChallengeScoringContext
+            {
+                RivalPosition = rivalPosition,
+                WinnerPosition = winnerPosition
+            };
+
+            var points = rule != null 
+                ? _scoringService.ComputePoints(ScoringSource.Challenge, rule, scoringContext)
+                : 0;
+            
             challenge.PointsAwardedPerPlayer = points;
 
             // Sumar puntos a ambos jugadores ganadores con trazabilidad
@@ -137,9 +220,16 @@ namespace padelya_api.Services.Annual
 
             await _context.SaveChangesAsync();
 
-            // Notificar cambio de ranking a ambos ganadores
-            await _notification.SendAsync(dto.WinnerPlayerId, NotificationType.RankingChanged, new { challengeId = id, points });
-            await _notification.SendAsync(dto.WinnerPartnerPlayerId, NotificationType.RankingChanged, new { challengeId = id, points });
+            // Notificar cambio de ranking a ambos ganadores - buscar UserId basado en PersonId
+            var winnerUsers = await _context.Users
+                .Where(u => u.PersonId == dto.WinnerPlayerId || u.PersonId == dto.WinnerPartnerPlayerId)
+                .Select(u => u.Id)
+                .ToListAsync();
+
+            foreach (var userId in winnerUsers)
+            {
+                await _notification.SendAsync(userId, NotificationType.RankingChanged, new { challengeId = id, points });
+            }
             return challenge;
         }
 
@@ -163,6 +253,23 @@ namespace padelya_api.Services.Annual
                 throw new InvalidOperationException("La tabla anual no está activa.");
             }
 
+            // Validar que el ganador sea uno de los participantes
+            var isRequesterWinner = (dto.WinnerPlayerId == challenge.RequesterPlayerId && dto.WinnerPartnerPlayerId == challenge.RequesterPartnerPlayerId) ||
+                                   (dto.WinnerPlayerId == challenge.RequesterPartnerPlayerId && dto.WinnerPartnerPlayerId == challenge.RequesterPlayerId);
+            var isTargetWinner = (dto.WinnerPlayerId == challenge.TargetPlayerId && dto.WinnerPartnerPlayerId == challenge.TargetPartnerPlayerId) ||
+                                (dto.WinnerPlayerId == challenge.TargetPartnerPlayerId && dto.WinnerPartnerPlayerId == challenge.TargetPlayerId);
+
+            if (!isRequesterWinner && !isTargetWinner)
+            {
+                throw new InvalidOperationException("El ganador debe ser una de las parejas participantes del desafío.");
+            }
+
+            // Validar formato de sets (básico)
+            if (string.IsNullOrWhiteSpace(dto.Sets))
+            {
+                throw new InvalidOperationException("El resultado de los sets es requerido.");
+            }
+
             challenge.Sets = dto.Sets;
             challenge.WinnerPlayerId = dto.WinnerPlayerId;
             challenge.WinnerPartnerPlayerId = dto.WinnerPartnerPlayerId;
@@ -178,7 +285,35 @@ namespace padelya_api.Services.Annual
                 .Where(r => r.AnnualTableId == table.Id && r.Source == ScoringSource.Challenge && r.IsActive)
                 .FirstOrDefaultAsync();
 
-            var points = rule != null ? (int)(rule.BasePoints * rule.Multiplier) : 0;
+            // Obtener ranking actualizado para calcular posiciones
+            var ranking = await _annualService.GetRankingAsync(challenge.Year);
+            var rankingOrdered = ranking
+                .OrderByDescending(r => r.PointsTotal)
+                .ToList();
+            
+            var rankingWithPositions = rankingOrdered
+                .Select((r, index) => new { PlayerId = r.PlayerId, Position = index + 1 })
+                .ToList();
+
+            // Determinar quién es el rival (el perdedor) - reutilizar isRequesterWinner ya calculado arriba
+            var rivalPlayerId = isRequesterWinner ? challenge.TargetPlayerId : challenge.RequesterPlayerId;
+            var winnerPlayerId = isRequesterWinner ? challenge.RequesterPlayerId : challenge.TargetPlayerId;
+
+            // Obtener posiciones
+            var rivalPosition = rankingWithPositions.FirstOrDefault(r => r.PlayerId == rivalPlayerId)?.Position ?? 999;
+            var winnerPosition = rankingWithPositions.FirstOrDefault(r => r.PlayerId == winnerPlayerId)?.Position ?? 999;
+
+            // Calcular puntos usando Strategy con contexto
+            var scoringContext = new ChallengeScoringContext
+            {
+                RivalPosition = rivalPosition,
+                WinnerPosition = winnerPosition
+            };
+
+            var points = rule != null 
+                ? _scoringService.ComputePoints(ScoringSource.Challenge, rule, scoringContext)
+                : 0;
+            
             challenge.PointsAwardedPerPlayer = points;
 
             // Aplicar puntos con trazabilidad (validación por admin)
@@ -331,6 +466,27 @@ namespace padelya_api.Services.Annual
             var challenges = await _context.Set<Challenge>()
                 .Where(c => c.Status == ChallengeStatus.Played && !c.ValidatedAt.HasValue)
                 .OrderByDescending(c => c.PlayedAt)
+                .ToListAsync();
+
+            var result = new List<ChallengeDto>();
+            foreach (var challenge in challenges)
+            {
+                result.Add(await MapChallengeToDtoAsync(challenge));
+            }
+            return result;
+        }
+
+        public async Task<List<ChallengeDto>> GetAllChallengesAsync(int? year = null)
+        {
+            var query = _context.Set<Challenge>().AsQueryable();
+            
+            if (year.HasValue)
+            {
+                query = query.Where(c => c.Year == year.Value);
+            }
+
+            var challenges = await query
+                .OrderByDescending(c => c.CreatedAt)
                 .ToListAsync();
 
             var result = new List<ChallengeDto>();

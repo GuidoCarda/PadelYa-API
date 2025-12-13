@@ -90,6 +90,8 @@ namespace padelya_api.Data
 
 
       #region Security Module
+      modelBuilder.Entity<Category>().HasQueryFilter(c => c.DeletedAt == null);
+
       modelBuilder.Entity<PermissionComponent>()
           .HasKey(p => p.Id);
 

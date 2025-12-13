@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using padelya_api.Data;
 
@@ -11,9 +12,11 @@ using padelya_api.Data;
 namespace padelya_api.Migrations
 {
     [DbContext(typeof(PadelYaDbContext))]
-    partial class PadelYaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251213173658_AddDeletedAtToCategories")]
+    partial class AddDeletedAtToCategories
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

@@ -11,6 +11,8 @@ namespace padelya_api.Models.Ecommerce
 
         // Navigation properties
         public List<Product> Products { get; set; } = new();
+
+        public DateTime? DeletedAt { get; set; }
     }
 }
 

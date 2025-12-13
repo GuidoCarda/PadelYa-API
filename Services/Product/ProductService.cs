@@ -50,6 +50,7 @@ namespace padelya_api.Services.Product
                         IsPrimary = i.IsPrimary
                     }).ToList(),
                     IsActive = p.IsActive,
+                    CategoryId = p.CategoryId,
                     CategoryName = p.Category.Name
                 }).ToList();
             }

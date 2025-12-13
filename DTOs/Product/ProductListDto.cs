@@ -11,7 +11,7 @@ namespace padelya_api.DTOs.Product
         public string? ImageUrl { get; set; } // Imagen principal
         public List<ProductImageDto> Images { get; set; } = new();
         public bool IsActive { get; set; }
+        public int CategoryId { get; set; }
         public string CategoryName { get; set; } = string.Empty;
     }
 }
-

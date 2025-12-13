@@ -209,7 +209,7 @@ namespace padelya_api.Services.Category
 
                 // RF15: Verificar que no tenga productos asociados
                 var productCount = await _context.Products
-                    .Where(p => p.CategoryId == id)
+                    .Where(p => p.CategoryId == id && p.IsActive) // Check active products only? Or all? Usually we shouldn't delete category with ANY products.
                     .CountAsync();
 
                 if (productCount > 0)
@@ -219,10 +219,14 @@ namespace padelya_api.Services.Category
                         "Elimine o reasigne los productos primero.");
                 }
 
-                _context.Categories.Remove(category);
+                // Soft Delete
+                category.DeletedAt = DateTime.UtcNow;
+                category.IsActive = false;
+                
+                // _context.Categories.Remove(category); // Replaced with soft delete
                 await _context.SaveChangesAsync();
 
-                _logger.LogInformation("Categoría eliminada exitosamente: {CategoryName} (ID: {CategoryId})",
+                _logger.LogInformation("Categoría eliminada (Soft Delete) exitosamente: {CategoryName} (ID: {CategoryId})",
                     category.Name, category.Id);
 
                 return true;

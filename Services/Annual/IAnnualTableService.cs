@@ -16,5 +16,6 @@ namespace padelya_api.Services.Annual
         Task<List<ScoringRuleDto>> GetScoringRulesAsync(int year);
         Task<List<ScoringRuleDto>> UpsertScoringRulesAsync(int year, List<ScoringRuleDto> rules);
         Task ApplyPointsAsync(int year, int playerId, ScoringSource source, int points, bool isWin, int? matchId = null, string? matchType = null, string? scoringStrategy = null, int? recordedByUserId = null, string? metadata = null);
+        Task<AnnualTableReportDto> GetAnnualTableReportAsync(DateTime startDate, DateTime endDate);
     }
 }

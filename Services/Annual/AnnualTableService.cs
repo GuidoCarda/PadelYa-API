@@ -3,6 +3,7 @@ using padelya_api.Data;
 using padelya_api.DTOs.Annual;
 using padelya_api.Models;
 using padelya_api.Models.Annual;
+using padelya_api.Models.Challenge;
 
 namespace padelya_api.Services.Annual
 {
@@ -136,18 +137,36 @@ namespace padelya_api.Services.Annual
                 .Where(c => c.Year == year)
                 .ToListAsync();
 
+            var totalPointsFromChallenges = ranking.Sum(r => r.PointsFromChallenges);
+            var totalPointsFromTournaments = ranking.Sum(r => r.PointsFromTournaments);
+            var totalPointsFromClasses = ranking.Sum(r => r.PointsFromClasses);
+            var totalPointsAwarded = ranking.Sum(r => r.PointsTotal);
+            var activePlayers = ranking.Count(r => r.PointsTotal > 0);
+            var completedChallenges = challenges.Count(c => c.Status == Models.Challenge.ChallengeStatus.Played);
+            var acceptedChallenges = challenges.Count(c => c.Status == Models.Challenge.ChallengeStatus.Accepted);
+            var rejectedChallenges = challenges.Count(c => c.Status == Models.Challenge.ChallengeStatus.Rejected);
+
             var statistics = new AnnualTableStatisticsDto
             {
                 TotalPlayers = ranking.Count,
-                ActivePlayers = ranking.Count(r => r.PointsTotal > 0),
+                ActivePlayers = activePlayers,
                 TotalChallenges = challenges.Count,
+                CompletedChallenges = completedChallenges,
                 PendingChallenges = challenges.Count(c => c.Status == Models.Challenge.ChallengeStatus.Pending),
-                TotalPointsAwarded = ranking.Sum(r => r.PointsTotal),
+                AcceptedChallenges = acceptedChallenges,
+                RejectedChallenges = rejectedChallenges,
+                TotalPointsAwarded = totalPointsAwarded,
+                TotalPointsFromChallenges = totalPointsFromChallenges,
+                TotalPointsFromTournaments = totalPointsFromTournaments,
+                TotalPointsFromClasses = totalPointsFromClasses,
+                AveragePointsPerPlayer = activePlayers > 0 ? (double)totalPointsAwarded / activePlayers : 0,
+                ChallengeAcceptanceRate = challenges.Count > 0 ? (double)acceptedChallenges / challenges.Count * 100 : 0,
+                AveragePointsPerChallenge = completedChallenges > 0 ? (double)totalPointsFromChallenges / completedChallenges : 0,
                 PointsBySource = new Dictionary<string, int>
                 {
-                    { "Tournaments", ranking.Sum(r => r.PointsFromTournaments) },
-                    { "Challenges", ranking.Sum(r => r.PointsFromChallenges) },
-                    { "Classes", ranking.Sum(r => r.PointsFromClasses) },
+                    { "Tournaments", totalPointsFromTournaments },
+                    { "Challenges", totalPointsFromChallenges },
+                    { "Classes", totalPointsFromClasses },
                     { "MatchWins", ranking.Sum(r => r.PointsFromMatchWins) },
                     { "MatchLosses", ranking.Sum(r => r.PointsFromMatchLosses) }
                 }
@@ -326,6 +345,277 @@ namespace padelya_api.Services.Annual
                 ScoringSource.MatchWin => "MatchWinScoringStrategy",
                 ScoringSource.MatchLoss => "MatchLossScoringStrategy",
                 _ => "UnknownStrategy"
+            };
+        }
+
+        public async Task<AnnualTableReportDto> GetAnnualTableReportAsync(DateTime startDate, DateTime endDate)
+        {
+            // Obtener todos los años que tienen actividad en el rango de fechas
+            var challenges = await _context.Set<Models.Challenge.Challenge>()
+                .Where(c => c.CreatedAt >= startDate && c.CreatedAt <= endDate)
+                .ToListAsync();
+
+            var years = challenges.Select(c => c.Year).Distinct().ToList();
+            if (!years.Any())
+            {
+                // Si no hay desafíos, buscar por años de tablas anuales
+                years = await _context.AnnualTables
+                    .Where(a => a.CreatedAt >= startDate)
+                    .Select(a => a.Year)
+                    .Distinct()
+                    .ToListAsync();
+            }
+
+            if (!years.Any())
+            {
+                // Si aún no hay años, usar el año actual
+                years = new List<int> { DateTime.UtcNow.Year };
+            }
+
+            var allRankingEntries = new List<RankingEntry>();
+            var allChallenges = new List<Models.Challenge.Challenge>();
+
+            foreach (var year in years)
+            {
+                var ranking = await GetRankingAsync(year);
+                allRankingEntries.AddRange(ranking);
+
+                var yearChallenges = await _context.Set<Models.Challenge.Challenge>()
+                    .Where(c => c.Year == year && 
+                               (c.CreatedAt >= startDate && c.CreatedAt <= endDate ||
+                                c.PlayedAt >= startDate && c.PlayedAt <= endDate ||
+                                c.RespondedAt >= startDate && c.RespondedAt <= endDate))
+                    .ToListAsync();
+                allChallenges.AddRange(yearChallenges);
+            }
+
+            // Obtener información de jugadores
+            var playerIds = allRankingEntries.Select(e => e.PlayerId)
+                .Union(allChallenges.SelectMany(c => new[] { c.RequesterPlayerId, c.RequesterPartnerPlayerId, c.TargetPlayerId, c.TargetPartnerPlayerId }))
+                .Distinct()
+                .ToList();
+
+            var users = await _context.Users
+                .Where(u => u.PersonId.HasValue && playerIds.Contains(u.PersonId.Value))
+                .ToListAsync();
+
+            var playerDict = users.ToDictionary(u => u.PersonId!.Value, u => new { u.Name, u.Surname });
+
+            // Estadísticas generales
+            var totalPlayers = allRankingEntries.Select(e => e.PlayerId).Distinct().Count();
+            var activePlayers = allRankingEntries.Count(e => e.PointsTotal > 0);
+            var totalChallenges = allChallenges.Count;
+            var completedChallenges = allChallenges.Count(c => c.Status == Models.Challenge.ChallengeStatus.Played);
+            var pendingChallenges = allChallenges.Count(c => c.Status == Models.Challenge.ChallengeStatus.Pending);
+            var acceptedChallenges = allChallenges.Count(c => c.Status == Models.Challenge.ChallengeStatus.Accepted);
+            var rejectedChallenges = allChallenges.Count(c => c.Status == Models.Challenge.ChallengeStatus.Rejected);
+
+            var totalPointsAwarded = allRankingEntries.Sum(e => e.PointsTotal);
+            var totalPointsFromChallenges = allRankingEntries.Sum(e => e.PointsFromChallenges);
+            var totalPointsFromTournaments = allRankingEntries.Sum(e => e.PointsFromTournaments);
+            var totalPointsFromClasses = allRankingEntries.Sum(e => e.PointsFromClasses);
+
+            var averagePointsPerPlayer = activePlayers > 0 ? (double)totalPointsAwarded / activePlayers : 0;
+            var challengeAcceptanceRate = totalChallenges > 0 ? (double)acceptedChallenges / totalChallenges * 100 : 0;
+            var averagePointsPerChallenge = completedChallenges > 0 ? (double)totalPointsFromChallenges / completedChallenges : 0;
+
+            var pointsBySource = new Dictionary<string, int>
+            {
+                { "Tournaments", totalPointsFromTournaments },
+                { "Challenges", totalPointsFromChallenges },
+                { "Classes", totalPointsFromClasses },
+                { "MatchWins", allRankingEntries.Sum(e => e.PointsFromMatchWins) },
+                { "MatchLosses", allRankingEntries.Sum(e => e.PointsFromMatchLosses) }
+            };
+
+            var statistics = new AnnualTableStatisticsDto
+            {
+                TotalPlayers = totalPlayers,
+                ActivePlayers = activePlayers,
+                TotalChallenges = totalChallenges,
+                CompletedChallenges = completedChallenges,
+                PendingChallenges = pendingChallenges,
+                AcceptedChallenges = acceptedChallenges,
+                RejectedChallenges = rejectedChallenges,
+                TotalPointsAwarded = totalPointsAwarded,
+                TotalPointsFromChallenges = totalPointsFromChallenges,
+                TotalPointsFromTournaments = totalPointsFromTournaments,
+                TotalPointsFromClasses = totalPointsFromClasses,
+                AveragePointsPerPlayer = averagePointsPerPlayer,
+                ChallengeAcceptanceRate = challengeAcceptanceRate,
+                AveragePointsPerChallenge = averagePointsPerChallenge,
+                PointsBySource = pointsBySource
+            };
+
+            // Actividad diaria del ranking
+            var rankingTraces = await _context.RankingTraces
+                .Include(t => t.AnnualTable)
+                .Where(t => t.RecordedAt >= startDate && t.RecordedAt <= endDate)
+                .ToListAsync();
+
+            var dailyRankingActivity = rankingTraces
+                .GroupBy(t => t.RecordedAt.Date)
+                .OrderBy(g => g.Key)
+                .Select(g => new DailyRankingActivityDto
+                {
+                    Date = g.Key,
+                    PlayersWithActivity = g.Select(t => t.PlayerId).Distinct().Count(),
+                    PointsAwarded = g.Sum(t => t.Points),
+                    ChallengesCompleted = g.Count(t => t.Source == ScoringSource.Challenge && t.IsWin)
+                })
+                .ToList();
+
+            // Distribución de puntos por fuente
+            var totalPointsAllSources = pointsBySource.Values.Sum();
+            var pointsDistributionBySource = pointsBySource
+                .Select(kvp => new PointsDistributionBySourceDto
+                {
+                    Source = kvp.Key,
+                    TotalPoints = kvp.Value,
+                    Percentage = totalPointsAllSources > 0 ? (double)kvp.Value / totalPointsAllSources * 100 : 0
+                })
+                .ToList();
+
+            // Top jugadores
+            var topPlayers = allRankingEntries
+                .OrderByDescending(e => e.PointsTotal)
+                .Take(10)
+                .Select((e, index) =>
+                {
+                    var player = playerDict.ContainsKey(e.PlayerId) ? playerDict[e.PlayerId] : null;
+                    return new TopPlayerDto
+                    {
+                        PlayerId = e.PlayerId,
+                        PlayerName = player?.Name,
+                        PlayerSurname = player?.Surname,
+                        Position = index + 1,
+                        PointsTotal = e.PointsTotal,
+                        Wins = e.Wins,
+                        Losses = e.Losses,
+                        PointsFromChallenges = e.PointsFromChallenges,
+                        PointsFromTournaments = e.PointsFromTournaments
+                    };
+                })
+                .ToList();
+
+            // Estadísticas de desafíos por estado
+            var challengeStatusDistribution = allChallenges
+                .GroupBy(c => c.Status.ToString())
+                .Select(g => new ChallengeStatusDistributionDto
+                {
+                    Status = g.Key,
+                    Count = g.Count()
+                })
+                .ToList();
+
+            var challengeStatistics = challengeStatusDistribution
+                .Select(c => new ChallengeStatisticsDto
+                {
+                    Status = c.Status,
+                    Count = c.Count,
+                    Percentage = totalChallenges > 0 ? (double)c.Count / totalChallenges * 100 : 0
+                })
+                .ToList();
+
+            // Actividad diaria de desafíos
+            var dailyChallengeActivity = allChallenges
+                .GroupBy(c => c.CreatedAt.Date)
+                .OrderBy(g => g.Key)
+                .Select(g => new DailyChallengeActivityDto
+                {
+                    Date = g.Key,
+                    ChallengesCreated = g.Count(),
+                    ChallengesCompleted = g.Count(c => c.Status == Models.Challenge.ChallengeStatus.Played && c.PlayedAt.HasValue && c.PlayedAt.Value.Date == g.Key),
+                    ChallengesAccepted = g.Count(c => c.Status == Models.Challenge.ChallengeStatus.Accepted && c.RespondedAt.HasValue && c.RespondedAt.Value.Date == g.Key)
+                })
+                .ToList();
+
+            // Jugadores más desafiantes
+            var mostChallengingPlayers = allChallenges
+                .GroupBy(c => c.RequesterPlayerId)
+                .Select(g =>
+                {
+                    var player = playerDict.ContainsKey(g.Key) ? playerDict[g.Key] : null;
+                    var challengesWon = g.Count(c => c.Status == Models.Challenge.ChallengeStatus.Played && 
+                                                      c.WinnerPlayerId == g.Key);
+                    return new MostChallengingPlayerDto
+                    {
+                        PlayerId = g.Key,
+                        PlayerName = player?.Name,
+                        PlayerSurname = player?.Surname,
+                        ChallengesCreated = g.Count(),
+                        ChallengesWon = challengesWon,
+                        WinRate = g.Count() > 0 ? (double)challengesWon / g.Count() * 100 : 0
+                    };
+                })
+                .OrderByDescending(p => p.ChallengesCreated)
+                .Take(10)
+                .ToList();
+
+            // Jugadores más desafiados
+            var mostChallengedPlayers = allChallenges
+                .GroupBy(c => c.TargetPlayerId)
+                .Select(g =>
+                {
+                    var player = playerDict.ContainsKey(g.Key) ? playerDict[g.Key] : null;
+                    var challengesAccepted = g.Count(c => c.Status == Models.Challenge.ChallengeStatus.Accepted || 
+                                                          c.Status == Models.Challenge.ChallengeStatus.Played);
+                    return new MostChallengedPlayerDto
+                    {
+                        PlayerId = g.Key,
+                        PlayerName = player?.Name,
+                        PlayerSurname = player?.Surname,
+                        ChallengesReceived = g.Count(),
+                        ChallengesAccepted = challengesAccepted,
+                        AcceptanceRate = g.Count() > 0 ? (double)challengesAccepted / g.Count() * 100 : 0
+                    };
+                })
+                .OrderByDescending(p => p.ChallengesReceived)
+                .Take(10)
+                .ToList();
+
+            // Distribución de puntos por rango de posición
+            var sortedEntries = allRankingEntries.OrderByDescending(e => e.PointsTotal).ToList();
+            var positionRanges = new List<(string Range, Func<int, bool> Predicate)>
+            {
+                ("Top 1-5", pos => pos >= 1 && pos <= 5),
+                ("Top 6-10", pos => pos >= 6 && pos <= 10),
+                ("Top 11-20", pos => pos >= 11 && pos <= 20),
+                ("Top 21-30", pos => pos >= 21 && pos <= 30),
+                ("Resto", pos => pos > 30)
+            };
+
+            var pointsByPositionRange = positionRanges
+                .Select(range =>
+                {
+                    var entriesInRange = sortedEntries
+                        .Select((e, index) => new { Entry = e, Position = index + 1 })
+                        .Where(x => range.Predicate(x.Position))
+                        .ToList();
+
+                    return new PointsByPositionRangeDto
+                    {
+                        Range = range.Range,
+                        PlayerCount = entriesInRange.Count,
+                        TotalPoints = entriesInRange.Sum(x => x.Entry.PointsTotal),
+                        AveragePoints = entriesInRange.Count > 0 ? (double)entriesInRange.Sum(x => x.Entry.PointsTotal) / entriesInRange.Count : 0
+                    };
+                })
+                .Where(r => r.PlayerCount > 0)
+                .ToList();
+
+            return new AnnualTableReportDto
+            {
+                Statistics = statistics,
+                DailyRankingActivity = dailyRankingActivity,
+                PointsDistributionBySource = pointsDistributionBySource,
+                TopPlayers = topPlayers,
+                ChallengeStatistics = challengeStatistics,
+                DailyChallengeActivity = dailyChallengeActivity,
+                ChallengeStatusDistribution = challengeStatusDistribution,
+                MostChallengingPlayers = mostChallengingPlayers,
+                MostChallengedPlayers = mostChallengedPlayers,
+                PointsByPositionRange = pointsByPositionRange
             };
         }
     }

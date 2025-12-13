@@ -83,6 +83,11 @@ namespace padelya_api.Data
     public DbSet<ProductImage> ProductImages { get; set; }
     public DbSet<Order> Orders { get; set; }
     public DbSet<OrderItem> OrderItems { get; set; }
+    
+    // Cart
+    public DbSet<Cart> Carts { get; set; }
+    public DbSet<CartItem> CartItems { get; set; }
+
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -261,9 +266,16 @@ namespace padelya_api.Data
           .WithOne(p => p.Order)
           .HasForeignKey(p => p.OrderId);
 
-      modelBuilder.Entity<padelya_api.Models.Ecommerce.Order>()
+        modelBuilder.Entity<padelya_api.Models.Ecommerce.Order>()
           .Property(o => o.Status)
           .HasConversion<string>();
+
+        // Cart - User (1:1)
+        modelBuilder.Entity<User>()
+          .HasOne(u => u.Cart)
+          .WithOne(c => c.User)
+          .HasForeignKey<padelya_api.Models.Ecommerce.Cart>(c => c.UserId)
+          .OnDelete(DeleteBehavior.Cascade);
 
 
       #endregion
@@ -1009,6 +1021,26 @@ namespace padelya_api.Data
       modelBuilder.Entity<ProductImage>()
           .Property(pi => pi.CreatedAt)
           .HasDefaultValueSql("GETUTCDATE()");
+
+      // Cart Configuration
+      modelBuilder.Entity<Cart>()
+          .HasOne(c => c.User)
+          .WithOne()
+          .HasForeignKey<Cart>(c => c.UserId)
+          .OnDelete(DeleteBehavior.Cascade);
+
+      modelBuilder.Entity<Cart>()
+          .HasMany(c => c.Items)
+          .WithOne(i => i.Cart)
+          .HasForeignKey(i => i.CartId)
+          .OnDelete(DeleteBehavior.Cascade);
+
+      modelBuilder.Entity<CartItem>()
+            .HasOne(ci => ci.Product)
+            .WithMany()
+            .HasForeignKey(ci => ci.ProductId)
+            .OnDelete(DeleteBehavior.Restrict);
+
 
       // Order Configuration
       modelBuilder.Entity<Order>()

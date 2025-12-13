@@ -14,6 +14,7 @@ using padelya_api.Services.Email;
 using padelya_api.Services.Notification;
 using padelya_api.Services.Product;
 using padelya_api.Services.Category;
+using padelya_api.Services.Ecommerce;
 using padelya_api.Services.File;
 using Scalar.AspNetCore;
 
@@ -122,6 +123,7 @@ builder.Services.AddScoped<IRepairService, RepairService>();
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IFileService, FileService>();
+builder.Services.AddScoped<ICartService, CartService>();
 builder.Services.AddScoped<padelya_api.Services.Order.OrderService>();
 
 // Servicio de background para actualizar estados de torneos automáticamente

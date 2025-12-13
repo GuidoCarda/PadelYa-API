@@ -4,9 +4,12 @@ namespace padelya_api.Constants
     {
         Pending,         // Pendiente de pago
         Paid,            // Pagado
-        Processing,      // En proceso
-        Shipped,         // Enviado
-        Delivered,       // Entregado
-        Cancelled        // Cancelado
+        Progress,        // En proceso (Preparation)
+        PickUp,          // Listo para retirar
+        Success,         // Entregado/Completado
+        Cancelled,       // Cancelado
+        Processing,      // Deprecated or keep for compatibility
+        Shipped,         // Deprecated or keep for compatibility
+        Delivered        // Deprecated or keep for compatibility
     }
 }

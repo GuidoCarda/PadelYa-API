@@ -21,5 +21,7 @@
     public Person? Person { get; set; }
 
     public DateTime RegisteredAt { get; set; }
+    
+    public virtual padelya_api.Models.Ecommerce.Cart? Cart { get; set; }
   }
 }

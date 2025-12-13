@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace padelya_api.Models.Ecommerce
 {
@@ -9,6 +10,7 @@ namespace padelya_api.Models.Ecommerce
         public int Id { get; set; }
         public string Name { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
+        [Column(TypeName = "decimal(18,2)")]
         public decimal Price { get; set; }
         public int Stock { get; set; }
         public string? ImageUrl { get; set; } // Deprecated - mantener por compatibilidad

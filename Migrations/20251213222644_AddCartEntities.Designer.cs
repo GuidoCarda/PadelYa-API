@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using padelya_api.Data;
 
@@ -11,9 +12,11 @@ using padelya_api.Data;
 namespace padelya_api.Migrations
 {
     [DbContext(typeof(PadelYaDbContext))]
-    partial class PadelYaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251213222644_AddCartEntities")]
+    partial class AddCartEntities
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1314,17 +1317,10 @@ namespace padelya_api.Migrations
                     b.Property<int>("UserId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("UserId1")
-                        .HasColumnType("int");
-
                     b.HasKey("Id");
 
                     b.HasIndex("UserId")
                         .IsUnique();
-
-                    b.HasIndex("UserId1")
-                        .IsUnique()
-                        .HasFilter("[UserId1] IS NOT NULL");
 
                     b.ToTable("Carts");
                 });
@@ -3540,10 +3536,6 @@ namespace padelya_api.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("padelya_api.Models.User", null)
-                        .WithOne("Cart")
-                        .HasForeignKey("padelya_api.Models.Ecommerce.Cart", "UserId1");
-
                     b.Navigation("User");
                 });
 
@@ -3975,11 +3967,6 @@ namespace padelya_api.Migrations
             modelBuilder.Entity("padelya_api.Models.Tournament.TournamentPhase", b =>
                 {
                     b.Navigation("Brackets");
-                });
-
-            modelBuilder.Entity("padelya_api.Models.User", b =>
-                {
-                    b.Navigation("Cart");
                 });
 
             modelBuilder.Entity("padelya_api.models.Lesson", b =>

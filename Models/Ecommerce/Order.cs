@@ -4,6 +4,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using padelya_api.Models;
 using padelya_api.Constants;
+using padelya_api.Models.Ecommerce.States;
 
 namespace padelya_api.Models.Ecommerce
 {
@@ -28,5 +29,50 @@ namespace padelya_api.Models.Ecommerce
 
         public virtual ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
         public virtual ICollection<Payment> Payments { get; set; } = new List<Payment>();
+
+        [NotMapped]
+        private IOrderState _currentState;
+
+        public Order()
+        {
+            // Initialize based on Status property if needed, mostly for EF
+            // Logic to sync _currentState with Status would be in a method or property setter
+            _currentState = GetStateFromStatus(Status);
+        }
+
+        public void SetState(IOrderState state)
+        {
+            _currentState = state;
+        }
+
+        public void AdvanceState()
+        {
+            // Sync state before advancing in case it was loaded from DB
+            if (_currentState.GetStatusName() != GetStateFromStatus(Status).GetStatusName())
+            {
+               _currentState = GetStateFromStatus(Status);
+            }
+            
+            _currentState.AdvanceState(this);
+        }
+
+        public string GetStatusName()
+        {
+             if (_currentState == null) _currentState = GetStateFromStatus(Status);
+             return _currentState.GetStatusName();
+        }
+
+        private IOrderState GetStateFromStatus(OrderStatus status)
+        {
+            return status switch
+            {
+                OrderStatus.Pending => new PendingState(),
+                OrderStatus.Progress => new ProgressState(),
+                OrderStatus.PickUp => new PickUpState(),
+                OrderStatus.Success => new SuccessState(),
+                OrderStatus.Cancelled => new CancelledState(),
+                _ => new PendingState()
+            };
+        }
     }
 }

@@ -1,4 +1,5 @@
 
+using System.Globalization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using padelya_api.DTOs.Repair;
@@ -176,6 +177,40 @@ namespace padelya_api.Controllers
       catch (ArgumentException ex)
       {
         return BadRequest(ResponseMessage<Repair>.Error(ex.Message));
+      }
+    }
+
+    /// <summary>
+    /// Obtiene el reporte de reparaciones para un rango de fechas
+    /// </summary>
+    [HttpGet("report")]
+    public async Task<IActionResult> GetRepairReport(
+      [FromQuery] string startDate,
+      [FromQuery] string endDate)
+    {
+      try
+      {
+        if (!DateTime.TryParseExact(startDate, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var start))
+        {
+          return BadRequest(ResponseMessage<RepairReportDto>.Error("El formato de fecha de inicio debe ser YYYY-MM-DD"));
+        }
+
+        if (!DateTime.TryParseExact(endDate, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var end))
+        {
+          return BadRequest(ResponseMessage<RepairReportDto>.Error("El formato de fecha de fin debe ser YYYY-MM-DD"));
+        }
+
+        if (start > end)
+        {
+          return BadRequest(ResponseMessage<RepairReportDto>.Error("La fecha de inicio no puede ser mayor que la fecha de fin"));
+        }
+
+        var report = await _repairService.GetRepairReportAsync(start, end);
+        return Ok(ResponseMessage<RepairReportDto>.SuccessResult(report, "Reporte generado correctamente"));
+      }
+      catch (Exception ex)
+      {
+        return BadRequest(ResponseMessage<RepairReportDto>.Error($"Error al generar reporte: {ex.Message}"));
       }
     }
 

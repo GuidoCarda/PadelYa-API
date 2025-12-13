@@ -551,5 +551,137 @@ namespace padelya_api.Services
         Console.WriteLine($"Error notifying customer: {ex.Message}");
       }
     }
+
+    public async Task<RepairReportDto> GetRepairReportAsync(DateTime startDate, DateTime endDate)
+    {
+      // Obtener todas las reparaciones en el rango de fechas
+      var repairs = await _context.Repairs
+          .Include(r => r.Payment)
+          .Where(r => r.CreatedAt >= startDate.Date && r.CreatedAt <= endDate.Date.AddDays(1))
+          .ToListAsync();
+
+      // Calcular estadísticas generales
+      var completedRepairs = repairs.Where(r => r.Status == RepairStatus.Delivered).ToList();
+      var cancelledRepairs = repairs.Where(r => r.Status == RepairStatus.Cancelled).ToList();
+      var pendingRepairs = repairs.Where(r =>
+          r.Status == RepairStatus.Received ||
+          r.Status == RepairStatus.InRepair ||
+          r.Status == RepairStatus.ReadyForPickup).ToList();
+
+      // Total facturado (solo de reparaciones completadas con pago)
+      var totalRevenue = completedRepairs
+          .Where(r => r.Payment != null)
+          .Sum(r => r.Payment!.Amount);
+
+      // Tiempo promedio de reparación 
+      // Incluye reparaciones Delivered y ReadyForPickup que tengan fecha de finalización o entrega
+      var repairsWithTime = repairs
+          .Where(r => r.Status == RepairStatus.Delivered || r.Status == RepairStatus.ReadyForPickup)
+          .Where(r => r.FinishedAt.HasValue || r.DeliveredAt.HasValue)
+          .ToList();
+
+      var totalRepairTimeDays = repairsWithTime.Any()
+          ? repairsWithTime.Sum(r =>
+          {
+            // Usar FinishedAt si está disponible, sino DeliveredAt
+            var endDate = r.FinishedAt ?? r.DeliveredAt!.Value;
+            return (endDate - r.CreatedAt).TotalDays;
+          })
+          : 0;
+
+      var averageRepairTimeDays = repairsWithTime.Any()
+          ? totalRepairTimeDays / repairsWithTime.Count
+          : 0;
+
+      // Ingreso promedio por reparación
+      var avgRevenuePerRepair = completedRepairs.Count > 0
+          ? totalRevenue / completedRepairs.Count
+          : 0;
+
+      // Tasas
+      var totalRepairs = repairs.Count;
+      var completionRate = totalRepairs > 0
+          ? (decimal)completedRepairs.Count / totalRepairs * 100
+          : 0;
+      var cancellationRate = totalRepairs > 0
+          ? (decimal)cancelledRepairs.Count / totalRepairs * 100
+          : 0;
+
+      var statistics = new RepairStatisticsDto
+      {
+        TotalRepairs = totalRepairs,
+        CompletedRepairs = completedRepairs.Count,
+        PendingRepairs = pendingRepairs.Count,
+        CancelledRepairs = cancelledRepairs.Count,
+        TotalRevenue = totalRevenue,
+        AverageRepairTimeDays = Math.Round((decimal)averageRepairTimeDays, 1),
+        TotalRepairTimeDays = Math.Round((decimal)totalRepairTimeDays, 1),
+        AverageRevenuePerRepair = Math.Round(avgRevenuePerRepair, 2),
+        CompletionRate = Math.Round(completionRate, 2),
+        CancellationRate = Math.Round(cancellationRate, 2)
+      };
+
+      // Reparaciones diarias (por fecha de creación)
+      var dailyRepairs = repairs
+          .GroupBy(r => r.CreatedAt.Date)
+          .Select(g => new DailyRepairDto
+          {
+            Date = g.Key.ToString("yyyy-MM-dd"),
+            RepairCount = g.Count(),
+            Revenue = g.Where(r => r.Status == RepairStatus.Delivered && r.Payment != null)
+                        .Sum(r => r.Payment!.Amount)
+          })
+          .OrderBy(d => d.Date)
+          .ToList();
+
+      // Distribución por estado
+      var statusDistribution = repairs
+          .GroupBy(r => r.Status)
+          .Select(g => new RepairStatusDistributionDto
+          {
+            Status = g.Key.ToString(),
+            DisplayStatus = GetDisplayStatus(g.Key),
+            Count = g.Count(),
+            Percentage = totalRepairs > 0
+                ? Math.Round((decimal)g.Count() / totalRepairs * 100, 2)
+                : 0
+          })
+          .OrderByDescending(s => s.Count)
+          .ToList();
+
+      // Ingresos mensuales (para el gráfico de evolución)
+      var monthlyRevenue = repairs
+          .Where(r => r.Status == RepairStatus.Delivered && r.Payment != null)
+          .GroupBy(r => new { r.CreatedAt.Year, r.CreatedAt.Month })
+          .Select(g => new MonthlyRevenueDto
+          {
+            Month = $"{g.Key.Year}-{g.Key.Month:D2}",
+            Revenue = g.Sum(r => r.Payment!.Amount),
+            RepairCount = g.Count()
+          })
+          .OrderBy(m => m.Month)
+          .ToList();
+
+      return new RepairReportDto
+      {
+        Statistics = statistics,
+        DailyRepairs = dailyRepairs,
+        StatusDistribution = statusDistribution,
+        MonthlyRevenue = monthlyRevenue
+      };
+    }
+
+    private static string GetDisplayStatus(RepairStatus status)
+    {
+      return status switch
+      {
+        RepairStatus.Received => "Recibida",
+        RepairStatus.InRepair => "En Reparación",
+        RepairStatus.ReadyForPickup => "Lista para Retirar",
+        RepairStatus.Delivered => "Entregada",
+        RepairStatus.Cancelled => "Cancelada",
+        _ => status.ToString()
+      };
+    }
   }
 }

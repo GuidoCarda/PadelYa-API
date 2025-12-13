@@ -1,5 +1,6 @@
 using padelya_api.Constants;
 using padelya_api.Models.Tournament;
+using padelya_api.Models.Ecommerce;
 
 namespace padelya_api.Models
 {
@@ -19,6 +20,10 @@ namespace padelya_api.Models
 
     public int? LessonEnrollmentId { get; set; }
     public int? TournamentEnrollmentId { get; set; }
+    
+    public int? OrderId { get; set; }
+    public virtual padelya_api.Models.Ecommerce.Order? Order { get; set; }
+
     public int PersonId { get; set; }
   }
 }

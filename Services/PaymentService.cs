@@ -21,6 +21,7 @@ namespace padelya_api.Services
     Task<PaymentDto> GetPaymentByIdAsync(int id);
     Task<bool> UpdatePaymentStatusAsync(PaymentStatusUpdateDto dto);
     Task<LocalPaymentStatus> ProcessMercadoPagoWebhookAsync(MercadoPagoWebhookDto webhookData);
+    Task<LocalPaymentStatus> ProcessPaymentByIdAsync(long paymentId);
     Task<PaymentSummaryDto> GetSummaryAsync(string paymentId);
   }
 
@@ -106,11 +107,32 @@ namespace padelya_api.Services
 
     public async Task<LocalPaymentStatus> ProcessMercadoPagoWebhookAsync(MercadoPagoWebhookDto webhookData)
     {
+      if (!string.IsNullOrEmpty(webhookData.Topic) && webhookData.Topic != "payment")
+      {
+          return LocalPaymentStatus.Pending;
+      }
+
+      string paymentIdStr = webhookData.Data?.Id;
+
+      if (string.IsNullOrEmpty(paymentIdStr) && !string.IsNullOrEmpty(webhookData.Resource))
+      {
+          var parts = webhookData.Resource.Split('/');
+          paymentIdStr = parts.Last();
+      }
+
+      if (long.TryParse(paymentIdStr, out var paymentId))
+      {
+          return await ProcessPaymentByIdAsync(paymentId);
+      }
+      return LocalPaymentStatus.Pending;
+    }
+
+    public async Task<LocalPaymentStatus> ProcessPaymentByIdAsync(long paymentId)
+    {
       MercadoPagoConfig.AccessToken = _configuration["MercadoPago:AccessToken"];
 
-      var paymentId = webhookData.Data.Id;
       var client = new PaymentClient();
-      var payment = await client.GetAsync(long.Parse(paymentId));
+      var payment = await client.GetAsync(paymentId);
 
       Console.WriteLine($"payment.Id: {payment.Id} | status {payment.Status} \n\n\n  ");
 
@@ -131,6 +153,9 @@ namespace padelya_api.Services
           break;
         case "tournament":
           await HandleTournamentEnrollmentPayment(payment, targetId);
+          break;
+        case "order":
+          await HandleOrderPayment(payment, targetId);
           break;
         default:
           throw new ArgumentException($"Unknown target entity: {target}");
@@ -195,6 +220,16 @@ namespace padelya_api.Services
         }
 
         return new PaymentTarget(target, targetId);
+      }
+
+      // Handle order format: order_{orderId}
+      if (parts.Length == 2 && parts[0] == "order")
+      {
+           if (!int.TryParse(parts[1], out var orderId))
+           {
+               throw new ArgumentException($"Invalid order ID: {parts[1]}");
+           }
+           return new PaymentTarget("order", orderId);
       }
 
       throw new ArgumentException($"Invalid external reference format: {payment.ExternalReference}");
@@ -493,6 +528,104 @@ namespace padelya_api.Services
       catch (Exception ex)
       {
         Console.WriteLine($"[Tournament Payment Error] {ex.Message}");
+      }
+    }
+
+    private async Task HandleOrderPayment(
+      MercadoPago.Resource.Payment.Payment payment,
+      int orderId
+    )
+    {
+      try
+      {
+        var order = await _context.Orders
+                .Include(o => o.OrderItems)
+                .Include(o => o.Person)
+                .FirstOrDefaultAsync(o => o.Id == orderId);
+
+        if (order is null)
+        {
+          throw new Exception("Order not found");
+        }
+
+        if (payment.Status == MercadoPago.Resource.Payment.PaymentStatus.Approved)
+        {
+          int personId = order.PersonId;
+          
+          if (payment.Metadata != null && payment.Metadata.TryGetValue("person_id", out var personIdObj))
+          {
+              var personIdString = personIdObj?.ToString();
+              if (!string.IsNullOrEmpty(personIdString) && int.TryParse(personIdString, out int parsedId))
+              {
+                  personId = parsedId;
+              }
+          }
+
+          var newPayment = new LocalPayment
+          {
+            Amount = payment.TransactionAmount ?? 0,
+            PaymentMethod = payment.PaymentTypeId,
+            PaymentStatus = LocalPaymentStatus.Approved,
+            CreatedAt = payment.DateApproved ?? DateTime.UtcNow,
+            TransactionId = payment.Id.ToString()!,
+            OrderId = orderId,
+            PersonId = personId,
+            PaymentType = LocalPaymentType.Total
+          };
+          _context.Payments.Add(newPayment);
+
+          order.Status = padelya_api.Constants.OrderStatus.Paid;
+
+          // REDUCE STOCK
+          foreach(var item in order.OrderItems)
+          {
+              var product = await _context.Products.FindAsync(item.ProductId);
+              if(product != null)
+              {
+                  if(product.Stock >= item.Quantity)
+                  {
+                      product.Stock -= item.Quantity;
+                  }
+                  else 
+                  {
+                      // Warn log: Oversold? Or just ensure it doesn't go negative if we want strict consistency
+                      product.Stock = 0; // Prevent negative stock
+                      Console.WriteLine($"[WARNING] Order {order.Id} paid but insufficient stock for Product {product.Id}");
+                  }
+              }
+          }
+
+          await _context.SaveChangesAsync();
+          
+          Console.WriteLine($"[Order Payment] Order {orderId} confirmed with payment {payment.Id}");
+        }
+
+        if (payment.Status == MercadoPago.Resource.Payment.PaymentStatus.Rejected)
+        {
+            var newPayment = new LocalPayment
+            {
+                Amount = payment.TransactionAmount ?? 0,
+                PaymentMethod = payment.PaymentMethodId,
+                PaymentStatus = LocalPaymentStatus.Rejected,
+                CreatedAt = payment.DateCreated ?? DateTime.UtcNow,
+                TransactionId = payment.Id.ToString()!,
+                OrderId = orderId,
+                PersonId = order.PersonId,
+                PaymentType = LocalPaymentType.Total,
+            };
+            _context.Payments.Add(newPayment);
+
+            order.Status = padelya_api.Constants.OrderStatus.Cancelled; // Or keep pending? Let's cancel for now. or maybe just log rejection.
+            
+            await _context.SaveChangesAsync();
+            
+            Console.WriteLine($"[Order Payment] Order {orderId} rejected - payment {payment.Id}");
+        }
+      }
+      catch (Exception ex)
+      {
+        Console.WriteLine($"[Order Payment Error] {ex.Message}");
+        throw;
       }
     }
   }

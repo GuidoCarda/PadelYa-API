@@ -122,6 +122,7 @@ builder.Services.AddScoped<IRepairService, RepairService>();
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IFileService, FileService>();
+builder.Services.AddScoped<padelya_api.Services.Order.OrderService>();
 
 // Servicio de background para actualizar estados de torneos automáticamente
 builder.Services.AddHostedService<padelya_api.Services.TournamentStatusUpdateService>();

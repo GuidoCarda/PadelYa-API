@@ -89,6 +89,7 @@ public class PaymentsController : ControllerBase
   }
 
   [HttpPost("webhook")]
+  [Microsoft.AspNetCore.Authorization.AllowAnonymous]
   public async Task<IActionResult> MercadoPagoWebhook()
   {
     Console.WriteLine("Webhook request received");
@@ -99,6 +100,7 @@ public class PaymentsController : ControllerBase
     {
       using var reader = new StreamReader(Request.Body);
       var body = await reader.ReadToEndAsync();
+      Console.WriteLine($"[Webhook Body]: {body}");
 
       var webhookData = JsonSerializer.Deserialize<MercadoPagoWebhookDto>(
           body,
@@ -106,9 +108,18 @@ public class PaymentsController : ControllerBase
       );
 
       Console.WriteLine($"webhookData: {JsonSerializer.Serialize(webhookData)}");
-      if (webhookData == null || webhookData.Data == null || string.IsNullOrEmpty(webhookData.Data.Id))
+      if (webhookData == null)
       {
-        Console.WriteLine("Webhook mal formado o faltan datos.");
+           Console.WriteLine("Webhook nulo.");
+           return BadRequest("Webhook nulo.");
+      }
+
+      var hasDataId = !string.IsNullOrEmpty(webhookData.Data?.Id);
+      var hasResourceId = !string.IsNullOrEmpty(webhookData.Resource);
+
+      if (!hasDataId && !hasResourceId)
+      {
+        Console.WriteLine($"Webhook mal formado o faltan datos (Data.Id o Resource). Data: {JsonSerializer.Serialize(webhookData)}");
         return BadRequest("Webhook mal formado o faltan datos.");
       }
 
@@ -132,6 +143,21 @@ public class PaymentsController : ControllerBase
     var summary = await _paymentService.GetSummaryAsync(paymentId);
     return Ok(summary);
   }
+  [HttpPost("verify")]
+  public async Task<IActionResult> VerifyPayment([FromQuery] long payment_id)
+  {
+      try
+      {
+          Console.WriteLine($"Verifying payment: {payment_id}");
+          var status = await _paymentService.ProcessPaymentByIdAsync(payment_id);
+          return Ok(new { status = status.ToString() });
+      }
+      catch (Exception ex)
+      {
+          Console.WriteLine($"Error verifying payment: {ex.Message}");
+          return BadRequest(new { error = ex.Message });
+      }
+  }
 }
 
 public class CreatePreferenceDto
@@ -141,35 +167,3 @@ public class CreatePreferenceDto
   public decimal UnitPrice { get; set; }
 }
 
-public class MercadoPagoWebhookDto
-{
-  [JsonPropertyName("action")]
-  public string Action { get; set; }
-
-  [JsonPropertyName("api_version")]
-  public string ApiVersion { get; set; }
-
-  [JsonPropertyName("data")]
-  public MercadoPagoDataDto Data { get; set; }
-
-  [JsonPropertyName("date_created")]
-  public DateTime DateCreated { get; set; }
-
-  [JsonPropertyName("id")]
-  public long Id { get; set; }
-
-  [JsonPropertyName("live_mode")]
-  public bool LiveMode { get; set; }
-
-  [JsonPropertyName("type")]
-  public string Type { get; set; }
-
-  [JsonPropertyName("user_id")]
-  public string UserId { get; set; }
-}
-
-public class MercadoPagoDataDto
-{
-  [JsonPropertyName("id")]
-  public string Id { get; set; }
-}

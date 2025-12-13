@@ -255,6 +255,16 @@ namespace padelya_api.Data
           .WithOne() // Eliminada navegación bilateral
           .HasForeignKey<Payment>(p => p.TournamentEnrollmentId);
 
+      // Order 1:N Payment
+      modelBuilder.Entity<padelya_api.Models.Ecommerce.Order>()
+          .HasMany(o => o.Payments)
+          .WithOne(p => p.Order)
+          .HasForeignKey(p => p.OrderId);
+
+      modelBuilder.Entity<padelya_api.Models.Ecommerce.Order>()
+          .Property(o => o.Status)
+          .HasConversion<string>();
+
 
       #endregion
 
@@ -1008,26 +1018,18 @@ namespace padelya_api.Data
           .Property(o => o.TotalAmount)
           .HasPrecision(18, 2);
 
-      // Order - User relationship
-      modelBuilder.Entity<Order>()
-          .HasOne(o => o.User)
+      // Order - Person relationship
+      modelBuilder.Entity<padelya_api.Models.Ecommerce.Order>()
+          .HasOne(o => o.Person)
           .WithMany()
-          .HasForeignKey(o => o.UserId)
+          .HasForeignKey(o => o.PersonId)
           .OnDelete(DeleteBehavior.Restrict);
 
-      // Order - Payment relationship
-      modelBuilder.Entity<Order>()
-          .HasOne(o => o.Payment)
-          .WithMany()
-          .HasForeignKey(o => o.PaymentId)
-          .OnDelete(DeleteBehavior.SetNull)
-          .IsRequired(false);
-
       // OrderItem Configuration
-      modelBuilder.Entity<OrderItem>()
+      modelBuilder.Entity<padelya_api.Models.Ecommerce.OrderItem>()
           .HasKey(oi => oi.Id);
 
-      modelBuilder.Entity<OrderItem>()
+      modelBuilder.Entity<padelya_api.Models.Ecommerce.OrderItem>()
           .Property(oi => oi.UnitPrice)
           .HasPrecision(18, 2);
 
@@ -1036,14 +1038,14 @@ namespace padelya_api.Data
           .HasPrecision(18, 2);
 
       // OrderItem - Order relationship
-      modelBuilder.Entity<OrderItem>()
+      modelBuilder.Entity<padelya_api.Models.Ecommerce.OrderItem>()
           .HasOne(oi => oi.Order)
           .WithMany(o => o.OrderItems)
           .HasForeignKey(oi => oi.OrderId)
           .OnDelete(DeleteBehavior.Cascade);
 
       // OrderItem - Product relationship
-      modelBuilder.Entity<OrderItem>()
+      modelBuilder.Entity<padelya_api.Models.Ecommerce.OrderItem>()
           .HasOne(oi => oi.Product)
           .WithMany()
           .HasForeignKey(oi => oi.ProductId)

@@ -1,34 +1,32 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using padelya_api.Models;
+using padelya_api.Constants;
 
 namespace padelya_api.Models.Ecommerce
 {
-    public enum OrderStatus
-    {
-        Pending,         // Pendiente de pago
-        Paid,            // Pagado
-        Processing,      // En proceso
-        Shipped,         // Enviado
-        Delivered,       // Entregado
-        Cancelled        // Cancelado
-    }
-
     public class Order
     {
+        [Key]
         public int Id { get; set; }
-        public DateTime OrderDate { get; set; } = DateTime.UtcNow;
-        public OrderStatus Status { get; set; } = OrderStatus.Pending;
+
+        public int PersonId { get; set; }
+        [ForeignKey("PersonId")]
+        public virtual Person Person { get; set; } = null!;
+
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        [Column(TypeName = "decimal(18,2)")]
         public decimal TotalAmount { get; set; }
 
-        // Foreign Keys
-        public int UserId { get; set; }
-        public int? PaymentId { get; set; }
+        public OrderStatus Status { get; set; } = OrderStatus.Pending;
 
-        // Navigation properties
-        public User User { get; set; } = null!;
-        public Payment? Payment { get; set; }
-        public List<OrderItem> OrderItems { get; set; } = new();
+        // Mercado Pago Preference ID
+        public string? PreferenceId { get; set; }
+
+        public virtual ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
+        public virtual ICollection<Payment> Payments { get; set; } = new List<Payment>();
     }
 }
-

@@ -28,6 +28,8 @@ namespace padelya_api.DTOs.Payment
     public bool LiveMode { get; set; }
     public string Type { get; set; }
     public string UserId { get; set; }
+    public string Resource { get; set; }
+    public string Topic { get; set; }
   }
 
   public class MercadoPagoDataDto

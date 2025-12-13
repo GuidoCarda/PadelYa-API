@@ -10,7 +10,7 @@ namespace padelya_api.DTOs.Product
         [StringLength(1000, ErrorMessage = "La descripción no puede exceder los 1000 caracteres")]
         public string? Description { get; set; }
 
-        [Range(0.01, double.MaxValue, ErrorMessage = "El precio debe ser mayor a 0")]
+        [Range(0, double.MaxValue, ErrorMessage = "El precio no puede ser negativo")]
         public decimal? Price { get; set; }
 
         [Range(0, int.MaxValue, ErrorMessage = "El stock no puede ser negativo")]

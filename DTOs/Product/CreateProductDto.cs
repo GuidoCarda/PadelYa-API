@@ -13,7 +13,7 @@ namespace padelya_api.DTOs.Product
         public string Description { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "El precio es requerido")]
-        [Range(0.01, double.MaxValue, ErrorMessage = "El precio debe ser mayor a 0")]
+        [Range(0, double.MaxValue, ErrorMessage = "El precio no puede ser negativo")]
         public decimal Price { get; set; }
 
         [Required(ErrorMessage = "El stock inicial es requerido")]

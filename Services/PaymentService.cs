@@ -12,6 +12,7 @@ using System.Text.Json;
 using padelya_api.DTOs.Booking;
 using MercadoPago.Resource.Payment;
 using padelya_api.Services.Email;
+using padelya_api.Services.Ecommerce;
 
 namespace padelya_api.Services
 {
@@ -35,12 +36,14 @@ namespace padelya_api.Services
     private readonly PadelYaDbContext _context;
     private readonly IConfiguration _configuration;
     private readonly IEmailNotificationService _emailNotificationService;
+    private readonly ICartService _cartService;
 
-    public PaymentService(PadelYaDbContext context, IConfiguration configuration, IEmailNotificationService emailNotificationService)
+    public PaymentService(PadelYaDbContext context, IConfiguration configuration, IEmailNotificationService emailNotificationService, ICartService cartService)
     {
       _context = context;
       _configuration = configuration;
       _emailNotificationService = emailNotificationService;
+      _cartService = cartService;
     }
 
     public async Task<PaymentDto> CreatePaymentAsync(CreatePaymentDto dto)
@@ -297,6 +300,16 @@ namespace padelya_api.Services
           throw new Exception("Booking not found");
         }
 
+        // Idempotency check
+        var existingApprovedPayment = await _context.Payments
+             .AnyAsync(p => p.TransactionId == payment.Id.ToString() && p.PaymentStatus == LocalPaymentStatus.Approved);
+
+        if (existingApprovedPayment && payment.Status == MercadoPago.Resource.Payment.PaymentStatus.Approved)
+        {
+             Console.WriteLine($"[Idempotency] Booking Payment {payment.Id} already approved. Skipping.");
+             return;
+        }
+
         // Obtener el complejo para el email
         var complex = await _context.Set<Complex>()
                 .FirstOrDefaultAsync(c => c.Id == booking.CourtSlot.Court.ComplexId);
@@ -402,6 +415,16 @@ namespace padelya_api.Services
           throw new Exception("Lesson enrollment not found");
         }
 
+        // Idempotency check
+        var existingApprovedPayment = await _context.Payments
+             .AnyAsync(p => p.TransactionId == payment.Id.ToString() && p.PaymentStatus == LocalPaymentStatus.Approved);
+
+        if (existingApprovedPayment && payment.Status == MercadoPago.Resource.Payment.PaymentStatus.Approved)
+        {
+             Console.WriteLine($"[Idempotency] Lesson Payment {payment.Id} already approved. Skipping.");
+             return;
+        }
+
         var lessonPrice = enrollment.Lesson.Price;
         var amountPaid = payment.TransactionAmount ?? 0;
 
@@ -472,6 +495,16 @@ namespace padelya_api.Services
         if (enrollment is null)
         {
           throw new Exception("Tournament enrollment not found");
+        }
+
+        // Idempotency check
+        var existingApprovedPayment = await _context.Payments
+             .AnyAsync(p => p.TransactionId == payment.Id.ToString() && p.PaymentStatus == LocalPaymentStatus.Approved);
+
+        if (existingApprovedPayment && payment.Status == MercadoPago.Resource.Payment.PaymentStatus.Approved)
+        {
+             Console.WriteLine($"[Idempotency] Tournament Payment {payment.Id} already approved. Skipping.");
+             return;
         }
 
         var enrollmentPrice = enrollment.Tournament.EnrollmentPrice;
@@ -548,6 +581,16 @@ namespace padelya_api.Services
           throw new Exception("Order not found");
         }
 
+        // Idempotency check: If an approved payment with this TransactionId already exists, do nothing.
+        var existingApprovedPayment = await _context.Payments
+            .AnyAsync(p => p.TransactionId == payment.Id.ToString() && p.PaymentStatus == LocalPaymentStatus.Approved);
+
+        if (existingApprovedPayment && payment.Status == MercadoPago.Resource.Payment.PaymentStatus.Approved)
+        {
+            Console.WriteLine($"[Idempotency] Payment {payment.Id} already approved. Skipping.");
+            return;
+        }
+
         if (payment.Status == MercadoPago.Resource.Payment.PaymentStatus.Approved)
         {
           int personId = order.PersonId;
@@ -597,7 +640,26 @@ namespace padelya_api.Services
 
           await _context.SaveChangesAsync();
           
+          // Clear Cart
+          // Need to find UserId from PersonId
+          var user = await _context.Users.FirstOrDefaultAsync(u => u.PersonId == personId);
+          if (user != null)
+          {
+               await _cartService.ClearCartAsync(user.Id);
+          }
+
           Console.WriteLine($"[Order Payment] Order {orderId} confirmed with payment {payment.Id}");
+        }
+
+        if (payment.Status == MercadoPago.Resource.Payment.PaymentStatus.Pending || 
+            payment.Status == MercadoPago.Resource.Payment.PaymentStatus.InProcess)
+        {
+             // Only if we want to show it to the user now
+             if(order.Status == padelya_api.Constants.OrderStatus.Draft)
+             {
+                 order.Status = padelya_api.Constants.OrderStatus.Pending;
+                 await _context.SaveChangesAsync();
+             }
         }
 
         if (payment.Status == MercadoPago.Resource.Payment.PaymentStatus.Rejected)

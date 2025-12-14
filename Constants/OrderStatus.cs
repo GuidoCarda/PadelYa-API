@@ -2,7 +2,8 @@ namespace padelya_api.Constants
 {
     public enum OrderStatus
     {
-        Pending,         // Pendiente de pago
+        Draft = -1,      // Borrador (invisible al usuario)
+        Pending = 0,     // Pendiente de pago
         Paid,            // Pagado
         Progress,        // En proceso (Preparation)
         PickUp,          // Listo para retirar

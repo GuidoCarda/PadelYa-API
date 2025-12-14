@@ -21,7 +21,7 @@ namespace padelya_api.Services.Order
             var orders = await _context.Orders
                 .Include(o => o.OrderItems)
                 .ThenInclude(oi => oi.Product)
-                .Where(o => o.PersonId == personId)
+                .Where(o => o.PersonId == personId && o.Status != OrderStatus.Draft)
                 .OrderByDescending(o => o.CreatedAt)
                 .Select(o => new OrderDto
                 {
@@ -79,7 +79,7 @@ namespace padelya_api.Services.Order
             {
                 PersonId = checkoutDto.PersonId,
                 TotalAmount = totalAmount,
-                Status = OrderStatus.Pending,
+                Status = OrderStatus.Draft,
                 OrderItems = orderItems
             };
 

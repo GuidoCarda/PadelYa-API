@@ -56,6 +56,12 @@ namespace padelya_api.Models.Ecommerce
             _currentState.AdvanceState(this);
         }
 
+        public void UpdateStatus(OrderStatus newStatus)
+        {
+            Status = newStatus;
+            _currentState = GetStateFromStatus(Status);
+        }
+
         public string GetStatusName()
         {
              if (_currentState == null) _currentState = GetStateFromStatus(Status);

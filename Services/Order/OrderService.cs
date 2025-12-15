@@ -21,6 +21,7 @@ namespace padelya_api.Services.Order
             var orders = await _context.Orders
                 .Include(o => o.OrderItems)
                 .ThenInclude(oi => oi.Product)
+                .ThenInclude(p => p.Images)
                 .Where(o => o.PersonId == personId && o.Status != OrderStatus.Draft)
                 .OrderByDescending(o => o.CreatedAt)
                 .Select(o => new OrderDto
@@ -34,7 +35,9 @@ namespace padelya_api.Services.Order
                     {
                         ProductId = oi.ProductId,
                         ProductName = oi.Product.Name,
-                        ProductImage = oi.Product.ImageUrl,
+                        ProductImage = oi.Product.Images.Where(i => i.IsPrimary).Select(i => i.ImageUrl).FirstOrDefault() 
+                                       ?? oi.Product.Images.OrderBy(i => i.DisplayOrder).Select(i => i.ImageUrl).FirstOrDefault() 
+                                       ?? oi.Product.ImageUrl,
                         Quantity = oi.Quantity,
                         UnitPrice = oi.UnitPrice,
                         Subtotal = oi.Subtotal
@@ -43,6 +46,96 @@ namespace padelya_api.Services.Order
                 .ToListAsync();
 
             return orders;
+        }
+
+        public async Task<List<OrderAdminDto>> GetAllOrdersAsync()
+        {
+            var orders = await _context.Orders
+                .Include(o => o.Person)
+                .Include(o => o.OrderItems)
+                .ThenInclude(oi => oi.Product)
+                .ThenInclude(p => p.Images)
+                .Where(o => o.Status != OrderStatus.Draft)
+                .OrderByDescending(o => o.CreatedAt)
+                .Select(o => new OrderAdminDto
+                {
+                    Id = o.Id,
+                    CreatedAt = o.CreatedAt,
+                    TotalAmount = o.TotalAmount,
+                    Status = o.Status,
+                    PreferenceId = o.PreferenceId,
+                    PersonId = o.PersonId,
+                    // Intentamos obtener datos del usuario desde Person. 
+                    // Nota: Person puede no tener User si es una relación diferente, pero User tiene PersonId.
+                    // Si Person tiene Name/Surname/Email directos, usarlos.
+                    CustomerName = o.Person.Name, 
+                    CustomerSurname = o.Person.Surname,
+                    CustomerEmail = o.Person.Email,
+                    Items = o.OrderItems.Select(oi => new OrderItemDto
+                    {
+                        ProductId = oi.ProductId,
+                        ProductName = oi.Product.Name,
+                        ProductImage = oi.Product.Images.Where(i => i.IsPrimary).Select(i => i.ImageUrl).FirstOrDefault() 
+                                       ?? oi.Product.Images.OrderBy(i => i.DisplayOrder).Select(i => i.ImageUrl).FirstOrDefault() 
+                                       ?? oi.Product.ImageUrl,
+                        Quantity = oi.Quantity,
+                        UnitPrice = oi.UnitPrice,
+                        Subtotal = oi.Subtotal
+                    }).ToList()
+                })
+                .ToListAsync();
+
+            return orders;
+        }
+
+        public async Task<bool> UpdateOrderStatusAsync(int orderId, OrderStatus newStatus)
+        {
+            var order = await _context.Orders.FindAsync(orderId);
+            
+            if (order == null)
+                return false;
+
+            order.UpdateStatus(newStatus);
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+
+
+        public async Task<OrderAdminDto?> GetOrderByIdAsync(int orderId)
+        {
+            var order = await _context.Orders
+                .Include(o => o.Person)
+                .Include(o => o.OrderItems)
+                .ThenInclude(oi => oi.Product)
+                .ThenInclude(p => p.Images)
+                .FirstOrDefaultAsync(o => o.Id == orderId);
+
+            if (order == null) return null;
+
+            return new OrderAdminDto
+            {
+                Id = order.Id,
+                CreatedAt = order.CreatedAt,
+                TotalAmount = order.TotalAmount,
+                Status = order.Status,
+                PreferenceId = order.PreferenceId,
+                PersonId = order.PersonId,
+                CustomerName = order.Person.Name,
+                CustomerSurname = order.Person.Surname,
+                CustomerEmail = order.Person.Email,
+                Items = order.OrderItems.Select(oi => new OrderItemDto
+                {
+                    ProductId = oi.ProductId,
+                    ProductName = oi.Product.Name,
+                    ProductImage = oi.Product.Images.Where(i => i.IsPrimary).Select(i => i.ImageUrl).FirstOrDefault() 
+                                   ?? oi.Product.Images.OrderBy(i => i.DisplayOrder).Select(i => i.ImageUrl).FirstOrDefault() 
+                                   ?? oi.Product.ImageUrl,
+                    Quantity = oi.Quantity,
+                    UnitPrice = oi.UnitPrice,
+                    Subtotal = oi.Subtotal
+                }).ToList()
+            };
         }
 
         public async Task<(Models.Ecommerce.Order Order, string PreferenceId, string InitPoint)> CreateOrderAsync(CheckoutDto checkoutDto)

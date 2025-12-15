@@ -46,5 +46,58 @@ namespace padelya_api.Controllers
                 return BadRequest(new { message = ex.Message });
             }
         }
+
+        [HttpGet("admin/all")]
+        [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Administrador,Admin")] // Soporte para ambos nombres comunes, o usar Policy
+        public async Task<ActionResult<List<OrderAdminDto>>> GetAllOrders()
+        {
+            try 
+            {
+                // Alternativa de seguridad: Verificar permiso específico si existe política
+                // if (!User.HasClaim("permissions", Permissions.Order.ViewAll)) return Forbid();
+
+                var orders = await _orderService.GetAllOrdersAsync();
+                return Ok(orders);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+
+
+        [HttpGet("admin/{id}")]
+        [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Administrador,Admin")]
+        public async Task<ActionResult<OrderAdminDto>> GetOrderById(int id)
+        {
+            try
+            {
+                var order = await _orderService.GetOrderByIdAsync(id);
+                if (order == null) return NotFound(new { message = "Pedido no encontrado" });
+                return Ok(order);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [HttpPut("admin/{id}/status")]
+        [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Administrador,Admin")]
+        public async Task<IActionResult> UpdateOrderStatus(int id, [FromBody] UpdateOrderStatusDto statusDto)
+        {
+            try
+            {
+                var result = await _orderService.UpdateOrderStatusAsync(id, statusDto.Status);
+                if (!result) return NotFound(new { message = "Pedido no encontrado" });
+                
+                return Ok(new { message = "Estado actualizado correctamente" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
     }
 }

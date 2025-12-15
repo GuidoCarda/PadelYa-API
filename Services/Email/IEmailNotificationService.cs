@@ -33,6 +33,14 @@ public interface IEmailNotificationService
   /// </summary>
   Task SendBookingCancellationAsync(Booking booking, string? cancellationReason);
 
+  // ========== Challenge ==========
+
+  /// <summary>
+  /// Envía email de confirmación de desafío agendado.
+  /// </summary>
+  Task SendChallengeScheduledAsync(string email, string userName, string opponentNames,
+      DateTime date, TimeOnly startTime, TimeOnly endTime, string courtName, int challengeId);
+
   // ========== Ecommerce ==========
 
   /// <summary>

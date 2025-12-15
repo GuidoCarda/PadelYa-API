@@ -15,6 +15,9 @@ namespace padelya_api.Models.Challenge
         public DateTime? RespondedAt { get; set; }
         public DateTime? PlayedAt { get; set; }
 
+        public int? BookingId { get; set; }
+        public Booking? Booking { get; set; }
+
         public int? WinnerPlayerId { get; set; }
         public int? WinnerPartnerPlayerId { get; set; }
 

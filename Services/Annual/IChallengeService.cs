@@ -20,6 +20,10 @@ namespace padelya_api.Services.Annual
         Task<ChallengeDto> ValidateWithDetailsAsync(int id, RegisterChallengeResultDto dto, int? adminUserId = null);
         Task<List<ChallengeDto>> GetChallengesRequiringValidationAsync();
         Task<List<ChallengeDto>> GetAllChallengesAsync(int? year = null);
+        Task<Challenge> ScheduleAsync(int id, ScheduleChallengeDto dto);
+        Task<ChallengeDto> ScheduleWithDetailsAsync(int id, ScheduleChallengeDto dto);
+        Task<Challenge> AdminRejectAsync(int id);
+        Task<Challenge> AdminCancelAsync(int id, string? reason = null);
     }
 }
 

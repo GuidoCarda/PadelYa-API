@@ -7,6 +7,7 @@ using padelya_api.Services.Notification;
 using padelya_api.Models.Notification;
 using padelya_api.Models;
 using padelya_api.Services.Annual.Scoring;
+using padelya_api.Services.Email;
 
 namespace padelya_api.Services.Annual
 {
@@ -16,13 +17,23 @@ namespace padelya_api.Services.Annual
         private readonly IAnnualTableService _annualService;
         private readonly INotificationService _notification;
         private readonly IScoringService _scoringService;
+        private readonly IBookingService _bookingService;
+        private readonly IEmailNotificationService _emailNotificationService;
 
-        public ChallengeService(PadelYaDbContext context, IAnnualTableService annualService, INotificationService notification, IScoringService scoringService)
+        public ChallengeService(
+            PadelYaDbContext context,
+            IAnnualTableService annualService,
+            INotificationService notification,
+            IScoringService scoringService,
+            IBookingService bookingService,
+            IEmailNotificationService emailNotificationService)
         {
             _context = context;
             _annualService = annualService;
             _notification = notification;
             _scoringService = scoringService;
+            _bookingService = bookingService;
+            _emailNotificationService = emailNotificationService;
         }
 
         public async Task<Challenge> CreateAsync(int year, CreateChallengeDto dto)
@@ -59,12 +70,17 @@ namespace padelya_api.Services.Annual
                 .Where(e => e.AnnualTable.Year == year)
                 .ToListAsync();
 
-            int requesterPoints = ranking.FirstOrDefault(r => r.PlayerId == dto.RequesterPlayerId)?.PointsTotal ?? 0;
-            int targetPoints = ranking.FirstOrDefault(r => r.PlayerId == dto.TargetPlayerId)?.PointsTotal ?? 0;
+            int requesterPlayerPoints = ranking.FirstOrDefault(r => r.PlayerId == dto.RequesterPlayerId)?.PointsTotal ?? 0;
+            int requesterPartnerPoints = ranking.FirstOrDefault(r => r.PlayerId == dto.RequesterPartnerPlayerId)?.PointsTotal ?? 0;
+            int targetPlayerPoints = ranking.FirstOrDefault(r => r.PlayerId == dto.TargetPlayerId)?.PointsTotal ?? 0;
+            int targetPartnerPoints = ranking.FirstOrDefault(r => r.PlayerId == dto.TargetPartnerPlayerId)?.PointsTotal ?? 0;
 
-            if (Math.Abs(requesterPoints - targetPoints) > 100)
+            int requesterPairPoints = requesterPlayerPoints + requesterPartnerPoints;
+            int targetPairPoints = targetPlayerPoints + targetPartnerPoints;
+
+            if (Math.Abs(requesterPairPoints - targetPairPoints) > 100)
             {
-                throw new InvalidOperationException("La diferencia de puntos entre las parejas supera los 100.");
+                throw new InvalidOperationException($"La diferencia de puntos entre las parejas ({Math.Abs(requesterPairPoints - targetPairPoints)}) supera los 100.");
             }
 
             var challenge = new Challenge
@@ -74,8 +90,8 @@ namespace padelya_api.Services.Annual
                 RequesterPartnerPlayerId = dto.RequesterPartnerPlayerId,
                 TargetPlayerId = dto.TargetPlayerId,
                 TargetPartnerPlayerId = dto.TargetPartnerPlayerId,
-                RequesterPointsAtCreation = requesterPoints,
-                TargetPointsAtCreation = targetPoints
+                RequesterPointsAtCreation = requesterPairPoints,
+                TargetPointsAtCreation = targetPairPoints
             };
 
             _context.Add(challenge);
@@ -102,7 +118,7 @@ namespace padelya_api.Services.Annual
             {
                 throw new InvalidOperationException("El desafío ya fue respondido.");
             }
-            challenge.Status = accept ? ChallengeStatus.Accepted : ChallengeStatus.Rejected;
+            challenge.Status = accept ? ChallengeStatus.PendingAdminApproval : ChallengeStatus.Rejected;
             challenge.RespondedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
 
@@ -369,12 +385,22 @@ namespace padelya_api.Services.Annual
             var requesterPartnerUser = users.FirstOrDefault(u => u.PersonId == challenge.RequesterPartnerPlayerId);
             var targetUser = users.FirstOrDefault(u => u.PersonId == challenge.TargetPlayerId);
             var targetPartnerUser = users.FirstOrDefault(u => u.PersonId == challenge.TargetPartnerPlayerId);
-            var winnerUser = challenge.WinnerPlayerId.HasValue 
-                ? users.FirstOrDefault(u => u.PersonId == challenge.WinnerPlayerId.Value) 
+            var winnerUser = challenge.WinnerPlayerId.HasValue
+                ? users.FirstOrDefault(u => u.PersonId == challenge.WinnerPlayerId.Value)
                 : null;
-            var winnerPartnerUser = challenge.WinnerPartnerPlayerId.HasValue 
-                ? users.FirstOrDefault(u => u.PersonId == challenge.WinnerPartnerPlayerId.Value) 
+            var winnerPartnerUser = challenge.WinnerPartnerPlayerId.HasValue
+                ? users.FirstOrDefault(u => u.PersonId == challenge.WinnerPartnerPlayerId.Value)
                 : null;
+
+            // Información de agenda (booking/court) si existe una reserva asociada
+            Models.Booking? booking = null;
+            if (challenge.BookingId.HasValue)
+            {
+                booking = await _context.Bookings
+                    .Include(b => b.CourtSlot)
+                        .ThenInclude(cs => cs.Court)
+                    .FirstOrDefaultAsync(b => b.Id == challenge.BookingId.Value);
+            }
 
             return new ChallengeDto
             {
@@ -406,7 +432,14 @@ namespace padelya_api.Services.Annual
                 PointsAwardedPerPlayer = challenge.PointsAwardedPerPlayer,
                 ValidatedByAdminUserId = challenge.ValidatedByAdminUserId,
                 ValidatedAt = challenge.ValidatedAt,
-                RequiresValidation = challenge.Status == ChallengeStatus.Played && !challenge.ValidatedAt.HasValue
+                RequiresValidation = challenge.Status == ChallengeStatus.Played && !challenge.ValidatedAt.HasValue,
+
+                BookingId = challenge.BookingId,
+                CourtId = booking?.CourtSlot.CourtId,
+                CourtName = booking?.CourtSlot.Court.Name,
+                ScheduledDate = booking?.CourtSlot.Date,
+                ScheduledStartTime = booking?.CourtSlot.StartTime,
+                ScheduledEndTime = booking?.CourtSlot.EndTime
             };
         }
 
@@ -495,6 +528,157 @@ namespace padelya_api.Services.Annual
                 result.Add(await MapChallengeToDtoAsync(challenge));
             }
             return result;
+        }
+        public async Task<Challenge> ScheduleAsync(int id, ScheduleChallengeDto dto)
+        {
+            var challenge = await _context.Set<Challenge>().FindAsync(id)
+                ?? throw new KeyNotFoundException("Desafío no encontrado");
+
+            if (challenge.Status != ChallengeStatus.PendingAdminApproval)
+            {
+                throw new InvalidOperationException("El desafío no está pendiente de aprobación por admin.");
+            }
+
+            // Crear reserva admin reutilizando la lógica de slots disponibles
+            var bookingDto = new padelya_api.DTOs.Booking.BookingCreateDto
+            {
+                CourtId = dto.CourtId,
+                Date = dto.Date,
+                StartTime = dto.StartTime,
+                PersonId = challenge.RequesterPlayerId, // Asignar al player 1 por defecto
+                PaymentType = padelya_api.Constants.PaymentType.Total,
+                PaymentMethod = "Challenge"
+            };
+
+            var bookingResponse = await _bookingService.CreateAdminBookingAsync(bookingDto);
+            
+            challenge.BookingId = bookingResponse.Booking.Id;
+            challenge.Status = ChallengeStatus.Scheduled;
+
+            await _context.SaveChangesAsync();
+
+            // Obtener información para notificaciones y emails
+            var players = new[] { challenge.RequesterPlayerId, challenge.RequesterPartnerPlayerId, challenge.TargetPlayerId, challenge.TargetPartnerPlayerId };
+            var users = await _context.Users
+                .Where(u => u.PersonId.HasValue && players.Contains(u.PersonId.Value))
+                .ToListAsync();
+
+            var court = await _context.Courts.FindAsync(dto.CourtId)
+                ?? throw new InvalidOperationException("Cancha no encontrada para el desafío.");
+
+            var endTime = dto.StartTime.AddMinutes(90);
+
+            // Armar nombres de rivales para el correo
+            var requesterUser = users.FirstOrDefault(u => u.PersonId == challenge.RequesterPlayerId);
+            var requesterPartnerUser = users.FirstOrDefault(u => u.PersonId == challenge.RequesterPartnerPlayerId);
+            var targetUser = users.FirstOrDefault(u => u.PersonId == challenge.TargetPlayerId);
+            var targetPartnerUser = users.FirstOrDefault(u => u.PersonId == challenge.TargetPartnerPlayerId);
+
+            var requesterPairName = $"{requesterUser?.Name} {requesterUser?.Surname} / {requesterPartnerUser?.Name} {requesterPartnerUser?.Surname}";
+            var targetPairName = $"{targetUser?.Name} {targetUser?.Surname} / {targetPartnerUser?.Name} {targetPartnerUser?.Surname}";
+            var opponentNames = $"{requesterPairName} vs {targetPairName}";
+
+            foreach (var user in users)
+            {
+                // Notificación in-app existente
+                await _notification.SendAsync(user.Id, NotificationType.ChallengeScheduled, new { challengeId = challenge.Id, date = dto.Date, time = dto.StartTime });
+
+                // Notificación por email similar a reservas
+                if (!string.IsNullOrWhiteSpace(user.Email))
+                {
+                    await _emailNotificationService.SendChallengeScheduledAsync(
+                        email: user.Email,
+                        userName: user.Name,
+                        opponentNames: opponentNames,
+                        date: dto.Date,
+                        startTime: dto.StartTime,
+                        endTime: endTime,
+                        courtName: court.Name,
+                        challengeId: challenge.Id);
+                }
+            }
+
+            return challenge;
+        }
+
+        public async Task<ChallengeDto> ScheduleWithDetailsAsync(int id, ScheduleChallengeDto dto)
+        {
+            var challenge = await ScheduleAsync(id, dto);
+            return await MapChallengeToDtoAsync(challenge);
+        }
+        public async Task<Challenge> AdminRejectAsync(int id)
+        {
+            var challenge = await _context.Set<Challenge>().FindAsync(id)
+                ?? throw new KeyNotFoundException("Desafío no encontrado");
+
+            if (challenge.Status != ChallengeStatus.PendingAdminApproval)
+            {
+                throw new InvalidOperationException("El desafío no está pendiente de aprobación por admin.");
+            }
+
+            challenge.Status = ChallengeStatus.Rejected;
+            challenge.RespondedAt = DateTime.UtcNow; // Or maybe a specific AdminActionAt?
+            await _context.SaveChangesAsync();
+
+            // Notify players
+            var players = new[] { challenge.RequesterPlayerId, challenge.RequesterPartnerPlayerId, challenge.TargetPlayerId, challenge.TargetPartnerPlayerId };
+            var users = await _context.Users
+                .Where(u => u.PersonId.HasValue && players.Contains(u.PersonId.Value))
+                .Select(u => u.Id)
+                .ToListAsync();
+
+            foreach (var userId in users)
+            {
+                await _notification.SendAsync(userId, NotificationType.ChallengeRejected, new { challengeId = challenge.Id, byAdmin = true });
+            }
+
+            return challenge;
+        }
+
+        public async Task<Challenge> AdminCancelAsync(int id, string? reason = null)
+        {
+            var challenge = await _context.Set<Challenge>().FindAsync(id)
+                ?? throw new KeyNotFoundException("Desafío no encontrado");
+
+            if (challenge.Status != ChallengeStatus.Scheduled &&
+                challenge.Status != ChallengeStatus.PendingAdminApproval &&
+                challenge.Status != ChallengeStatus.Accepted)
+            {
+                throw new InvalidOperationException("Solo se pueden cancelar desafíos aceptados o agendados.");
+            }
+
+            // Cancelar booking asociado (si existe) reutilizando la lógica de reservas
+            if (challenge.BookingId.HasValue)
+            {
+                await _bookingService.CancelAsync(
+                    challenge.BookingId.Value,
+                    new padelya_api.DTOs.Booking.CancelBookingDto
+                    {
+                        CancelledBy = "admin",
+                        Reason = reason ?? "Desafío cancelado por el administrador."
+                    });
+            }
+
+            challenge.Status = ChallengeStatus.Cancelled;
+            challenge.RespondedAt ??= DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+
+            // Notificar a todos los jugadores
+            var players = new[] { challenge.RequesterPlayerId, challenge.RequesterPartnerPlayerId, challenge.TargetPlayerId, challenge.TargetPartnerPlayerId };
+            var users = await _context.Users
+                .Where(u => u.PersonId.HasValue && players.Contains(u.PersonId.Value))
+                .Select(u => u.Id)
+                .ToListAsync();
+
+            foreach (var userId in users)
+            {
+                await _notification.SendAsync(
+                    userId,
+                    NotificationType.ChallengeCancelled,
+                    new { challengeId = challenge.Id, reason });
+            }
+
+            return challenge;
         }
     }
 }

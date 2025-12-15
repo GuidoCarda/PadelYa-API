@@ -121,6 +121,81 @@ namespace padelya_api.Controllers
                 return BadRequest(new { message = ex.Message });
             }
         }
+
+        [HttpPost("{id}/schedule")]
+        [Microsoft.AspNetCore.Authorization.Authorize]
+        [padelya_api.Attributes.RequirePermission("ranking:manage")]
+        public async Task<IActionResult> Schedule(int id, [FromBody] ScheduleChallengeDto dto)
+        {
+            try
+            {
+                var c = await _service.ScheduleWithDetailsAsync(id, dto);
+                return Ok(c);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                 // Catch booking errors
+                 return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [HttpPost("{id}/admin-reject")]
+        [Microsoft.AspNetCore.Authorization.Authorize]
+        [padelya_api.Attributes.RequirePermission("ranking:manage")]
+        public async Task<IActionResult> AdminReject(int id)
+        {
+            try
+            {
+                var c = await _service.AdminRejectAsync(id);
+                return Ok(c);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [HttpPost("{id}/admin-cancel")]
+        [Microsoft.AspNetCore.Authorization.Authorize]
+        [padelya_api.Attributes.RequirePermission("ranking:manage")]
+        public async Task<IActionResult> AdminCancel(int id, [FromBody] dynamic body)
+        {
+            try
+            {
+                string? reason = null;
+                try
+                {
+                    reason = (string?)body?.reason;
+                }
+                catch
+                {
+                    // Ignorar errores de binding de reason, se usará el default en el servicio
+                }
+
+                var c = await _service.AdminCancelAsync(id, reason);
+                return Ok(c);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
     }
 }
 

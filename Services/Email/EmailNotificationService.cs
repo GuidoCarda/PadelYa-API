@@ -2,6 +2,7 @@ using padelya_api.Models;
 using padelya_api.Models.Repair;
 using padelya_api.Services.Email.Templates.Auth;
 using padelya_api.Services.Email.Templates.Booking;
+using padelya_api.Services.Email.Templates.Challenge;
 using padelya_api.Services.Email.Templates.Ecommerce;
 using padelya_api.Services.Email.Templates.Repair;
 
@@ -115,6 +116,42 @@ public class EmailNotificationService : IEmailNotificationService
     {
       _logger.LogError(ex, "Error enviando email de cancelación de reserva a {Email}", booking.Person.Email);
       // No relanzamos la excepción para no afectar el flujo de cancelación
+    }
+  }
+
+  // ========== Challenge ==========
+
+  public async Task SendChallengeScheduledAsync(
+      string email,
+      string userName,
+      string opponentNames,
+      DateTime date,
+      TimeOnly startTime,
+      TimeOnly endTime,
+      string courtName,
+      int challengeId)
+  {
+    try
+    {
+      var template = new ChallengeScheduledTemplate();
+      var data = new ChallengeScheduledData(
+          UserName: userName,
+          OpponentNames: opponentNames,
+          Date: date,
+          StartTime: startTime.ToTimeSpan(),
+          EndTime: endTime.ToTimeSpan(),
+          CourtName: courtName,
+          ChallengeCode: $"CHL-{challengeId:D6}"
+      );
+
+      await _emailService.SendTemplatedEmailAsync(email, template, data);
+      _logger.LogInformation("Email de confirmación de desafío enviado a {Email} para desafío {ChallengeId}",
+          email, challengeId);
+    }
+    catch (Exception ex)
+    {
+      _logger.LogError(ex, "Error enviando email de confirmación de desafío a {Email}", email);
+      // No relanzamos para no romper el flujo de agenda del desafío
     }
   }
 

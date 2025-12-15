@@ -33,6 +33,14 @@ namespace padelya_api.DTOs.Challenge
         public int? ValidatedByAdminUserId { get; set; }
         public DateTime? ValidatedAt { get; set; }
         public bool RequiresValidation { get; set; }
+
+        // Información de agenda (cuando el desafío ya tiene turno asignado)
+        public int? BookingId { get; set; }
+        public int? CourtId { get; set; }
+        public string? CourtName { get; set; }
+        public DateTime? ScheduledDate { get; set; }
+        public TimeOnly? ScheduledStartTime { get; set; }
+        public TimeOnly? ScheduledEndTime { get; set; }
     }
 }
 

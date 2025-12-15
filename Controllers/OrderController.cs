@@ -91,7 +91,10 @@ namespace padelya_api.Controllers
         {
             try
             {
-                var result = await _orderService.UpdateOrderStatusAsync(id, statusDto.Status);
+                var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == "user_id");
+                int? userId = userIdClaim != null && int.TryParse(userIdClaim.Value, out int uid) ? uid : null;
+
+                var result = await _orderService.UpdateOrderStatusAsync(id, statusDto.Status, userId, "Status updated by admin via API");
                 if (!result) return NotFound(new { message = "Pedido no encontrado" });
                 
                 return Ok(new { message = "Estado actualizado correctamente" });

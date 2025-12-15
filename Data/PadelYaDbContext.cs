@@ -83,6 +83,7 @@ namespace padelya_api.Data
     public DbSet<ProductImage> ProductImages { get; set; }
     public DbSet<Order> Orders { get; set; }
     public DbSet<OrderItem> OrderItems { get; set; }
+    public DbSet<OrderAuditLog> OrderAuditLogs { get; set; }
     
     // Cart
     public DbSet<Cart> Carts { get; set; }

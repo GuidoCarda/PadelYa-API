@@ -91,16 +91,43 @@ namespace padelya_api.Services.Order
             return orders;
         }
 
-        public async Task<bool> UpdateOrderStatusAsync(int orderId, OrderStatus newStatus)
+        public async Task<bool> UpdateOrderStatusAsync(int orderId, OrderStatus newStatus, int? userId = null, string? changeDetails = null)
         {
             var order = await _context.Orders.FindAsync(orderId);
             
             if (order == null)
                 return false;
 
+            var oldStatus = order.Status;
+            
+            if (oldStatus == newStatus)
+                return true;
+
             order.UpdateStatus(newStatus);
+
+            await LogAuditAsync(order, userId, "UpdateStatus", oldStatus.ToString(), newStatus.ToString(), changeDetails);
+
             await _context.SaveChangesAsync();
             return true;
+        }
+
+        private async Task LogAuditAsync(Models.Ecommerce.Order order, int? userId, string action, string? oldStatus = null, string? newStatus = null, string? changeDetails = null)
+        {
+            var audit = new OrderAuditLog
+            {
+                OrderId = order.Id,
+                UserId = userId,
+                Action = action,
+                TimeStamp = DateTime.UtcNow,
+                OldStatus = oldStatus,
+                NewStatus = newStatus,
+                ChangeDetails = changeDetails
+            };
+
+            _context.OrderAuditLogs.Add(audit);
+            // SaveChangesAsync is usually called by the caller (e.g. UpdateOrderStatusAsync), 
+            // but for CreateOrderAsync we might want to ensure it's saved.
+            // Since we are adding to the context, it will be saved when _context.SaveChangesAsync() is called.
         }
 
 
@@ -182,6 +209,10 @@ namespace padelya_api.Services.Order
             };
 
             _context.Orders.Add(order);
+            await _context.SaveChangesAsync();
+
+            // Audit Creation
+            await LogAuditAsync(order, checkoutDto.PersonId, "Create", null, "Draft", "Order created via checkout");
             await _context.SaveChangesAsync();
 
             // 3. Create Mercado Pago Preference

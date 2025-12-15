@@ -1,4 +1,5 @@
 using System;
+using padelya_api.Models;
 
 namespace padelya_api.Models.Annual
 {
@@ -9,6 +10,7 @@ namespace padelya_api.Models.Annual
         public AnnualTable AnnualTable { get; set; }
 
         public int PlayerId { get; set; }
+        public Person Player { get; set; }
 
         public int PointsTotal { get; set; }
         public int Wins { get; set; }

@@ -394,6 +394,13 @@ namespace padelya_api.Data
               .OnDelete(DeleteBehavior.Cascade)
       );
 
+      // RANKINGENTRY - PERSON (Many-to-One)
+      modelBuilder.Entity<RankingEntry>()
+          .HasOne(e => e.Player)
+          .WithMany()
+          .HasForeignKey(e => e.PlayerId)
+          .OnDelete(DeleteBehavior.Restrict);
+
       // ROUTINE - EXERCISE (Many-to-Many)
       modelBuilder.Entity<Routine>()
           .HasMany(r => r.Exercises)

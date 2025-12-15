@@ -35,7 +35,6 @@ namespace padelya_api.Services.Annual
                 {
                     new ScoringRule { AnnualTableId = table.Id, Source = ScoringSource.Challenge, BasePoints = 20, Multiplier = 1.0f, MaxPoints = null, IsActive = true, ConfigurationJson = defaultChallengeConfig },
                     new ScoringRule { AnnualTableId = table.Id, Source = ScoringSource.Tournament, BasePoints = 50, Multiplier = 1.0f, MaxPoints = null, IsActive = true, ConfigurationJson = defaultTournamentConfig },
-                    new ScoringRule { AnnualTableId = table.Id, Source = ScoringSource.Class, BasePoints = 5, Multiplier = 1.0f, MaxPoints = 10, IsActive = true },
                     new ScoringRule { AnnualTableId = table.Id, Source = ScoringSource.MatchWin, BasePoints = 10, Multiplier = 1.0f, MaxPoints = null, IsActive = true },
                     new ScoringRule { AnnualTableId = table.Id, Source = ScoringSource.MatchLoss, BasePoints = 2, Multiplier = 1.0f, MaxPoints = null, IsActive = true },
                 };
@@ -301,9 +300,6 @@ namespace padelya_api.Services.Annual
                     entry.PointsFromChallenges += points;
                     if (isWin) entry.Wins++; else entry.Losses++;
                     break;
-                case ScoringSource.Class:
-                    entry.PointsFromClasses += points;
-                    break;
                 case ScoringSource.MatchWin:
                     entry.PointsFromMatchWins += points;
                     entry.Wins++;
@@ -341,7 +337,6 @@ namespace padelya_api.Services.Annual
             {
                 ScoringSource.Challenge => "ChallengeScoringStrategy",
                 ScoringSource.Tournament => "TournamentScoringStrategy",
-                ScoringSource.Class => "ClassScoringStrategy",
                 ScoringSource.MatchWin => "MatchWinScoringStrategy",
                 ScoringSource.MatchLoss => "MatchLossScoringStrategy",
                 _ => "UnknownStrategy"

@@ -11,6 +11,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Text.Json;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace padelya_api.Services
 {
@@ -18,11 +19,13 @@ namespace padelya_api.Services
     {
         private readonly PadelYaDbContext _context;
         private readonly IAnnualTableService _annualTableService;
+        private readonly IServiceScopeFactory _serviceScopeFactory;
 
-        public MatchResultService(PadelYaDbContext context, IAnnualTableService annualTableService)
+        public MatchResultService(PadelYaDbContext context, IAnnualTableService annualTableService, IServiceScopeFactory serviceScopeFactory)
         {
             _context = context;
             _annualTableService = annualTableService;
+            _serviceScopeFactory = serviceScopeFactory;
         }
 
         public async Task<MatchResultResponseDto> RegisterMatchResultAsync(RegisterMatchResultDto resultDto)
@@ -210,8 +213,27 @@ namespace padelya_api.Services
                 tournament.CurrentPhase = "Finalizado";
                 await _context.SaveChangesAsync();
                 
-                // Award annual table points based on tournament placements
-                await AwardTournamentPointsAsync(tournament.Id);
+                // Award annual table points based on tournament placements in background
+                // This prevents HTTP timeout while still ensuring points are awarded
+                var tournamentId = tournament.Id;
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        // Create a new scope to avoid DbContext threading issues
+                        using var scope = _serviceScopeFactory.CreateScope();
+                        var annualTableService = scope.ServiceProvider.GetRequiredService<IAnnualTableService>();
+                        var context = scope.ServiceProvider.GetRequiredService<PadelYaDbContext>();
+                        
+                        await AwardTournamentPointsInternalAsync(tournamentId, context, annualTableService);
+                    }
+                    catch (Exception ex)
+                    {
+                        // Log error but don't fail tournament finalization
+                        Console.WriteLine($"Error awarding tournament points in background: {ex.Message}");
+                        Console.WriteLine($"Stack trace: {ex.StackTrace}");
+                    }
+                });
                 
                 return false;
             }
@@ -288,12 +310,12 @@ namespace padelya_api.Services
             return "Pareja sin nombre";
         }
 
-        private async Task AwardTournamentPointsAsync(int tournamentId)
+        private async Task AwardTournamentPointsInternalAsync(int tournamentId, PadelYaDbContext context, IAnnualTableService annualTableService)
         {
             try
             {
                 // Get tournament with all necessary data
-                var tournament = await _context.Tournaments
+                var tournament = await context.Tournaments
                     .Include(t => t.Enrollments)
                         .ThenInclude(e => e.Couple)
                             .ThenInclude(c => c.Players)
@@ -311,7 +333,7 @@ namespace padelya_api.Services
                 var tournamentYear = tournament.TournamentStartDate.Year;
 
                 // Get tournament scoring rules for this year
-                var scoringRules = await _annualTableService.GetScoringRulesAsync(tournamentYear);
+                var scoringRules = await annualTableService.GetScoringRulesAsync(tournamentYear);
                 var tournamentRule = scoringRules.FirstOrDefault(r => r.Source == ScoringSource.Tournament && r.IsActive);
 
                 if (tournamentRule == null)
@@ -369,7 +391,7 @@ namespace padelya_api.Services
                     foreach (var player in enrollment.Couple.Players)
                     {
                         var isWinner = placement == 1;
-                        await _annualTableService.ApplyPointsAsync(
+                        await annualTableService.ApplyPointsAsync(
                             year: tournamentYear,
                             playerId: player.Id,
                             source: ScoringSource.Tournament,

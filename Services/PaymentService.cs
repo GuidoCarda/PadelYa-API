@@ -617,7 +617,11 @@ namespace padelya_api.Services
           };
           _context.Payments.Add(newPayment);
 
-          order.Status = padelya_api.Constants.OrderStatus.Paid;
+          // UPDATE STATUSES SEPARATELY
+          order.PaymentStatus = LocalPaymentStatus.Approved;
+          
+          // If we want to auto-move to Paid (Pagado)
+          order.Status = padelya_api.Constants.OrderStatus.Paid; 
 
           // REDUCE STOCK
           foreach(var item in order.OrderItems)
@@ -631,7 +635,6 @@ namespace padelya_api.Services
                   }
                   else 
                   {
-                      // Warn log: Oversold? Or just ensure it doesn't go negative if we want strict consistency
                       product.Stock = 0; // Prevent negative stock
                       Console.WriteLine($"[WARNING] Order {order.Id} paid but insufficient stock for Product {product.Id}");
                   }
@@ -641,7 +644,6 @@ namespace padelya_api.Services
           await _context.SaveChangesAsync();
           
           // Clear Cart
-          // Need to find UserId from PersonId
           var user = await _context.Users.FirstOrDefaultAsync(u => u.PersonId == personId);
           if (user != null)
           {
@@ -654,7 +656,8 @@ namespace padelya_api.Services
         if (payment.Status == MercadoPago.Resource.Payment.PaymentStatus.Pending || 
             payment.Status == MercadoPago.Resource.Payment.PaymentStatus.InProcess)
         {
-             // Only if we want to show it to the user now
+             order.PaymentStatus = LocalPaymentStatus.Pending;
+
              if(order.Status == padelya_api.Constants.OrderStatus.Draft)
              {
                  order.Status = padelya_api.Constants.OrderStatus.Pending;
@@ -677,7 +680,8 @@ namespace padelya_api.Services
             };
             _context.Payments.Add(newPayment);
 
-            order.Status = padelya_api.Constants.OrderStatus.Cancelled; // Or keep pending? Let's cancel for now. or maybe just log rejection.
+            order.PaymentStatus = LocalPaymentStatus.Rejected;
+            order.Status = padelya_api.Constants.OrderStatus.Cancelled;
             
             await _context.SaveChangesAsync();
             

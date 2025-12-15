@@ -24,6 +24,8 @@ namespace padelya_api.Models.Ecommerce
 
         public OrderStatus Status { get; set; } = OrderStatus.Pending;
 
+        public PaymentStatus PaymentStatus { get; set; } = PaymentStatus.Pending;
+
         // Mercado Pago Preference ID
         public string? PreferenceId { get; set; }
 
@@ -73,6 +75,7 @@ namespace padelya_api.Models.Ecommerce
             return status switch
             {
                 OrderStatus.Pending => new PendingState(),
+                OrderStatus.Paid => new PaidState(),
                 OrderStatus.Progress => new ProgressState(),
                 OrderStatus.PickUp => new PickUpState(),
                 OrderStatus.Success => new SuccessState(),

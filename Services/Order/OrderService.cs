@@ -6,6 +6,7 @@ using padelya_api.Constants;
 using padelya_api.Data;
 using padelya_api.DTOs.Order;
 using padelya_api.Models.Ecommerce;
+using padelya_api.DTOs.Report;
 
 namespace padelya_api.Services.Order
 {
@@ -30,6 +31,7 @@ namespace padelya_api.Services.Order
                     CreatedAt = o.CreatedAt,
                     TotalAmount = o.TotalAmount,
                     Status = o.Status,
+                    PaymentStatus = o.PaymentStatus,
                     PreferenceId = o.PreferenceId,
                     Items = o.OrderItems.Select(oi => new OrderItemDto
                     {
@@ -63,6 +65,7 @@ namespace padelya_api.Services.Order
                     CreatedAt = o.CreatedAt,
                     TotalAmount = o.TotalAmount,
                     Status = o.Status,
+                    PaymentStatus = o.PaymentStatus,
                     PreferenceId = o.PreferenceId,
                     PersonId = o.PersonId,
                     // Intentamos obtener datos del usuario desde Person. 
@@ -119,6 +122,7 @@ namespace padelya_api.Services.Order
                 CreatedAt = order.CreatedAt,
                 TotalAmount = order.TotalAmount,
                 Status = order.Status,
+                PaymentStatus = order.PaymentStatus,
                 PreferenceId = order.PreferenceId,
                 PersonId = order.PersonId,
                 CustomerName = order.Person.Name,
@@ -173,6 +177,7 @@ namespace padelya_api.Services.Order
                 PersonId = checkoutDto.PersonId,
                 TotalAmount = totalAmount,
                 Status = OrderStatus.Draft,
+                PaymentStatus = padelya_api.Constants.PaymentStatus.Pending,
                 OrderItems = orderItems
             };
 
@@ -227,6 +232,90 @@ namespace padelya_api.Services.Order
             Preference preference = await client.CreateAsync(preferenceRequest);
 
             return (preference.Id, preference.InitPoint);
+        }
+
+        public async Task<ReportEcommerceDto> GetEcommerceReportAsync(DateTime startDate, DateTime endDate)
+        {
+            // Normalize dates
+            startDate = startDate.Date;
+            endDate = endDate.Date.AddDays(1).AddTicks(-1);
+
+            var orders = await _context.Orders
+                .Include(o => o.OrderItems)
+                .ThenInclude(oi => oi.Product)
+                .Where(o => o.CreatedAt >= startDate && o.CreatedAt <= endDate && o.Status != OrderStatus.Draft)
+                .ToListAsync();
+
+            var report = new ReportEcommerceDto();
+
+            // 1. General Stats
+            // Only consider completed/valid orders for revenue? 
+            // Usually for reports we might want to see everything except maybe Drafts. 
+            // Let's exclude Cancelled from Revenue calculation but maybe keep them for status distribution.
+            var validOrders = orders.Where(o => o.Status != OrderStatus.Cancelled).ToList();
+
+            report.Statistics.TotalRevenue = validOrders.Sum(o => o.TotalAmount);
+            report.Statistics.TotalOrders = orders.Count; // Total count including cancelled? Or just valid? Let's say Total placed orders.
+            report.Statistics.AverageTicket = report.Statistics.TotalOrders > 0 
+                ? report.Statistics.TotalRevenue / validOrders.Count // Avg of valid orders
+                : 0;
+
+            if (validOrders.Count > 0)
+            {
+                 report.Statistics.AverageTicket = report.Statistics.TotalRevenue / validOrders.Count;
+            }
+
+            // 2. Daily Sales (Revenue & Count)
+            // Group all orders by date
+            var groupedByDate = orders
+                .GroupBy(o => o.CreatedAt.Date)
+                .Select(g => new DailySalesDto
+                {
+                    Date = g.Key,
+                    OrderCount = g.Count(),
+                    // Revenue only from valid orders
+                    Revenue = g.Where(o => o.Status != OrderStatus.Cancelled).Sum(o => o.TotalAmount)
+                })
+                .OrderBy(x => x.Date)
+                .ToList();
+
+            // Fill missing dates? Optional, but good for charts.
+            // For now let's return what we have, frontend can handle gaps or we can fill here.
+            report.DailySales = groupedByDate;
+
+            // 3. Status Distribution
+            var totalOrders = orders.Count;
+            if (totalOrders > 0)
+            {
+                report.StatusDistribution = orders
+                    .GroupBy(o => o.Status)
+                    .Select(g => new StatusDistributionDto
+                    {
+                        Status = g.Key.ToString(),
+                        Count = g.Count(),
+                        Percentage = Math.Round((double)g.Count() / totalOrders * 100, 1)
+                    })
+                    .ToList();
+            }
+
+            // 4. Top Products (by Quantity Sold or Revenue)
+            // We need to flatten ALL OrderItems from valid orders
+            var allItems = validOrders.SelectMany(o => o.OrderItems);
+
+            report.TopProducts = allItems
+                .GroupBy(i => i.ProductId)
+                .Select(g => new TopProductDto
+                {
+                    ProductId = g.Key,
+                    ProductName = g.First().Product.Name, // Assuming Product is included
+                    QuantitySold = g.Sum(i => i.Quantity),
+                    TotalRevenue = g.Sum(i => i.Subtotal)
+                })
+                .OrderByDescending(x => x.QuantitySold)
+                .Take(5)
+                .ToList();
+
+            return report;
         }
     }
 }

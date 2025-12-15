@@ -7,10 +7,5 @@ namespace padelya_api.Constants
     Total, // Pago total
   }
 
-  public enum PaymentStatus
-  {
-    Pending,
-    Approved,
-    Rejected
-  }
+
 }

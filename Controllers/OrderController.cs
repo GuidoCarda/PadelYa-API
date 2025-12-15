@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
 using padelya_api.DTOs.Order;
-using padelya_api.DTOs.Order;
+using padelya_api.DTOs.Report;
 using padelya_api.Services.Order;
 using System.Security.Claims;
+using padelya_api.Attributes;
+using padelya_api.Constants;
 
 namespace padelya_api.Controllers
 {
@@ -93,6 +95,36 @@ namespace padelya_api.Controllers
                 if (!result) return NotFound(new { message = "Pedido no encontrado" });
                 
                 return Ok(new { message = "Estado actualizado correctamente" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [HttpGet("admin/report")]
+        [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Administrador,Admin")]
+        public async Task<ActionResult<ReportEcommerceDto>> GetEcommerceReport([FromQuery] string startDate, [FromQuery] string endDate)
+        {
+            try
+            {
+                if (!DateTime.TryParseExact(startDate, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var parsedStartDate))
+                {
+                    return BadRequest(new { message = "El formato de fecha inicial debe ser YYYY-MM-DD" });
+                }
+
+                if (!DateTime.TryParseExact(endDate, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var parsedEndDate))
+                {
+                    return BadRequest(new { message = "El formato de fecha final debe ser YYYY-MM-DD" });
+                }
+
+                if (parsedStartDate > parsedEndDate)
+                {
+                    return BadRequest(new { message = "La fecha inicial no puede ser mayor a la fecha final" });
+                }
+
+                var report = await _orderService.GetEcommerceReportAsync(parsedStartDate, parsedEndDate);
+                return Ok(report);
             }
             catch (Exception ex)
             {

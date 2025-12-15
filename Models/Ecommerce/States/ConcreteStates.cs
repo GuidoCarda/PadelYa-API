@@ -58,4 +58,15 @@ namespace padelya_api.Models.Ecommerce.States
 
         public string GetStatusName() => "Cancelado";
     }
+    public class PaidState : IOrderState
+    {
+        public void AdvanceState(Order order)
+        {
+            // Paid -> Progress
+            order.Status = OrderStatus.Progress;
+            order.SetState(new ProgressState());
+        }
+
+        public string GetStatusName() => "Pagado";
+    }
 }

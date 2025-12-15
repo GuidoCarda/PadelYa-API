@@ -8,6 +8,7 @@ namespace padelya_api.DTOs.Order
         public DateTime CreatedAt { get; set; }
         public decimal TotalAmount { get; set; }
         public OrderStatus Status { get; set; }
+        public PaymentStatus PaymentStatus { get; set; }
         public string? PreferenceId { get; set; }
         public List<OrderItemDto> Items { get; set; } = new();
     }

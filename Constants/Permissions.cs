@@ -111,5 +111,10 @@ namespace padelya_api.Constants
       public const string Update = "cart:update";
       public const string View = "cart:view";
     }
+
+    public static class Report
+    {
+      public const string View = "report:view";
+    }
   }
 }

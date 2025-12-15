@@ -24,8 +24,17 @@ namespace padelya_api.DTOs.Annual
         public int TotalPlayers { get; set; }
         public int ActivePlayers { get; set; }
         public int TotalChallenges { get; set; }
+        public int CompletedChallenges { get; set; }
         public int PendingChallenges { get; set; }
+        public int AcceptedChallenges { get; set; }
+        public int RejectedChallenges { get; set; }
         public int TotalPointsAwarded { get; set; }
+        public int TotalPointsFromChallenges { get; set; }
+        public int TotalPointsFromTournaments { get; set; }
+        public int TotalPointsFromClasses { get; set; }
+        public double AveragePointsPerPlayer { get; set; }
+        public double ChallengeAcceptanceRate { get; set; }
+        public double AveragePointsPerChallenge { get; set; }
         public Dictionary<string, int> PointsBySource { get; set; } = new();
     }
 }

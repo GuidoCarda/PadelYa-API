@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using padelya_api.Data;
 
@@ -11,9 +12,11 @@ using padelya_api.Data;
 namespace padelya_api.Migrations
 {
     [DbContext(typeof(PadelYaDbContext))]
-    partial class PadelYaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251213154252_AddConfigurationJsonToScoringRule")]
+    partial class AddConfigurationJsonToScoringRule
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1303,61 +1306,6 @@ namespace padelya_api.Migrations
                         });
                 });
 
-            modelBuilder.Entity("padelya_api.Models.Ecommerce.Cart", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("UserId1")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId")
-                        .IsUnique();
-
-                    b.HasIndex("UserId1")
-                        .IsUnique()
-                        .HasFilter("[UserId1] IS NOT NULL");
-
-                    b.ToTable("Carts");
-                });
-
-            modelBuilder.Entity("padelya_api.Models.Ecommerce.CartItem", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("CartId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("ProductId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Quantity")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CartId");
-
-                    b.HasIndex("ProductId");
-
-                    b.ToTable("CartItems");
-                });
-
             modelBuilder.Entity("padelya_api.Models.Ecommerce.Category", b =>
                 {
                     b.Property<int>("Id")
@@ -1365,9 +1313,6 @@ namespace padelya_api.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime2");
 
                     b.Property<string>("Description")
                         .IsRequired()
@@ -1431,70 +1376,29 @@ namespace padelya_api.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<DateTime>("CreatedAt")
+                    b.Property<DateTime>("OrderDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("PaymentStatus")
+                    b.Property<int?>("PaymentId")
                         .HasColumnType("int");
 
-                    b.Property<int>("PersonId")
+                    b.Property<int>("Status")
                         .HasColumnType("int");
-
-                    b.Property<string>("PreferenceId")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<decimal>("TotalAmount")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
-                    b.HasKey("Id");
-
-                    b.HasIndex("PersonId");
-
-                    b.ToTable("Orders");
-                });
-
-            modelBuilder.Entity("padelya_api.Models.Ecommerce.OrderAuditLog", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Action")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ChangeDetails")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("NewStatus")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("OldStatus")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("OrderId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("TimeStamp")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int?>("UserId")
+                    b.Property<int>("UserId")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("OrderId");
+                    b.HasIndex("PaymentId");
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("OrderAuditLogs");
+                    b.ToTable("Orders");
                 });
 
             modelBuilder.Entity("padelya_api.Models.Ecommerce.OrderItem", b =>
@@ -1898,9 +1802,6 @@ namespace padelya_api.Migrations
                     b.Property<int?>("LessonEnrollmentId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("OrderId")
-                        .HasColumnType("int");
-
                     b.Property<string>("PaymentMethod")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -1930,8 +1831,6 @@ namespace padelya_api.Migrations
                     b.HasIndex("LessonEnrollmentId")
                         .IsUnique()
                         .HasFilter("[LessonEnrollmentId] IS NOT NULL");
-
-                    b.HasIndex("OrderId");
 
                     b.HasIndex("TournamentEnrollmentId")
                         .IsUnique()
@@ -3577,64 +3476,20 @@ namespace padelya_api.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("padelya_api.Models.Ecommerce.Cart", b =>
-                {
-                    b.HasOne("padelya_api.Models.User", "User")
-                        .WithOne()
-                        .HasForeignKey("padelya_api.Models.Ecommerce.Cart", "UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("padelya_api.Models.User", null)
-                        .WithOne("Cart")
-                        .HasForeignKey("padelya_api.Models.Ecommerce.Cart", "UserId1");
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("padelya_api.Models.Ecommerce.CartItem", b =>
-                {
-                    b.HasOne("padelya_api.Models.Ecommerce.Cart", "Cart")
-                        .WithMany("Items")
-                        .HasForeignKey("CartId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("padelya_api.Models.Ecommerce.Product", "Product")
-                        .WithMany()
-                        .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Cart");
-
-                    b.Navigation("Product");
-                });
-
             modelBuilder.Entity("padelya_api.Models.Ecommerce.Order", b =>
                 {
-                    b.HasOne("padelya_api.Models.Person", "Person")
+                    b.HasOne("padelya_api.Models.Payment", "Payment")
                         .WithMany()
-                        .HasForeignKey("PersonId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Person");
-                });
-
-            modelBuilder.Entity("padelya_api.Models.Ecommerce.OrderAuditLog", b =>
-                {
-                    b.HasOne("padelya_api.Models.Ecommerce.Order", "Order")
-                        .WithMany()
-                        .HasForeignKey("OrderId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("PaymentId")
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("padelya_api.Models.User", "User")
                         .WithMany()
-                        .HasForeignKey("UserId");
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
-                    b.Navigation("Order");
+                    b.Navigation("Payment");
 
                     b.Navigation("User");
                 });
@@ -3761,15 +3616,9 @@ namespace padelya_api.Migrations
                         .WithOne("Payment")
                         .HasForeignKey("padelya_api.Models.Payment", "LessonEnrollmentId");
 
-                    b.HasOne("padelya_api.Models.Ecommerce.Order", "Order")
-                        .WithMany("Payments")
-                        .HasForeignKey("OrderId");
-
                     b.HasOne("padelya_api.Models.Tournament.TournamentEnrollment", null)
                         .WithOne("Payment")
                         .HasForeignKey("padelya_api.Models.Payment", "TournamentEnrollmentId");
-
-                    b.Navigation("Order");
                 });
 
             modelBuilder.Entity("padelya_api.Models.Repair.Repair", b =>
@@ -3985,11 +3834,6 @@ namespace padelya_api.Migrations
                     b.Navigation("Courts");
                 });
 
-            modelBuilder.Entity("padelya_api.Models.Ecommerce.Cart", b =>
-                {
-                    b.Navigation("Items");
-                });
-
             modelBuilder.Entity("padelya_api.Models.Ecommerce.Category", b =>
                 {
                     b.Navigation("Products");
@@ -3998,8 +3842,6 @@ namespace padelya_api.Migrations
             modelBuilder.Entity("padelya_api.Models.Ecommerce.Order", b =>
                 {
                     b.Navigation("OrderItems");
-
-                    b.Navigation("Payments");
                 });
 
             modelBuilder.Entity("padelya_api.Models.Ecommerce.Product", b =>
@@ -4037,11 +3879,6 @@ namespace padelya_api.Migrations
             modelBuilder.Entity("padelya_api.Models.Tournament.TournamentPhase", b =>
                 {
                     b.Navigation("Brackets");
-                });
-
-            modelBuilder.Entity("padelya_api.Models.User", b =>
-                {
-                    b.Navigation("Cart");
                 });
 
             modelBuilder.Entity("padelya_api.models.Lesson", b =>

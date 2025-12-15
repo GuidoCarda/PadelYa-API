@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using padelya_api.Models.Annual;
 using padelya_api.Services.Annual;
+using padelya_api.DTOs.Annual;
 using System.Text;
 
 namespace padelya_api.Controllers
@@ -50,6 +51,13 @@ namespace padelya_api.Controllers
             return Ok(rankingBasic);
         }
 
+        [HttpGet("status")]
+        public async Task<IActionResult> GetStatus([FromQuery] int year)
+        {
+            var status = await _service.GetStatusAsync(year);
+            return Ok(new { status });
+        }
+
         [HttpGet("statistics")]
         public async Task<IActionResult> GetStatistics([FromQuery] int year)
         {
@@ -58,6 +66,8 @@ namespace padelya_api.Controllers
         }
 
         [HttpPatch("status")]
+        [Microsoft.AspNetCore.Authorization.Authorize]
+        [padelya_api.Attributes.RequirePermission("ranking:manage")]
         public async Task<IActionResult> UpdateStatus([FromQuery] int year, [FromBody] AnnualTableStatus status)
         {
             var table = await _service.UpdateStatusAsync(year, status);
@@ -78,6 +88,40 @@ namespace padelya_api.Controllers
         {
             var saved = await _service.UpsertScoringRulesAsync(year, rules);
             return Ok(saved);
+        }
+
+        /// <summary>
+        /// Obtener reporte de tabla anual y desafíos con estadísticas y gráficos
+        /// </summary>
+        [HttpGet("report")]
+        [Microsoft.AspNetCore.Authorization.Authorize]
+        [padelya_api.Attributes.RequirePermission("ranking:view")]
+        public async Task<IActionResult> GetAnnualTableReport([FromQuery] string startDate, [FromQuery] string endDate)
+        {
+            try
+            {
+                if (!DateTime.TryParseExact(startDate, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var parsedStartDate))
+                {
+                    return BadRequest(new { message = "El formato de fecha inicial debe ser YYYY-MM-DD" });
+                }
+
+                if (!DateTime.TryParseExact(endDate, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var parsedEndDate))
+                {
+                    return BadRequest(new { message = "El formato de fecha final debe ser YYYY-MM-DD" });
+                }
+
+                if (parsedStartDate > parsedEndDate)
+                {
+                    return BadRequest(new { message = "La fecha inicial no puede ser mayor a la fecha final" });
+                }
+
+                var report = await _service.GetAnnualTableReportAsync(parsedStartDate, parsedEndDate);
+                return Ok(report);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = $"Error al generar reporte: {ex.Message}" });
+            }
         }
     }
 }

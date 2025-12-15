@@ -353,14 +353,16 @@ namespace padelya_api.Services
                     int points = basePoints;
                     if (config != null)
                     {
-                        points = placement switch
+                        // Configuration values are multipliers, not direct points
+                        float multiplier = placement switch
                         {
-                            1 => config.Category1ra ?? basePoints,      // Winner
-                            2 => config.Category2da ?? basePoints,      // Runner-up
-                            3 or 4 => config.Category3ra ?? basePoints, // Semi-finalists
-                            >= 5 and <= 8 => config.Category4ta ?? basePoints, // Quarter-finalists
-                            _ => config.Category5ta ?? 0                // Participants
+                            1 => config.Category1ra,      // Winner (default 2.0x)
+                            2 => config.Category2da,      // Runner-up (default 1.5x)
+                            3 or 4 => config.Category3ra, // Semi-finalists (default 1.2x)
+                            >= 5 and <= 8 => config.Category4ta, // Quarter-finalists (default 1.0x)
+                            _ => config.Category5ta       // Participants (default 0.8x)
                         };
+                        points = (int)(basePoints * multiplier);
                     }
 
                     // Award points to both players in the couple

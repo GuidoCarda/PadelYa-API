@@ -620,8 +620,10 @@ namespace padelya_api.Services
           // UPDATE STATUSES SEPARATELY
           order.PaymentStatus = LocalPaymentStatus.Approved;
           
-          // If we want to auto-move to Paid (Pagado)
-          order.Status = padelya_api.Constants.OrderStatus.Paid; 
+          // Use State pattern to transition to Paid
+          order.InitializeState();
+          order.MarkAsPaid();
+ 
 
           // REDUCE STOCK
           foreach(var item in order.OrderItems)

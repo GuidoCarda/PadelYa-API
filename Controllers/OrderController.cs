@@ -95,9 +95,34 @@ namespace padelya_api.Controllers
                 int? userId = userIdClaim != null && int.TryParse(userIdClaim.Value, out int uid) ? uid : null;
 
                 var result = await _orderService.UpdateOrderStatusAsync(id, statusDto.Status, userId, "Status updated by admin via API");
-                if (!result) return NotFound(new { message = "Pedido no encontrado" });
+                
+                if (!result)
+                {
+                    // El servicio retorna false cuando la transición es inválida
+                    return BadRequest(new { message = "Transición de estado inválida. Verifica el flujo de estados permitido." });
+                }
                 
                 return Ok(new { message = "Estado actualizado correctamente" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [HttpGet("admin/{id}/valid-transitions")]
+        [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Administrador,Admin")]
+        public async Task<IActionResult> GetValidTransitions(int id)
+        {
+            try
+            {
+                var order = await _orderService.GetOrderByIdAsync(id);
+                if (order == null) return NotFound(new { message = "Pedido no encontrado" });
+
+                // Query the State pattern for valid transitions (NOT hardcoded!)
+                var validTransitions = await _orderService.GetValidTransitionsAsync(id);
+
+                return Ok(new { currentStatus = order.Status.ToString().ToLower(), validTransitions });
             }
             catch (Exception ex)
             {

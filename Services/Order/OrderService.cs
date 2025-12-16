@@ -103,12 +103,67 @@ namespace padelya_api.Services.Order
             if (oldStatus == newStatus)
                 return true;
 
-            order.UpdateStatus(newStatus);
+            // Initialize state from DB before updating
+            order.InitializeState();
+            
+            try
+            {
+                switch (newStatus)
+                {
+                    case OrderStatus.Paid:
+                        order.MarkAsPaid();
+                        break;
+                    case OrderStatus.Progress:
+                        order.StartProcessing();
+                        break;
+                    case OrderStatus.PickUp:
+                        order.MarkAsReadyForPickup();
+                        break;
+                    case OrderStatus.Success:
+                        order.Complete();
+                        break;
+                    case OrderStatus.Cancelled:
+                        order.Cancel();
+                        break;
+                    default:
+                        throw new InvalidOperationException($"Cannot transition to {newStatus} from {oldStatus}");
+                }
+            }
+            catch (InvalidOperationException ex)
+            {
+                Console.WriteLine($"[OrderService] Invalid state transition: {ex.Message}");
+                return false;
+            }
 
             await LogAuditAsync(order, userId, "UpdateStatus", oldStatus.ToString(), newStatus.ToString(), changeDetails);
 
             await _context.SaveChangesAsync();
             return true;
+        }
+
+        public async Task<List<string>> GetValidTransitionsAsync(int orderId)
+        {
+            var order = await _context.Orders.FindAsync(orderId);
+            
+            if (order == null)
+                return new List<string>();
+
+            // Initialize state from DB
+            order.InitializeState();
+
+            // Query the State pattern for valid transitions
+            var validTransitions = new List<string>();
+            var allPossibleStates = new[] { "pending", "paid", "progress", "pickUp", "success", "cancelled" };
+
+            foreach (var state in allPossibleStates)
+            {
+                if (order.CanTransitionTo(state))
+                {
+                    validTransitions.Add(state);
+                }
+            }
+
+            return validTransitions;
         }
 
         private async Task LogAuditAsync(Models.Ecommerce.Order order, int? userId, string action, string? oldStatus = null, string? newStatus = null, string? changeDetails = null)

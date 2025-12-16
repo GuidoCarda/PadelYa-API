@@ -37,8 +37,6 @@ namespace padelya_api.Models.Ecommerce
 
         public Order()
         {
-            // Initialize based on Status property if needed, mostly for EF
-            // Logic to sync _currentState with Status would be in a method or property setter
             _currentState = GetStateFromStatus(Status);
         }
 
@@ -47,6 +45,7 @@ namespace padelya_api.Models.Ecommerce
             _currentState = state;
         }
 
+        // Automatic progression to next state
         public void AdvanceState()
         {
             // Sync state before advancing in case it was loaded from DB
@@ -58,16 +57,48 @@ namespace padelya_api.Models.Ecommerce
             _currentState.AdvanceState(this);
         }
 
-        public void UpdateStatus(OrderStatus newStatus)
+        // State-controlled transition methods (Pure State Pattern)
+        public void MarkAsPaid()
         {
-            Status = newStatus;
-            _currentState = GetStateFromStatus(Status);
+            _currentState.MarkAsPaid(this);
+        }
+
+        public void StartProcessing()
+        {
+            _currentState.StartProcessing(this);
+        }
+
+        public void MarkAsReadyForPickup()
+        {
+            _currentState.MarkAsReadyForPickup(this);
+        }
+
+        public void Complete()
+        {
+            _currentState.Complete(this);
+        }
+
+        public void Cancel()
+        {
+            _currentState.Cancel(this);
         }
 
         public string GetStatusName()
         {
              if (_currentState == null) _currentState = GetStateFromStatus(Status);
              return _currentState.GetStatusName();
+        }
+
+        public bool CanTransitionTo(string targetState)
+        {
+            if (_currentState == null) _currentState = GetStateFromStatus(Status);
+            return _currentState.CanTransitionTo(targetState);
+        }
+
+        // Initialize state from DB status (for EF Core)
+        public void InitializeState()
+        {
+            _currentState = GetStateFromStatus(Status);
         }
 
         private IOrderState GetStateFromStatus(OrderStatus status)
